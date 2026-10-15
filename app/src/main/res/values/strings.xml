@@ -1,4 +1,8 @@
 <resources>
+    <string name="update_available">New version available</string>
+    <string name="update_message">TuxWheel %1$s is available on GitHub.</string>
+    <string name="update_download">Download</string>
+    <string name="update_later">Later</string>
     <string name="third_party_licenses_title">Third-party software and licenses</string>
     <string name="third_party_license_read_error">Unable to open this license.</string>
     <string name="trip_delete_failed">Could not delete the trip file.</string>
