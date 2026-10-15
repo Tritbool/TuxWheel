@@ -38,7 +38,9 @@ class ProtocolSelectionDialogTest {
     @Before fun setup() {
         session = mockk(relaxed = true)
         every { session.getAvailableProtocols() } returns protocols
-        startKoin { modules(module { single { session } }) }
+        val config = mockk<AppConfig>(relaxed = true)
+        every { config.useEng } returns false
+        startKoin { modules(module { single { session }; single { config } }) }
         activity = Robolectric.buildActivity(MainActivity::class.java).get()
     }
 
