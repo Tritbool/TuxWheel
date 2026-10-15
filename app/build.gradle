@@ -30,7 +30,6 @@ android {
         versionCode 2
         versionName "0.0.2"
         buildConfigField "boolean", "ENABLE_GITHUB_UPDATES", enableGithubUpdates
-        manifestPlaceholders.githubInternetPermission = enableGithubUpdates == 'true' ? 'merge' : 'remove'
         vectorDrawables.useSupportLibrary = true
         multiDexEnabled true
         ksp {
