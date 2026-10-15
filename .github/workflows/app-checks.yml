@@ -22,12 +22,12 @@ jobs:
         with:
           persist-credentials: false
 
-      # 0.1.2 is not yet on Maven Central; pin the required BLE APIs from merged PR #76.
+      # 0.1.2 is not yet on Maven Central; pin the P6 BMS API from merged PR #79.
       - name: Checkout BLE library
         uses: actions/checkout@v4
         with:
           repository: Tritbool/euc_ble_library
-          ref: 62524e5e1af92da5f53ccea6543b281649e5be73
+          ref: c371d75a62c9f3b3450c331199308e72300a2ff5
           path: .ci/euc-ble-library
           persist-credentials: false
 

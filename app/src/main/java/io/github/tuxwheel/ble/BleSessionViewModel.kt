@@ -892,6 +892,8 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
      */
     @MainThread
     private fun applyBmsPackData(bms: SmartBms, fields: BmsFieldPresence, pack: BMSData) {
+        pack.serialNumber?.takeIf { it.isNotBlank() }?.let { bms.serialNumber = it }
+        pack.firmwareVersion?.takeIf { it.isNotBlank() }?.let { bms.versionNumber = it }
         pack.voltage?.let { bms.voltage = it; fields.voltage = true }
         pack.current?.let { bms.current = it; fields.current = true }
 

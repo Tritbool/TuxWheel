@@ -41,8 +41,18 @@ class BmsSessionTest {
     private lateinit var model: BleSessionViewModel
     private val client = mockk<EucBleClient>(relaxed = true)
     private var packs: List<BMSData>? = null
-    private fun pack(index: Int, cells: List<Double>?, voltage: Double? = null, temps: List<Double>? = null, current: Double? = null) =
-        BMSData(index, voltage, current, null, null, null, temps, cells)
+    private fun pack(
+        index: Int,
+        cells: List<Double>?,
+        voltage: Double? = null,
+        temps: List<Double>? = null,
+        current: Double? = null,
+        serialNumber: String? = null,
+        firmwareVersion: String? = null
+    ) = BMSData(
+        index, voltage, current, null, null, null, temps, cells,
+        serialNumber = serialNumber, firmwareVersion = firmwareVersion
+    )
     private fun data(timestamp: Long = 1) = EUCData(
         speed = 0.0, voltage = 100.0, current = -2.0, temperature = 25.0, batteryLevel = 80,
         distance = 0.0, power = 0.0, timestamp = timestamp, rawData = byteArrayOf(),
@@ -206,6 +216,29 @@ class BmsSessionTest {
         assertThat(snapshot.second.cells.take(2)).containsExactly(3.7, 3.8).inOrder()
         assertThat(snapshot.first.fields[R.string.bmsVoltage]).isEqualTo("100.10 V")
         assertThat(snapshot.second.fields[R.string.bmsVoltage]).isEqualTo("99.20 V")
+    }
+
+    @Test fun `per pack serial number and firmware map independently and survive partial snapshots`() {
+        packs = listOf(
+            pack(1, null, serialNumber = "P6-PACK-1", firmwareVersion = "2.2.76"),
+            pack(2, null, serialNumber = "P6-PACK-2", firmwareVersion = "2.2.77")
+        )
+        publish(manufacturer = "Inmotion", wheelModel = "P6")
+
+        val first = model.bmsDisplay.value
+        assertThat(first.first.fields[R.string.bmsSn]).isEqualTo("P6-PACK-1")
+        assertThat(first.first.fields[R.string.bmsFw]).isEqualTo("2.2.76")
+        assertThat(first.second.fields[R.string.bmsSn]).isEqualTo("P6-PACK-2")
+        assertThat(first.second.fields[R.string.bmsFw]).isEqualTo("2.2.77")
+
+        packs = listOf(pack(1, null), pack(2, null, serialNumber = ""))
+        publish(2, manufacturer = "Inmotion", wheelModel = "P6")
+
+        val partial = model.bmsDisplay.value
+        assertThat(partial.first.fields[R.string.bmsSn]).isEqualTo("P6-PACK-1")
+        assertThat(partial.first.fields[R.string.bmsFw]).isEqualTo("2.2.76")
+        assertThat(partial.second.fields[R.string.bmsSn]).isEqualTo("P6-PACK-2")
+        assertThat(partial.second.fields[R.string.bmsFw]).isEqualTo("2.2.77")
     }
 
     @Test fun `never supplied fields refresh telemetry while supplied fields survive partial packets and reset independently`() {
