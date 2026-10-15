@@ -378,8 +378,7 @@ class MainActivity : AppCompatActivity() {
         val labels = buildProtocolLabels(candidates)
 
         protocolSelectionDialog = AlertDialog.Builder(this, R.style.OriginalTheme_Dialog_Alert)
-            .setTitle(R.string.protocol_select_title)
-            .setMessage(R.string.protocol_auto_detection_failed)
+            .setCustomTitle(layoutInflater.inflate(R.layout.dialog_protocol_title, null))
             .setItems(labels) { _, which ->
                 val selectedId = candidates[which].javaClass.simpleName
                 Timber.i("User manually selected protocol: %s", selectedId)
