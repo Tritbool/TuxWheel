@@ -18,11 +18,13 @@ import org.xmlpull.v1.XmlPullParser
 class PrivacyConfigurationTest {
     private val application = ApplicationProvider.getApplicationContext<Application>()
 
-    @Test fun `merged manifest has no Internet permission but retains BLE and logging permissions`() {
+    @Test fun `merged manifest gates Internet on update channel and retains BLE and logging permissions`() {
         val permissions = application.packageManager.getPackageInfo(
             application.packageName, PackageManager.GET_PERMISSIONS
         ).requestedPermissions.orEmpty().toList()
-        assertThat(permissions).doesNotContain(Manifest.permission.INTERNET)
+        assertThat(permissions.contains(Manifest.permission.INTERNET))
+            .isEqualTo(BuildConfig.ENABLE_GITHUB_UPDATES)
+        assertThat(permissions).doesNotContain(Manifest.permission.REQUEST_INSTALL_PACKAGES)
         assertThat(permissions).contains(Manifest.permission.FOREGROUND_SERVICE)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             assertThat(permissions).containsAtLeast(

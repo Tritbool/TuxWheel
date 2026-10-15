@@ -9,6 +9,11 @@ plugins {
     alias(libs.plugins.license.report)
 }
 
+def enableGithubUpdates = providers.gradleProperty('enableGithubUpdates').orElse('true').get()
+if (!(enableGithubUpdates in ['true', 'false'])) {
+    throw new GradleException('enableGithubUpdates must be true or false')
+}
+
 android {
     compileSdk 37
 
@@ -24,6 +29,8 @@ android {
         targetSdk 36
         versionCode 1
         versionName "0.0.1"
+        buildConfigField "boolean", "ENABLE_GITHUB_UPDATES", enableGithubUpdates
+        manifestPlaceholders.githubInternetPermission = enableGithubUpdates == 'true' ? 'merge' : 'remove'
         vectorDrawables.useSupportLibrary = true
         multiDexEnabled true
         ksp {

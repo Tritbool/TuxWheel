@@ -27,14 +27,35 @@ N.B: Bluetooth stack relies on retro-engineering so some readings or commands ca
 - NO ads
 - NO data collection
 
-The merged app manifest removes Internet permission, including declarations
-from libraries. Source/help links open in your chosen browser; sharing opens
-your chosen app, neither of which needs network access inside TuxWheel.
+Core BLE, dashboard and logging features work offline. Upstream release builds
+use Internet permission to check GitHub's latest stable release at startup, at
+most once per 24 hours (including failed attempts). GitHub receives the network
+request, including your IP address; no ride data is uploaded. Network failures
+are silent. A newer stable version offers **Download** (opens the release APK
+in your browser) or **Later**; TuxWheel does not download or install APKs itself.
+Debug builds do not check for release APKs with a different application ID.
+Source/help links open in your chosen browser; sharing opens your chosen app.
 Automatic Android cloud backup and device-transfer extraction of app data are
 disabled. This does not delete existing backups or protect public Downloads
 files from other apps, device-owner tools, or a user's own backup software.
 Export any data you need before uninstalling: settings will not restore
 automatically.
+
+### Distribution channels and update checks
+
+Build with `-PenableGithubUpdates=false` to disable GitHub checks and remove
+Internet permission, including library declarations. The default is `true`.
+**F-Droid and other independently signed distributions must set this property**
+for every build, including APKs that users might sideload. For example:
+`./gradlew :app:assembleRelease -PenableGithubUpdates=false`.
+Use the same property when running tests/lint for that channel.
+
+Installer detection additionally suppresses checks for the official F-Droid
+client/privileged installer and several alternative F-Droid clients. It is only
+a fallback: sideloads can have no installer identity, and unknown clients cannot
+be reliably identified. There is no upstream signing-certificate pin; Android
+enforces signing compatibility at installation, but the build flag is essential
+to avoid offering incompatible upstream APKs to independently signed builds.
 
 Debug builds log to logcat, not automatically to public HTML files. Ride CSV
 logging and optional raw BLE diagnostics remain explicit app features; they can
@@ -330,7 +351,8 @@ background logging. None is an F-Droid incompatibility; they remain in place.
 The earlier cleanup removed unused proprietary Samsung SDK binaries, unrelated
 WheelLog consent, unsolicited debug HTML files and dead feature remnants.
 No runtime analytics SDK, account service or automatic uploader was found.
-Internet access and automatic app backup are disabled.
+Automatic app backup is disabled. F-Droid builds must disable GitHub updates
+and Internet permission with the distribution property above.
 
 The remaining verification is operational: a clean release build and F-Droid's
 dependency/scanner checks on the tagged source. The local AGP resolution failure
@@ -345,15 +367,20 @@ binary verification, not a prerequisite for ordinary F-Droid-built/signed APKs.
    below for the listing. Metadata alone is not F-Droid approval.
 2. Publish a **new** release after these changes are merged. The existing
    `0.0.1` tag predates this preparation and will not expose this metadata.
-   Increment `versionCode` and `versionName` together, add the matching
-   localized changelogs, and tag that exact commit. Do not move an existing tag.
+   For every release, increment `versionCode` and `versionName` together, add the
+   matching localized changelogs, and tag that exact commit with `versionName`
+   (an optional `v` prefix is supported). Use numeric stable versions such as
+   `1.2.3` and attach the upstream-signed APK to the GitHub release. Drafts,
+   prereleases and nonnumeric versions are not offered by the updater.
+   Do not move an existing tag.
 3. In a separate fork of [fdroiddata](https://gitlab.com/fdroid/fdroiddata),
    prepare `metadata/io.github.tuxwheel.yml`: use this repository as `Repo`,
    `RepoType: git`, the confirmed GPL-3.0 license identifier, `subdir: app`,
    `gradle: [yes]`, and the new release tag as the build `commit`. Match the
    release's version name/code and select a build environment supporting the
    checked-in Gradle/JDK/Android SDK requirements. Configure tag-based update
-   checks to match the project's release-tag convention.
+   checks to match the project's release-tag convention. Ensure every F-Droid
+   build passes `-PenableGithubUpdates=false`, including sideloadable APKs.
 4. In that fdroiddata checkout, run `fdroid readmeta`, `fdroid rewritemeta
    io.github.tuxwheel`, `fdroid lint io.github.tuxwheel`, and
    `fdroid build --verbose io.github.tuxwheel`. Resolve scanner/build findings

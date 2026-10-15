@@ -100,6 +100,7 @@ class MainActivity : AppCompatActivity() {
     // Dialog shown when protocol auto-detection fails
     private var protocolSelectionDialog: AlertDialog? = null
     private var wheelPasswordDialog: AlertDialog? = null
+    private var githubUpdates: GithubUpdatePrompt? = null
 
     // Last BLE error already reported to the user, to avoid repeating the same snackbar
     private var lastShownError: String? = null
@@ -134,6 +135,7 @@ class MainActivity : AppCompatActivity() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
             togglePipView(show = isInPictureInPictureMode)
+            githubUpdates?.refreshVisibility()
         }
     }
 
@@ -505,6 +507,7 @@ class MainActivity : AppCompatActivity() {
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        githubUpdates = GithubUpdatePrompt(this).also { it.start() }
         binding.settingsView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
         binding.pipView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
 
