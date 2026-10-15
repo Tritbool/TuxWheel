@@ -15,6 +15,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -54,7 +55,7 @@ fun ScanScreen(
         }
     }
     val titleStyle = TextStyle(
-        color = Color(title.currentTextColor),
+        color = MaterialTheme.colorScheme.onSurface,
         fontSize = with(density) { title.textSize.toSp() },
         platformStyle = PlatformTextStyle(includeFontPadding = true)
     )

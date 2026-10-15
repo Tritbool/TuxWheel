@@ -37,6 +37,7 @@ import androidx.compose.ui.window.*
 import io.github.tuxwheel.AppConfig
 import io.github.tuxwheel.R
 import io.github.tuxwheel.TuxWheel
+import io.github.tuxwheel.ui.theme.AppTheme
 import io.github.tuxwheel.utils.ThemeEnum
 import io.github.tuxwheel.utils.ThemeIconEnum
 import io.github.tuxwheel.utils.ThemeManager
@@ -913,11 +914,27 @@ fun loginAlertDialog(
     var errorMessage by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     var passwordVisible by rememberSaveable { mutableStateOf(false) }
+
+    val fieldColors = TextFieldDefaults.colors(
+        focusedContainerColor = MaterialTheme.colorScheme.surface,
+        unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+        errorContainerColor = MaterialTheme.colorScheme.surface,
+
+        focusedTextColor = MaterialTheme.colorScheme.onSurface,
+        unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+        errorTextColor = MaterialTheme.colorScheme.onSurface,
+
+        focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        errorPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+
     val body = @Composable {
         Column {
             TextField(
                 value = login,
                 modifier = Modifier.fillMaxWidth(),
+                colors = fieldColors,
                 singleLine = true,
                 onValueChange = {
                     isLoginError = !Patterns.EMAIL_ADDRESS.matcher(it).matches()
@@ -952,6 +969,7 @@ fun loginAlertDialog(
             TextField(
                 value = password,
                 modifier = Modifier.fillMaxWidth(),
+                colors = fieldColors,
                 singleLine = true,
                 onValueChange = { password = it },
                 placeholder = { Text(passwordPlaceholder) },
@@ -1187,13 +1205,17 @@ private fun multiListPreview(appConfig: AppConfig = koinInject()) {
 
 @Preview
 @Composable
-fun loginAlertDialogPreview(appConfig: AppConfig = koinInject()) {
-    loginAlertDialog(
-        title = "Login Preview 3",
-        onDismiss = { }
-    ) { login, password ->
-        suspendCoroutine {
-            it.resume(Pair(login == "test" || password == "test", "Type 'test' as login"))
-        }
+fun loginAlertDialogPreview() {
+    AppTheme() {
+        loginAlertDialog(
+            title = "Login Preview 3",
+            onDismiss = {},
+            onConfirm = { login, password ->
+                Pair(
+                    login == "test" || password == "test",
+                    "Type 'test' as login"
+                )
+            }
+        )
     }
 }

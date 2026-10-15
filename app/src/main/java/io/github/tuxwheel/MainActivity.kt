@@ -88,6 +88,7 @@ class MainActivity : AppCompatActivity() {
     private var doubleBackToExitPressedOnce = false
     private var snackbar: Snackbar? = null
     private val speedModel: PiPView.SpeedModel by lazy { PiPView.SpeedModel() }
+
     // Shared app-wide singleton (see bleModule); must use `inject()`, not `viewModel()`.
     private val viewModel: BleSessionViewModel by inject()
     private var settingsNavHostController: NavHostController? = null
@@ -128,8 +129,7 @@ class MainActivity : AppCompatActivity() {
     //endregion
 
     override fun onPictureInPictureModeChanged(
-        isInPictureInPictureMode: Boolean,
-        newConfig: Configuration
+        isInPictureInPictureMode: Boolean, newConfig: Configuration
     ) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
@@ -154,10 +154,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        if (appConfig.usePipMode
-            && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
-            && !this.isInPictureInPictureMode
-        ) {
+        if (appConfig.usePipMode && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !this.isInPictureInPictureMode) {
             when (appConfig.pipBlock) {
                 getString(R.string.consumption) -> speedModel.title =
                     getString(R.string.consumption)
@@ -166,9 +163,7 @@ class MainActivity : AppCompatActivity() {
             }
             try {
                 this.enterPictureInPictureMode(
-                    PictureInPictureParams.Builder()
-                        .setAspectRatio(Rational(16, 9))
-                        .build()
+                    PictureInPictureParams.Builder().setAspectRatio(Rational(16, 9)).build()
                 )
             } catch (e: RuntimeException) {
                 Toast.makeText(this, R.string.pip_failed, Toast.LENGTH_SHORT).show()
@@ -224,18 +219,13 @@ class MainActivity : AppCompatActivity() {
             setConnectionState(state.connectionState)
 
             // Notify logging service of connection state change
-            val blessedState = if (state.isConnected)
-                BLEConstants.ConnectionState.CONNECTED
-            else
-                BLEConstants.ConnectionState.DISCONNECTED
+            val blessedState = if (state.isConnected) BLEConstants.ConnectionState.CONNECTED
+            else BLEConstants.ConnectionState.DISCONNECTED
             loggingService?.updateConnectionState(blessedState)
 
             when (state.connectionState) {
                 BLEConstants.ConnectionState.CONNECTED -> {
-                    if (!LoggingService.isInstanceCreated() &&
-                        appConfig.autoLog &&
-                        appConfig.startAutoLoggingWhenIsMovingMore == 0f
-                    ) {
+                    if (!LoggingService.isInstanceCreated() && appConfig.autoLog && appConfig.startAutoLoggingWhenIsMovingMore == 0f) {
                         toggleLoggingService()
                     }
                     notifications.notificationMessageId = R.string.connected
@@ -285,11 +275,7 @@ class MainActivity : AppCompatActivity() {
             notifications.update()
 
             // Auto-start logging when moving
-            if (!LoggingService.isInstanceCreated() &&
-                appConfig.startAutoLoggingWhenIsMovingMore != 0f &&
-                appConfig.autoLog &&
-                viewModel.speedDouble > appConfig.startAutoLoggingWhenIsMovingMore
-            ) {
+            if (!LoggingService.isInstanceCreated() && appConfig.startAutoLoggingWhenIsMovingMore != 0f && appConfig.autoLog && viewModel.speedDouble > appConfig.startAutoLoggingWhenIsMovingMore) {
                 toggleLoggingService()
             }
 
@@ -326,9 +312,12 @@ class MainActivity : AppCompatActivity() {
 
     @Suppress("MissingPermission")
     private fun showWheelPasswordDialog(retry: Boolean) {
-        val input = android.widget.EditText(this).apply {
-            inputType = android.text.InputType.TYPE_CLASS_NUMBER or
-                android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
+
+        val builder = AlertDialog.Builder(this, R.style.OriginalTheme_Dialog_Alert)
+
+        val input = android.widget.EditText(builder.context).apply {
+            inputType =
+                android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD
             isSingleLine = true
             isSaveEnabled = false
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -336,14 +325,11 @@ class MainActivity : AppCompatActivity() {
             }
             hint = getString(R.string.password)
         }
-        val dialog = AlertDialog.Builder(this, R.style.OriginalTheme_Dialog_Alert)
-            .setTitle(R.string.wheel_password_title)
+        val dialog = builder.setTitle(R.string.wheel_password_title)
             .setMessage(if (retry) R.string.wheel_password_retry else R.string.wheel_password_message)
-            .setView(input)
-            .setPositiveButton(android.R.string.ok, null)
+            .setView(input).setPositiveButton(android.R.string.ok, null)
             .setNegativeButton(android.R.string.cancel) { _, _ -> viewModel.submitWheelPassword("") }
-            .setCancelable(false)
-            .create()
+            .setCancelable(false).create()
         dialog.setOnDismissListener {
             input.text.clear()
             wheelPasswordDialog = null
@@ -384,13 +370,10 @@ class MainActivity : AppCompatActivity() {
                 Timber.i("User manually selected protocol: %s", selectedId)
                 viewModel.selectProtocol(selectedId)
                 protocolSelectionDialog = null
-            }
-            .setNegativeButton(R.string.protocol_cancel) { _, _ ->
+            }.setNegativeButton(R.string.protocol_cancel) { _, _ ->
                 viewModel.dismissProtocolSelection()
                 protocolSelectionDialog = null
-            }
-            .setCancelable(false)
-            .show()
+            }.setCancelable(false).show()
     }
 
     private fun buildProtocolLabels(candidates: List<EUCProtocol>): Array<String> {
@@ -479,8 +462,11 @@ class MainActivity : AppCompatActivity() {
             eventsLoggingTree = EventsLoggingTree(applicationContext)
             Timber.plant(eventsLoggingTree!!)
         }
-        containerRenderer = MainContainerRenderer(binding, pagerAdapter,
-            savedInstanceState?.takeIf { it.containsKey("mainSelectedPage") }?.getInt("mainSelectedPage"))
+        containerRenderer = MainContainerRenderer(
+            binding,
+            pagerAdapter,
+            savedInstanceState?.takeIf { it.containsKey("mainSelectedPage") }
+                ?.getInt("mainSelectedPage"))
         containerRenderer?.render()
     }
 
@@ -501,8 +487,7 @@ class MainActivity : AppCompatActivity() {
                     doubleBackToExitPressedOnce = true
                     showSnackBar(R.string.back_to_exit)
                     Handler(Looper.getMainLooper()).postDelayed(
-                        { doubleBackToExitPressedOnce = false },
-                        2000
+                        { doubleBackToExitPressedOnce = false }, 2000
                     )
                 }
             }
@@ -645,8 +630,7 @@ class MainActivity : AppCompatActivity() {
     override fun onRestoreInstanceState(savedInstanceState: Bundle) {
         super.onRestoreInstanceState(savedInstanceState)
         val ordinal = savedInstanceState.getInt(
-            "connectionState",
-            BLEConstants.ConnectionState.DISCONNECTED.ordinal
+            "connectionState", BLEConstants.ConnectionState.DISCONNECTED.ordinal
         )
         mConnectionState =
             BLEConstants.ConnectionState.entries.getOrElse(ordinal) { BLEConstants.ConnectionState.DISCONNECTED }
@@ -760,7 +744,8 @@ class MainActivity : AppCompatActivity() {
                             object : CountDownTimer(AUTO_DISMISS_MILLIS.toLong(), 100) {
                                 override fun onTick(millisUntilFinished: Long) {
                                     defaultButton.text = String.format(
-                                        Locale.getDefault(), "%s (%d)",
+                                        Locale.getDefault(),
+                                        "%s (%d)",
                                         negativeButtonText,
                                         TimeUnit.MILLISECONDS.toSeconds(millisUntilFinished) + 1
                                     )
@@ -803,16 +788,10 @@ class MainActivity : AppCompatActivity() {
             binding.settingsView.apply {
                 alpha = 0f
                 visibility = View.VISIBLE
-                animate()
-                    .alpha(1f)
-                    .setDuration(300)
-                    .setListener(null)
+                animate().alpha(1f).setDuration(300).setListener(null)
             }
         } else {
-            binding.settingsView
-                .animate()
-                .alpha(0f)
-                .setDuration(300)
+            binding.settingsView.animate().alpha(0f).setDuration(300)
                 .setListener(object : AnimatorListenerAdapter() {
                     override fun onAnimationEnd(animation: Animator) {
                         binding.settingsView.visibility = View.GONE
@@ -823,8 +802,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
-        return when (keyCode) {
-            /*            KeyEvent.KEYCODE_BACK -> {
+        return when (keyCode) {/*            KeyEvent.KEYCODE_BACK -> {
                             if (binding.settingsView.visibility == View.VISIBLE) {
                                 if (settingsNavHostController != null) {
                                     if (settingsNavHostController?.previousBackStackEntry == null) {
@@ -861,8 +839,7 @@ class MainActivity : AppCompatActivity() {
     private fun showSnackBar(msg: String?, timeout: Int = 2000) {
         if (!isPaused) {
             if (snackbar == null) {
-                snackbar = Snackbar
-                    .make(binding.mainView, "", Snackbar.LENGTH_LONG).apply {
+                snackbar = Snackbar.make(binding.mainView, "", Snackbar.LENGTH_LONG).apply {
                         view.setBackgroundResource(R.color.primary_dark)
                         setAction(android.R.string.ok) { }
                     }
@@ -972,9 +949,7 @@ class MainActivity : AppCompatActivity() {
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     override fun onRequestPermissionsResult(
-        requestCode: Int,
-        permissions: Array<String>,
-        grantResults: IntArray
+        requestCode: Int, permissions: Array<String>, grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == RESULT_REQUEST_PERMISSIONS_BT) {
@@ -1005,10 +980,8 @@ class MainActivity : AppCompatActivity() {
                 Constants.NOTIFICATION_BUTTON_BEEP -> playBeep()
                 Constants.NOTIFICATION_BUTTON_LIGHT -> toggleLight()
                 Constants.ACTION_LOGGING_SERVICE_TOGGLED -> {
-                    val isRunning =
-                        intent.getBooleanExtra(Constants.INTENT_EXTRA_IS_RUNNING, false)
-                    val path =
-                        intent.getStringExtra(Constants.INTENT_EXTRA_LOGGING_FILE_LOCATION)
+                    val isRunning = intent.getBooleanExtra(Constants.INTENT_EXTRA_IS_RUNNING, false)
+                    val path = intent.getStringExtra(Constants.INTENT_EXTRA_LOGGING_FILE_LOCATION)
                     if (isRunning && !path.isNullOrEmpty()) {
                         showSnackBar("${getString(R.string.started_logging)} $path")
                     }
@@ -1036,7 +1009,12 @@ class MainActivity : AppCompatActivity() {
                 val mac = result.data?.getStringExtra("MAC") ?: ""
                 val name = result.data?.getStringExtra("NAME") ?: ""
                 val protocolId = result.data?.getStringExtra("PROTOCOL_ID")
-                Timber.i("Device selected MAC = %s, Name = %s, Protocol = %s", mac, name, protocolId ?: "auto")
+                Timber.i(
+                    "Device selected MAC = %s, Name = %s, Protocol = %s",
+                    mac,
+                    name,
+                    protocolId ?: "auto"
+                )
                 viewModel.fullReset()
                 pagerAdapter.updateScreen(true)
                 setMenuIconStates()

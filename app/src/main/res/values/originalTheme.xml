@@ -17,12 +17,22 @@
         <item name="android:popupMenuStyle">@style/OriginalTheme.PopupMenuStyle</item>
     </style>
 
-    <style name="OriginalTheme.Dialog.Alert" parent="Theme.MaterialComponents.Light.Dialog.Alert">
+    <style name="OriginalDialogInput" parent="Widget.AppCompat.EditText">
+        <item name="android:textColor">#FF000000</item>
+        <item name="android:textColorHint">#FF666666</item>
+    </style>
+
+    <style name="OriginalTheme.Dialog.Alert" parent="Theme.MaterialComponents.DayNight.Dialog.Alert">
         <item name="android:windowBackground">@color/alert_bg</item>
         <item name="textColorAlertDialogListItem">@color/primary_dark</item>
         <item name="android:textColor">@color/primary_dark</item>
+        <item name="editTextStyle">@style/OriginalDialogInput</item>
+        <item name="android:editTextStyle">@style/OriginalDialogInput</item>
         <item name="android:textColorAlertDialogListItem">@color/primary_dark</item>
         <item name="editTextColor">@color/primary_dark</item>
+        <item name="android:editTextColor">@color/primary_dark</item>
+        <item name="android:textColorHint">@color/primary_dark</item>
+        <item name="colorOnSurface">@color/primary_dark</item>
         <item name="android:textColorPrimary">@color/primary_dark</item>
         <item name="android:textColorSecondary">@color/primary_dark</item>
         <item name="colorControlNormal">@color/primary_dark</item>
@@ -39,6 +49,7 @@
         <item name="popupMenuStyle">@style/OriginalTheme.PopupMenuStyle</item>
         <item name="android:popupMenuStyle">@style/OriginalTheme.PopupMenuStyle</item>
     </style>
+
 
     <style name="OriginalTheme.ButtonStyle" parent="@style/Widget.MaterialComponents.Button">
         <item name="android:textSize">16sp</item>
