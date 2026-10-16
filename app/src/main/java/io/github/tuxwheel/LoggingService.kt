@@ -7,6 +7,7 @@ import android.app.Service
 import android.content.*
 import android.content.pm.ServiceInfo
 import android.os.Binder
+import android.os.PowerManager
 import android.os.Build
 import android.os.Environment
 import android.os.IBinder
@@ -47,6 +48,7 @@ class LoggingService : Service() {
     private var bmsFileUtil: FileUtil? = null
     private var lastBmsSignature: String? = null
     private var lastBmsWriteTimestamp: Long = 0L
+    private var wakeLock: PowerManager.WakeLock? = null
 
     fun updateConnectionState(connectionState: BLEConstants.ConnectionState) {
         if (connectionState != BLEConstants.ConnectionState.CONNECTED) {
@@ -70,6 +72,7 @@ class LoggingService : Service() {
         // Must happen within a few seconds of startForegroundService(), otherwise Android
         // kills the service with ForegroundServiceDidNotStartInTimeException.
         startAsForeground()
+        acquireWakeLock()
         if (!logStarted) {
             if (!startLogging()) {
                 stopSelf()
@@ -80,6 +83,25 @@ class LoggingService : Service() {
             observeRawTraffic()
         }
         return START_STICKY
+    }
+
+    /**
+     * Holds a partial wake lock while a session is being logged. Without it the OS
+     * defers coroutine timers when the screen is off (Doze / OEM battery managers),
+     * which was observed as 10-76s pauses in BLE polling and therefore in the CSV.
+     */
+    private fun acquireWakeLock() {
+        val powerManager = getSystemService(Context.POWER_SERVICE) as? PowerManager ?: return
+        wakeLock = powerManager.newWakeLock(
+            PowerManager.PARTIAL_WAKE_LOCK,
+            "TuxWheel:LoggingService"
+        ).apply { setReferenceCounted(false) }
+        wakeLock?.acquire()
+    }
+
+    private fun releaseWakeLock() {
+        wakeLock?.let { if (it.isHeld) it.release() }
+        wakeLock = null
     }
 
     private fun startAsForeground() {
@@ -102,7 +124,7 @@ class LoggingService : Service() {
      * Prepares (or reopens) the CSV file. Returns false when logging cannot be started.
      */
     private fun startLogging(): Boolean {
-        var file = FileUtil(applicationContext)
+        var file = FileUtil(applicationContext, buffered = true)
         fileUtil = file
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
             if (!checkExternalFilePermission(this)) {
@@ -332,6 +354,7 @@ class LoggingService : Service() {
     override fun onDestroy() {
         viewModel.rawTraffic.stop()
         ioState.cancel()
+        releaseWakeLock()
         val path = fileUtil?.absolutePath
         rawLoggingJob?.cancel()
         rawLoggingJob = null
