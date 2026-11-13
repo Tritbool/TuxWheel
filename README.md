@@ -78,8 +78,9 @@ are not deleted by this cleanup.
 - Speed, battery, temperature, current, PWM, and other available telemetry.
 - Configurable alarms and charts; optional trips and events pages.
 - Smart BMS presentation with per-pack measurements and cell details when available.
-  Gotway/Begode smart BMS wheels show their reported groups independently; swipe
-  horizontally to see additional groups.
+  All packs/groups share one page: they sit side by side when space allows and
+  stack vertically on narrower screens. Scroll vertically for additional packs
+  and cell details; swipe horizontally to reach charts and other pages.
 - CSV ride logging through a foreground service, plus optional raw BLE diagnostics.
 - Picture-in-picture (PiP) on supported Android versions.
 - Configurable speed/distance and temperature units.

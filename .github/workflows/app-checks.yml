@@ -43,4 +43,4 @@ jobs:
         run: bash ./gradlew :euc-ble-core:publishToMavenLocal --no-daemon
 
       - name: Run unit tests and lint
-        run: ./gradlew :app:testDebugUnitTest --tests io.github.tuxwheel.ble.BmsLabCaptureTest --tests io.github.tuxwheel.bms.BmsSessionTest :app:lintDebug --no-daemon
+        run: ./gradlew :app:testDebugUnitTest --tests io.github.tuxwheel.ble.BmsLabCaptureTest --tests io.github.tuxwheel.bms.BmsSessionTest --tests io.github.tuxwheel.bms.SmartBmsScreenTest :app:lintDebug --no-daemon
