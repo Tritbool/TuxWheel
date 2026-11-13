@@ -2,6 +2,7 @@ package io.github.tuxwheel
 
 import io.github.tuxwheel.ble.BleSessionViewModel
 import io.github.tuxwheel.ble.RawTrafficRecord
+import io.github.tuxwheel.ble.BmsLabWriter
 
 import android.app.Service
 import android.content.*
@@ -11,6 +12,8 @@ import android.os.PowerManager
 import android.os.Build
 import android.os.Environment
 import android.os.IBinder
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import android.widget.Toast
 import io.github.tuxwheel.data.TripDao
@@ -48,6 +51,7 @@ class LoggingService : Service() {
 
     private var bmsFileUtil: FileUtil? = null
     private var lastBmsWriteElapsed: Long? = null
+    private val bmsLabScope = CoroutineScope(Dispatchers.IO + Job())
     private var wakeLock: PowerManager.WakeLock? = null
 
     fun updateConnectionState(connectionState: BLEConstants.ConnectionState) {
@@ -81,6 +85,7 @@ class LoggingService : Service() {
             logStarted = true
             observeTelemetry()
             observeRawTraffic()
+            observeBmsLabFrames()
         }
         return START_STICKY
     }
@@ -245,6 +250,55 @@ class LoggingService : Service() {
         }
     }
 
+    private fun observeBmsLabFrames() {
+        val mainHandler = Handler(Looper.getMainLooper())
+        val frames = viewModel.bmsLabCapture.start {
+            mainHandler.post { showToast(R.string.bms_lab_dropped) }
+        }
+        bmsLabScope.launch {
+            var file: FileUtil? = null
+            var writer: BmsLabWriter? = null
+            var address: String? = null
+            var lastFlush = SystemClock.elapsedRealtime()
+            try {
+                for (frame in frames) {
+                    if (frame.address != address) {
+                        writer?.close()
+                        file?.close()
+                        val nextFile = FileUtil(applicationContext, buffered = true)
+                        val formatter = SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSS", Locale.US)
+                        val filename = "${formatter.format(Date())}.bms.jsonl.gz"
+                        check(nextFile.prepareFile(filename, frame.address)) {
+                            "Unable to create BMS lab file"
+                        }
+                        file = nextFile
+                        writer = BmsLabWriter(checkNotNull(nextFile.outputStream))
+                        address = frame.address
+                    }
+                    writer!!.write(frame)
+                    val now = SystemClock.elapsedRealtime()
+                    if (now - lastFlush >= 1_000L) {
+                        writer.flush()
+                        lastFlush = now
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "BMS lab capture failed")
+                viewModel.bmsLabCapture.stop(frames)
+                mainHandler.post { showToast(R.string.bms_lab_error) }
+            } finally {
+                try {
+                    writer?.close()
+                    file?.close()
+                } catch (e: Exception) {
+                    Timber.e(e, "Unable to finish BMS lab file")
+                    mainHandler.post { showToast(R.string.bms_lab_error) }
+                }
+                bmsLabScope.cancel()
+            }
+        }
+    }
+
     private fun closeRawFile() {
         rawFileUtil?.close()
         rawFileUtil = null
@@ -339,6 +393,7 @@ class LoggingService : Service() {
 
     override fun onDestroy() {
         viewModel.rawTraffic.stop()
+        viewModel.bmsLabCapture.stop()
         ioState.cancel()
         releaseWakeLock()
         val path = fileUtil?.absolutePath

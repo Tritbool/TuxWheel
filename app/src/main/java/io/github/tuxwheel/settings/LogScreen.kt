@@ -112,6 +112,14 @@ fun logScreen(appConfig: AppConfig = koinInject()) {
         }
 
         switchPref(
+            name = stringResource(R.string.bms_lab_title),
+            desc = stringResource(R.string.bms_lab_description),
+            default = appConfig.enableBmsLabData,
+        ) {
+            appConfig.enableBmsLabData = it
+        }
+
+        switchPref(
             name = stringResource(R.string.continue_this_day_log_title),
             desc = stringResource(R.string.continue_this_day_log_description),
             default = appConfig.continueThisDayLog,

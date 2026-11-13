@@ -407,7 +407,7 @@ class BmsSessionTest {
         verify(exactly = 0) { file.writeLine(any()) }
     }
 
-    @Test fun `BMS CSV writes every Gotway group with its own measurements and detects group four changes`() {
+    @Test fun `BMS CSV writes every Gotway group at the configured interval`() {
         org.koin.core.context.loadKoinModules(module { single { model } })
         org.koin.core.context.GlobalContext.get().get<AppConfig>().enableBmsData = true
         val service = LoggingService()
@@ -433,6 +433,9 @@ class BmsSessionTest {
         lines.clear()
         packs = packs!!.map { if (it.bmsIndex == 3) it.copy(voltage = 84.0) else it }
         publish(2)
+        write.invoke(service)
+        assertThat(lines).isEmpty()
+        shadowOf(Looper.getMainLooper()).idleFor(5, java.util.concurrent.TimeUnit.SECONDS)
         write.invoke(service)
         assertThat(lines).hasSize(4)
         assertThat(lines.last().substringAfter(';')).startsWith("3;84.000;-3.000;")

@@ -164,6 +164,21 @@ should be used as input to a decoder or replay tool; ride and BMS CSVs are uncha
 Outgoing KingSong authentication frames are omitted to keep plaintext passwords
 out of raw CSV files; this also produces sequence gaps.
 
+**High-frequency BMS lab capture** is an independent logging setting. While logging
+is active it saves one record per received telemetry callback with an available
+BMS snapshot, including unchanged snapshots, to `*.bms.jsonl.gz` in the wheel's
+Downloads/TuxWheel folder. It does not generate samples between callbacks or change
+the wheel's polling rate. Each UTF-8 JSON Lines record has an app callback time
+`timestamp_ms`, a `sequence`, and a `packs` array containing raw library indices,
+nullable measurements, and cell and temperature arrays. It can be read with
+`pandas.read_json(path, lines=True, compression="gzip")` and converted to Parquet.
+The library returns its latest BMS state, so values may predate the telemetry
+callback; callback rate and BMS freshness depend on the wheel and library. This
+mode cannot guarantee 10–20 Hz or capture frames not delivered by the library.
+The bounded queue warns on overflow; gaps in sequence indicate dropped records.
+Files are finalized when logging stops; an abrupt process termination can leave a
+truncated gzip file. The normal BMS CSV and its recording interval are unaffected.
+
 Before sharing CSVs or diagnostic logs, inspect and sanitize them:
 remove MAC addresses, device names, location/route data, and other identifiers.
 Attach only the relevant, sanitized excerpt to a bug report.

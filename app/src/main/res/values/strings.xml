@@ -270,6 +270,10 @@
     <string name="use_bms_data_description">Save detailed BMS data in a separated file.</string>
     <string name="bms_log_interval_title">BMS recording interval</string>
     <string name="bms_log_interval_description">Minimum time between BMS CSV samples. Does not change wheel polling or live telemetry.</string>
+    <string name="bms_lab_title">High-frequency BMS lab capture</string>
+    <string name="bms_lab_description">Record every available BMS snapshot on telemetry callbacks as compressed JSON Lines. Rate depends on incoming frames.</string>
+    <string name="bms_lab_error">BMS lab capture failed. Check storage and restart logging.</string>
+    <string name="bms_lab_dropped">BMS lab capture could not keep up; frames were dropped.</string>
 
     <string name="on_off_strobe">Off/On/Strobe</string>
     <string name="soft_medium_hard">Soft/Medium/Hard</string>

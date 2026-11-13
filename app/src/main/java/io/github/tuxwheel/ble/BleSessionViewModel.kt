@@ -86,6 +86,7 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
 
 
     internal val rawTraffic = RawTrafficCapture()
+    internal val bmsLabCapture = BmsLabCapture()
     private var rawTrafficAddress = ""
 
     private val _bmsSnapshots = MutableSharedFlow<List<BMSData>>(
@@ -469,6 +470,24 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
 
         client.setDataCallback(object : DataCallback {
             override fun onDataReceived(data: EUCData) {
+                val receivedAt = System.currentTimeMillis()
+                val labSession = bmsLabCapture.session()
+                if (appConfig.enableBmsLabData && labSession != null) {
+                    val address = mac
+                    val packs = runCatching {
+                        client.getBMSData()?.map { pack ->
+                            pack.copy(
+                                temperatures = pack.temperatures?.toList(),
+                                cellVoltages = pack.cellVoltages?.toList(),
+                            )
+                        }
+                    }.onFailure { Timber.w(it, "Unable to capture BMS lab snapshot") }.getOrNull()
+                    if (address.isNotBlank() && !packs.isNullOrEmpty() &&
+                        !bmsLabCapture.record(labSession, receivedAt, address, packs)
+                    ) {
+                        Timber.e("BMS lab capture queue is full; frame dropped")
+                    }
+                }
                 viewModelScope.launch {
                     try {
                         updateTelemetryData(data)

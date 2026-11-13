@@ -287,6 +287,10 @@ class AppConfig(var context: Context) : KoinComponent {
         get() = getValue(R.string.use_bms_data, false)
         set(value) = setValue(R.string.use_bms_data, value)
 
+    var enableBmsLabData: Boolean
+        get() = getValue(R.string.use_bms_lab_data, false)
+        set(value) = setValue(R.string.use_bms_lab_data, value)
+
     var bmsLogIntervalSeconds: Int
         get() = getValue(R.string.bms_log_interval, BMS_LOG_INTERVAL_DEFAULT_SECONDS)
             .coerceIn(BMS_LOG_INTERVAL_MIN_SECONDS, BMS_LOG_INTERVAL_MAX_SECONDS)
