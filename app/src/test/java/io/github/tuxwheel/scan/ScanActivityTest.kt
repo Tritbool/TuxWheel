@@ -1,6 +1,7 @@
 package io.github.tuxwheel.scan
 
 import android.Manifest
+import android.app.Activity
 import android.app.Application
 import android.bluetooth.BluetoothAdapter
 import android.os.Bundle
@@ -104,7 +105,7 @@ class ScanActivityTest {
     private fun device(address: String = "11:22:33:44:55:66", name: String? = "Wheel") =
         mockk<EUCDevice>(relaxed = true).also {
             every { it.address } returns address
-            every { it.name } returns name
+            every { it.name } returns name.orEmpty()
         }
 
     private fun completeScan(devices: List<EUCDevice> = emptyList()) {
@@ -208,7 +209,7 @@ class ScanActivityTest {
         idle()
         activity.onBackPressedDispatcher.onBackPressed()
         assertThat(activity.isFinishing).isTrue()
-        assertThat(shadowOf(activity).resultCode).isEqualTo(ScanActivity.RESULT_CANCELED)
+        assertThat(shadowOf(activity).resultCode).isEqualTo(Activity.RESULT_CANCELED)
         verify(exactly = 1) { session.startScan() }
     }
 
@@ -218,7 +219,7 @@ class ScanActivityTest {
         assertThat(activity.isFinishing).isTrue()
         assertThat(dialog(activity).isShowing).isFalse()
         assertThat(state(activity).scanning).isFalse()
-        assertThat(shadowOf(activity).resultCode).isEqualTo(ScanActivity.RESULT_CANCELED)
+        assertThat(shadowOf(activity).resultCode).isEqualTo(Activity.RESULT_CANCELED)
         verify(exactly = 1) { session.stopScan() }
         clearMocks(session, answers = false, recordedCalls = true)
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(11))
@@ -235,7 +236,7 @@ class ScanActivityTest {
         idle()
         assertThat(activity.isFinishing).isTrue()
         assertThat(scanDialog.isShowing).isFalse()
-        assertThat(shadowOf(activity).resultCode).isEqualTo(ScanActivity.RESULT_CANCELED)
+        assertThat(shadowOf(activity).resultCode).isEqualTo(Activity.RESULT_CANCELED)
     }
 
     @Test fun `canceling scan dialog stops radio without selecting a wheel`() {
@@ -243,7 +244,7 @@ class ScanActivityTest {
         dialog(activity).cancel()
         idle()
         assertThat(activity.isFinishing).isTrue()
-        assertThat(shadowOf(activity).resultCode).isEqualTo(ScanActivity.RESULT_CANCELED)
+        assertThat(shadowOf(activity).resultCode).isEqualTo(Activity.RESULT_CANCELED)
         assertThat(config.lastMac).isEqualTo("AA:BB:CC:DD:EE:FF")
         verify(exactly = 1) { session.stopScan() }
         verify(exactly = 0) { session.connect(any()) }

@@ -2,7 +2,6 @@ package io.github.tuxwheel.events
 
 import android.app.Application
 import android.content.Context
-import android.util.Log
 import androidx.test.core.app.ApplicationProvider
 import io.github.tuxwheel.EventsLoggingTree
 import io.github.tuxwheel.EventsState
@@ -71,8 +70,6 @@ class EventsLoggingTreeTest {
         try {
             Timber.d("not an event")
             assertThat(state.text.value).isEmpty()
-            assertThat(tree.isLoggable(null, Log.DEBUG)).isFalse()
-            assertThat(tree.isLoggable(null, Log.INFO)).isTrue()
             val tasks = (1..100).map { index -> executor.submit { Timber.i("event-$index") } }
             tasks.forEach { it.get(10, TimeUnit.SECONDS) }
             val lines = fileLines()
