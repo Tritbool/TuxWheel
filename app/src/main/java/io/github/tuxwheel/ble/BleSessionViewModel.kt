@@ -1077,7 +1077,6 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
                     runCatching { bluetoothDevice.name }.getOrNull().orEmpty()
                 }
                 val device = EUCDevice(
-                    bluetoothDevice = bluetoothDevice,
                     address = mac,
                     name = resolvedName,
                     manufacturerId = -1,
