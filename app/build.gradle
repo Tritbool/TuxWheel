@@ -97,6 +97,7 @@ dependencies {
     implementation libs.compose.ui
     implementation libs.compose.ui.tooling.preview
     debugImplementation libs.compose.ui.tooling
+    debugImplementation libs.compose.ui.test.manifest
     implementation libs.compose.material3
     implementation libs.compose.navigation
     implementation libs.compose.material.icons
@@ -145,6 +146,7 @@ dependencies {
     testImplementation libs.mockk
     testImplementation libs.robolectric
     testImplementation libs.test.core
+    testImplementation libs.compose.ui.test.junit4
     testImplementation libs.kotlin.reflect
     testImplementation libs.mockwebserver
     testImplementation libs.json
