@@ -11,7 +11,7 @@ class ScanResultMergerTest {
     private fun device(address: String, name: String? = null): EUCDevice {
         val device = mockk<EUCDevice>(relaxed = true)
         every { device.address } returns address
-        every { device.name } returns name
+        every { device.name } returns name.orEmpty()
         return device
     }
 

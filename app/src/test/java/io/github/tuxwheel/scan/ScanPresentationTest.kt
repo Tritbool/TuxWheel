@@ -9,7 +9,7 @@ import org.junit.Test
 class ScanPresentationTest {
     private fun device(address: String, name: String?) = mockk<EUCDevice>().also {
         every { it.address } returns address
-        every { it.name } returns name
+        every { it.name } returns name.orEmpty()
     }
 
     @Test fun `name fallback preserves the actual Views empty versus whitespace contract`() {

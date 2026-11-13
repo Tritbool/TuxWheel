@@ -22,9 +22,7 @@ import io.github.tuxwheel.MainPageAdapter
 import io.github.tuxwheel.R
 import io.github.tuxwheel.ble.BleSessionViewModel
 import com.google.common.truth.Truth.assertThat
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.verify
+import io.mockk.*
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.koin.core.context.startKoin
