@@ -127,6 +127,8 @@
     <string name="ec_garage" translatable="false">ec_garage</string>
     <string name="use_raw_data" translatable="false">use_raw_data</string>
     <string name="use_bms_data" translatable="false">use_bms_data</string>
+    <string name="bms_log_interval" translatable="false">bms_log_interval</string>
+    <string name="use_bms_lab_data" translatable="false">use_bms_lab_data</string>
 
     // APP PREFERENCES
     <string name="use_mph" translatable="false">use_mph</string>

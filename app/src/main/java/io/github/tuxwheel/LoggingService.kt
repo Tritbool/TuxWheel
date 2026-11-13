@@ -2,6 +2,7 @@ package io.github.tuxwheel
 
 import io.github.tuxwheel.ble.BleSessionViewModel
 import io.github.tuxwheel.ble.RawTrafficRecord
+import io.github.tuxwheel.ble.BmsLabWriter
 
 import android.app.Service
 import android.content.*
@@ -11,6 +12,9 @@ import android.os.PowerManager
 import android.os.Build
 import android.os.Environment
 import android.os.IBinder
+import android.os.Handler
+import android.os.Looper
+import android.os.SystemClock
 import android.widget.Toast
 import io.github.tuxwheel.data.TripDao
 import io.github.tuxwheel.utils.Constants
@@ -46,8 +50,8 @@ class LoggingService : Service() {
     private var rawLoggingJob: Job? = null
 
     private var bmsFileUtil: FileUtil? = null
-    private var lastBmsSignature: String? = null
-    private var lastBmsWriteTimestamp: Long = 0L
+    private var lastBmsWriteElapsed: Long? = null
+    private val bmsLabScope = CoroutineScope(Dispatchers.IO + Job())
     private var wakeLock: PowerManager.WakeLock? = null
 
     fun updateConnectionState(connectionState: BLEConstants.ConnectionState) {
@@ -81,6 +85,7 @@ class LoggingService : Service() {
             logStarted = true
             observeTelemetry()
             observeRawTraffic()
+            observeBmsLabFrames()
         }
         return START_STICKY
     }
@@ -245,17 +250,66 @@ class LoggingService : Service() {
         }
     }
 
+    private fun observeBmsLabFrames() {
+        val mainHandler = Handler(Looper.getMainLooper())
+        val frames = viewModel.bmsLabCapture.start {
+            mainHandler.post { showToast(R.string.bms_lab_dropped) }
+        }
+        bmsLabScope.launch {
+            var file: FileUtil? = null
+            var writer: BmsLabWriter? = null
+            var address: String? = null
+            var lastFlush = SystemClock.elapsedRealtime()
+            try {
+                for (frame in frames) {
+                    if (frame.address != address) {
+                        writer?.close()
+                        file?.close()
+                        val nextFile = FileUtil(applicationContext, buffered = true)
+                        val formatter = SimpleDateFormat("yyyy_MM_dd_HH_mm_ss_SSS", Locale.US)
+                        val filename = "${formatter.format(Date())}.bms.jsonl.gz"
+                        check(nextFile.prepareFile(filename, frame.address)) {
+                            "Unable to create BMS lab file"
+                        }
+                        file = nextFile
+                        writer = BmsLabWriter(checkNotNull(nextFile.outputStream))
+                        address = frame.address
+                    }
+                    writer!!.write(frame)
+                    val now = SystemClock.elapsedRealtime()
+                    if (now - lastFlush >= 1_000L) {
+                        writer.flush()
+                        lastFlush = now
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "BMS lab capture failed")
+                viewModel.bmsLabCapture.stop(frames)
+                mainHandler.post { showToast(R.string.bms_lab_error) }
+            } finally {
+                try {
+                    writer?.close()
+                    file?.close()
+                } catch (e: Exception) {
+                    Timber.e(e, "Unable to finish BMS lab file")
+                    mainHandler.post { showToast(R.string.bms_lab_error) }
+                }
+                bmsLabScope.cancel()
+            }
+        }
+    }
+
     private fun closeRawFile() {
         rawFileUtil?.close()
         rawFileUtil = null
         rawFileAddress = null
     }
 
+    @Synchronized
     private fun closeBmsFile() {
         bmsFileUtil?.close()
         bmsFileUtil = null
-        lastBmsSignature = null
-        lastBmsWriteTimestamp = 0L
+        lastBmsWriteElapsed = null
     }
 
     private fun getOrCreateRawFile(address: String): FileUtil? {
@@ -276,20 +330,6 @@ class LoggingService : Service() {
         rawFileAddress = address
         Timber.i("RAW BLE logging started: %s", rawFile.absolutePath)
         return rawFile
-    }
-
-    private fun bmsSignature(pack: BMSData): String {
-        return listOf(
-            pack.bmsIndex,
-            pack.voltage,
-            pack.current,
-            pack.remainingCapacity,
-            pack.factoryCapacity,
-            pack.cycles,
-            pack.isCharging,
-            pack.temperatures?.joinToString(separator = ";"),
-            pack.cellVoltages?.joinToString(separator = ";"),
-        ).joinToString(separator = "|")
     }
 
     private fun formatBmsLine(
@@ -353,6 +393,7 @@ class LoggingService : Service() {
 
     override fun onDestroy() {
         viewModel.rawTraffic.stop()
+        viewModel.bmsLabCapture.stop()
         ioState.cancel()
         releaseWakeLock()
         val path = fileUtil?.absolutePath
@@ -382,6 +423,7 @@ class LoggingService : Service() {
             return Environment.MEDIA_MOUNTED == state || Environment.MEDIA_MOUNTED_READ_ONLY == state
         }
 
+    @Synchronized
     private fun updateBmsFile() {
         if (!appConfig.enableBmsData) {
             closeBmsFile()
@@ -402,26 +444,20 @@ class LoggingService : Service() {
             return
         }
 
-        val now = System.currentTimeMillis()
-        val signature = packs.joinToString(separator = "|") { pack ->
-            bmsSignature(pack)
-        }
-
-        val changed = signature != lastBmsSignature
-        val intervalElapsed = now - lastBmsWriteTimestamp >= BMS_LOG_MIN_INTERVAL_MS
-
-        if (!changed && !intervalElapsed) {
+        val elapsed = SystemClock.elapsedRealtime()
+        val intervalMillis = appConfig.bmsLogIntervalSeconds * 1_000L
+        if (lastBmsWriteElapsed?.let { elapsed - it < intervalMillis } == true) {
             return
         }
 
         val file = getOrCreateBmsFile() ?: return
+        val now = System.currentTimeMillis()
 
         packs.forEach { pack ->
             file.writeLine(formatBmsLine(now, pack))
         }
 
-        lastBmsSignature = signature
-        lastBmsWriteTimestamp = now
+        lastBmsWriteElapsed = elapsed
     }
 
     fun updateFile() {
@@ -466,8 +502,6 @@ class LoggingService : Service() {
 
     companion object {
         private var instance: LoggingService? = null
-
-        private const val BMS_LOG_MIN_INTERVAL_MS = 1000L
 
         fun isInstanceCreated(): Boolean {
             return instance != null

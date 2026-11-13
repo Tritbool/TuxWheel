@@ -87,27 +87,28 @@ class BmsSessionTest {
             pack(1, listOf(3.7, 3.8), 99.2, listOf(31.0, 32.0)))
         publish()
         val first = model.bmsDisplay.value
-        assertThat(first.first.cells.take(2)).containsExactly(4.1, 4.2).inOrder()
-        assertThat(first.second.cells.take(2)).containsExactly(3.7, 3.8).inOrder()
-        assertThat(first.first.fields[R.string.bmsMinCell]).isEqualTo("4.100 V [1]")
-        assertThat(first.first.fields[R.string.bmsMaxCell]).isEqualTo("4.200 V [2]")
-        assertThat(first.first.fields[R.string.bmsCellDiff]).isEqualTo("0.100 V")
+        assertThat(first.packs[0].cells.take(2)).containsExactly(4.1, 4.2).inOrder()
+        assertThat(first.packs[1].cells.take(2)).containsExactly(3.7, 3.8).inOrder()
+        assertThat(first.packs[0].fields[R.string.bmsMinCell]).isEqualTo("4.100 V [1]")
+        assertThat(first.packs[0].fields[R.string.bmsMaxCell]).isEqualTo("4.200 V [2]")
+        assertThat(first.packs[0].fields[R.string.bmsCellDiff]).isEqualTo("0.100 V")
         packs = listOf(pack(1, null, temps = listOf(33.0)))
         publish(2, manufacturer = "", wheelModel = "")
         val partial = model.bmsDisplay.value
-        assertThat(partial.first).isEqualTo(first.first)
-        assertThat(partial.second.cellNum).isEqualTo(2)
-        assertThat(partial.second.cells.take(2)).containsExactly(3.7, 3.8).inOrder()
-        assertThat(partial.second.fields[R.string.bmsTemp1]).isEqualTo("33.0°C")
-        assertThat(partial.second.fields[R.string.bmsTemp2]).isEqualTo("32.0°C")
+        assertThat(partial.packs[0]).isEqualTo(first.packs[0])
+        assertThat(partial.packs[1].cellNum).isEqualTo(2)
+        assertThat(partial.packs[1].cells.take(2)).containsExactly(3.7, 3.8).inOrder()
+        assertThat(partial.packs[1].fields[R.string.bmsTemp1]).isEqualTo("33.0°C")
+        assertThat(partial.packs[1].fields[R.string.bmsTemp2]).isEqualTo("32.0°C")
         assertThat(partial.wheelType).isEqualTo(first.wheelType)
         assertThat(partial.model).isEqualTo(first.model)
         packs = null
         publish(3)
-        assertThat(model.bmsDisplay.value.first).isEqualTo(partial.first)
-        assertThat(model.bmsDisplay.value.second).isEqualTo(partial.second)
-        model.bms1.cells[0] = 1.0
-        assertThat(first.first.cells[0]).isEqualTo(4.1)
+        assertThat(model.bmsDisplay.value.packs[0]).isEqualTo(partial.packs[0])
+        assertThat(model.bmsDisplay.value.packs[1]).isEqualTo(partial.packs[1])
+        packs = listOf(pack(0, listOf(1.0)))
+        publish(4)
+        assertThat(first.packs[0].cells[0]).isEqualTo(4.1)
     }
 
     @Test fun `KingSong configured maximum and independent runtime limit survive partial packets`() {
@@ -160,10 +161,10 @@ class BmsSessionTest {
         packs = listOf(pack(2, listOf(3.9)))
         publish(2, "Kingsong")
         val next = model.bmsDisplay.value
-        assertThat(next.first).isEqualTo(captured.first)
-        assertThat(next.second.cells.take(2)).containsExactly(3.9, 3.8).inOrder()
-        assertThat(next.second.cellNum).isEqualTo(2)
-        assertThat(captured.second.cells.take(2)).containsExactly(3.7, 3.8).inOrder()
+        assertThat(next.packs[0]).isEqualTo(captured.packs[0])
+        assertThat(next.packs[1].cells.take(2)).containsExactly(3.9, 3.8).inOrder()
+        assertThat(next.packs[1].cellNum).isEqualTo(2)
+        assertThat(captured.packs[1].cells.take(2)).containsExactly(3.7, 3.8).inOrder()
     }
 
     @Test fun `partial metadata retains same wheel packs but a newly identified wheel clears both`() {
@@ -171,12 +172,11 @@ class BmsSessionTest {
         publish()
         packs = null
         publish(2, wheelModel = "")
-        assertThat(model.bmsDisplay.value.first.cellNum).isEqualTo(2)
-        assertThat(model.bmsDisplay.value.second.cellNum).isEqualTo(2)
+        assertThat(model.bmsDisplay.value.packs[0].cellNum).isEqualTo(2)
+        assertThat(model.bmsDisplay.value.packs[1].cellNum).isEqualTo(2)
         publish(3, wheelModel = "Blitz")
         assertThat(model.bmsDisplay.value.hasDetails).isFalse()
-        assertThat(model.bmsDisplay.value.first.cells).doesNotContain(4.1)
-        assertThat(model.bmsDisplay.value.second.cells).doesNotContain(3.7)
+        assertThat(model.bmsDisplay.value.packs).isEmpty()
     }
 
     @Test fun `missing telemetry model does not replace a detailed model specific presentation`() {
@@ -188,8 +188,8 @@ class BmsSessionTest {
         val partial = model.bmsDisplay.value
         assertThat(partial.model).isEqualTo("KS-S22")
         assertThat(BmsMapper.fields(partial)).isEqualTo(BmsMapper.fields(first))
-        assertThat(partial.first).isEqualTo(first.first)
-        assertThat(partial.second).isEqualTo(first.second)
+        assertThat(partial.packs[0]).isEqualTo(first.packs[0])
+        assertThat(partial.packs[1]).isEqualTo(first.packs[1])
     }
 
     @Test fun `known single V14 logical pack remains usable when per pack API is temporarily unavailable`() {
@@ -199,12 +199,12 @@ class BmsSessionTest {
         packs = null
         publish(2, manufacturer = "Inmotion", wheelModel = "V14")
         val partial = model.bmsDisplay.value
-        assertThat(partial.first).isEqualTo(first.first)
-        assertThat(partial.first.cellNum).isEqualTo(32)
-        assertThat(partial.second.cellNum).isEqualTo(0)
+        assertThat(partial.packs[0]).isEqualTo(first.packs[0])
+        assertThat(partial.packs[0].cellNum).isEqualTo(32)
+        assertThat(partial.packs).hasSize(1)
         val presentation = BmsMapper.present(partial)
-        assertThat(presentation.showSecond).isFalse()
-        assertThat(presentation.rows.single { it.label == R.string.bmsVoltage }.first).isEqualTo("131.20 V")
+        assertThat(presentation.packNumbers.size > 1).isFalse()
+        assertThat(presentation.rows.single { it.label == R.string.bmsVoltage }.values[0]).isEqualTo("131.20 V")
     }
 
     @Test fun `actual ExtremeBull manufacturer maps zero based packs independently`() {
@@ -212,10 +212,61 @@ class BmsSessionTest {
         publish(manufacturer = "ExtremeBull")
         val snapshot = model.bmsDisplay.value
         assertThat(snapshot.wheelType).isEqualTo(io.github.tuxwheel.utils.Constants.WHEEL_TYPE.GOTWAY)
-        assertThat(snapshot.first.cells.take(2)).containsExactly(4.1, 4.2).inOrder()
-        assertThat(snapshot.second.cells.take(2)).containsExactly(3.7, 3.8).inOrder()
-        assertThat(snapshot.first.fields[R.string.bmsVoltage]).isEqualTo("100.10 V")
-        assertThat(snapshot.second.fields[R.string.bmsVoltage]).isEqualTo("99.20 V")
+        assertThat(snapshot.packs[0].cells.take(2)).containsExactly(4.1, 4.2).inOrder()
+        assertThat(snapshot.packs[1].cells.take(2)).containsExactly(3.7, 3.8).inOrder()
+        assertThat(snapshot.packs[0].fields[R.string.bmsVoltage]).isEqualTo("100.10 V")
+        assertThat(snapshot.packs[1].fields[R.string.bmsVoltage]).isEqualTo("99.20 V")
+    }
+
+    @Test fun `four Gotway groups retain identity across out of order partial updates and reset`() {
+        packs = listOf(pack(3, null, voltage = 83.4, temps = listOf(29.0, 26.0)))
+        publish()
+        val summary = BmsMapper.present(model.bmsDisplay.value)
+        assertThat(summary.packNumbers).containsExactly(4)
+        assertThat(summary.rows.single { it.label == R.string.bmsVoltage }.values).containsExactly("83.40 V")
+        assertThat(summary.rows.map { it.label }).doesNotContain(R.string.bmsCell1)
+        assertThat(summary.rows.map { it.label }).doesNotContain(R.string.bmsCurrent)
+
+        packs = (0..3).reversed().map { index ->
+            pack(index, List(20) { 4.0 + index * 0.01 + it * 0.001 },
+                voltage = 83.8 - index * 0.1, current = -index.toDouble(),
+                temps = listOf(20.0 + index, 30.0 + index))
+        }
+        publish(2)
+        val snapshot = model.bmsDisplay.value
+        val presentation = BmsMapper.present(snapshot)
+        assertThat(presentation.packNumbers).containsExactly(1, 2, 3, 4).inOrder()
+        assertThat(presentation.rows.single { it.label == R.string.bmsCell1 }.values)
+            .containsExactly("4.000 V ", "4.010 V ", "4.020 V ", "4.030 V ").inOrder()
+        assertThat(presentation.rows.single { it.label == R.string.bmsTemp2 }.values)
+            .containsExactly("30.0°C", "31.0°C", "32.0°C", "33.0°C").inOrder()
+        assertThat(presentation.rows.map { it.label }).doesNotContain(R.string.bmsSemiVoltage1)
+        assertThat(presentation.rows.map { it.label }).doesNotContain(R.string.bmsTemp3)
+        assertThat(presentation.rows.map { it.label }).doesNotContain(R.string.bmsCell21)
+
+        packs = listOf(pack(2, null, voltage = 82.0))
+        publish(3)
+        val partial = model.bmsDisplay.value
+        assertThat(partial.packs[0]).isEqualTo(snapshot.packs[0])
+        assertThat(partial.packs[2].fields[R.string.bmsVoltage]).isEqualTo("82.00 V")
+        assertThat(partial.packs[2].cells).isEqualTo(snapshot.packs[2].cells)
+        assertThat(partial.packs[3]).isEqualTo(snapshot.packs[3])
+        model.resetBmsData()
+        shadowOf(Looper.getMainLooper()).idle()
+        assertThat(model.bmsDisplay.value.packs).isEmpty()
+    }
+
+    @Test fun `Gotway groups do not substitute wheel telemetry for missing group readings`() {
+        packs = listOf(pack(1, listOf(4.1), temps = listOf(22.0)), pack(3, null, voltage = 83.4))
+        publish()
+        val presentation = BmsMapper.present(model.bmsDisplay.value)
+        assertThat(presentation.packNumbers).containsExactly(2, 4).inOrder()
+        assertThat(presentation.rows.single { it.label == R.string.bmsVoltage }.values)
+            .containsExactly("", "83.40 V").inOrder()
+        assertThat(presentation.rows.single { it.label == R.string.bmsTemp1 }.values)
+            .containsExactly("22.0°C", "").inOrder()
+        assertThat(presentation.rows.single { it.label == R.string.bmsCell1 }.values)
+            .containsExactly("4.100 V ", "").inOrder()
     }
 
     @Test fun `per pack serial number and firmware map independently and survive partial snapshots`() {
@@ -226,19 +277,19 @@ class BmsSessionTest {
         publish(manufacturer = "Inmotion", wheelModel = "P6")
 
         val first = model.bmsDisplay.value
-        assertThat(first.first.fields[R.string.bmsSn]).isEqualTo("P6-PACK-1")
-        assertThat(first.first.fields[R.string.bmsFw]).isEqualTo("2.2.76")
-        assertThat(first.second.fields[R.string.bmsSn]).isEqualTo("P6-PACK-2")
-        assertThat(first.second.fields[R.string.bmsFw]).isEqualTo("2.2.77")
+        assertThat(first.packs[0].fields[R.string.bmsSn]).isEqualTo("P6-PACK-1")
+        assertThat(first.packs[0].fields[R.string.bmsFw]).isEqualTo("2.2.76")
+        assertThat(first.packs[1].fields[R.string.bmsSn]).isEqualTo("P6-PACK-2")
+        assertThat(first.packs[1].fields[R.string.bmsFw]).isEqualTo("2.2.77")
 
         packs = listOf(pack(1, null), pack(2, null, serialNumber = ""))
         publish(2, manufacturer = "Inmotion", wheelModel = "P6")
 
         val partial = model.bmsDisplay.value
-        assertThat(partial.first.fields[R.string.bmsSn]).isEqualTo("P6-PACK-1")
-        assertThat(partial.first.fields[R.string.bmsFw]).isEqualTo("2.2.76")
-        assertThat(partial.second.fields[R.string.bmsSn]).isEqualTo("P6-PACK-2")
-        assertThat(partial.second.fields[R.string.bmsFw]).isEqualTo("2.2.77")
+        assertThat(partial.packs[0].fields[R.string.bmsSn]).isEqualTo("P6-PACK-1")
+        assertThat(partial.packs[0].fields[R.string.bmsFw]).isEqualTo("2.2.76")
+        assertThat(partial.packs[1].fields[R.string.bmsSn]).isEqualTo("P6-PACK-2")
+        assertThat(partial.packs[1].fields[R.string.bmsFw]).isEqualTo("2.2.77")
     }
 
     @Test fun `never supplied fields refresh telemetry while supplied fields survive partial packets and reset independently`() {
@@ -248,38 +299,38 @@ class BmsSessionTest {
         )
         publish(manufacturer = "Leaperkim", wheelModel = "Lynx")
         val first = model.bmsDisplay.value
-        assertThat(first.first.fields[R.string.bmsVoltage]).isEqualTo("100.00 V")
-        assertThat(first.first.fields[R.string.bmsTemp2]).isEqualTo("35.0°C")
-        assertThat(first.second.fields[R.string.bmsCurrent]).isEqualTo("-2.00 A")
+        assertThat(first.packs[0].fields[R.string.bmsVoltage]).isEqualTo("100.00 V")
+        assertThat(first.packs[0].fields[R.string.bmsTemp2]).isEqualTo("35.0°C")
+        assertThat(first.packs[1].fields[R.string.bmsCurrent]).isEqualTo("-2.00 A")
         packs = listOf(pack(1, null))
         publish(2, "Leaperkim", "Lynx",
             data(2).copy(voltage = 101.0, current = -3.0, temperature = 26.0, motorTemperature = 36.0))
         val partial = model.bmsDisplay.value
-        assertThat(partial.first.fields[R.string.bmsVoltage]).isEqualTo("101.00 V")
-        assertThat(partial.first.fields[R.string.bmsCurrent]).isEqualTo("4.50 A")
-        assertThat(partial.first.fields[R.string.bmsTemp1]).isEqualTo("41.0°C")
-        assertThat(partial.first.fields[R.string.bmsTemp2]).isEqualTo("36.0°C")
-        assertThat(partial.second.fields[R.string.bmsVoltage]).isEqualTo("99.00 V")
-        assertThat(partial.second.fields[R.string.bmsCurrent]).isEqualTo("-3.00 A")
-        assertThat(partial.second.fields[R.string.bmsTemp6]).isEqualTo("56.0°C")
+        assertThat(partial.packs[0].fields[R.string.bmsVoltage]).isEqualTo("101.00 V")
+        assertThat(partial.packs[0].fields[R.string.bmsCurrent]).isEqualTo("4.50 A")
+        assertThat(partial.packs[0].fields[R.string.bmsTemp1]).isEqualTo("41.0°C")
+        assertThat(partial.packs[0].fields[R.string.bmsTemp2]).isEqualTo("36.0°C")
+        assertThat(partial.packs[1].fields[R.string.bmsVoltage]).isEqualTo("99.00 V")
+        assertThat(partial.packs[1].fields[R.string.bmsCurrent]).isEqualTo("-3.00 A")
+        assertThat(partial.packs[1].fields[R.string.bmsTemp6]).isEqualTo("56.0°C")
         packs = null
         publish(3, "Leaperkim", "Lynx",
             data(3).copy(voltage = 102.0, current = -4.0, temperature = 27.0, motorTemperature = 37.0))
         val absent = model.bmsDisplay.value
-        assertThat(absent.first.fields[R.string.bmsVoltage]).isEqualTo("102.00 V")
-        assertThat(absent.first.fields[R.string.bmsCurrent]).isEqualTo("4.50 A")
-        assertThat(absent.first.fields[R.string.bmsTemp1]).isEqualTo("41.0°C")
-        assertThat(absent.first.fields[R.string.bmsTemp2]).isEqualTo("37.0°C")
-        assertThat(absent.second.fields[R.string.bmsVoltage]).isEqualTo("99.00 V")
-        assertThat(absent.second.fields[R.string.bmsCurrent]).isEqualTo("-4.00 A")
-        assertThat(absent.second.fields[R.string.bmsTemp6]).isEqualTo("56.0°C")
+        assertThat(absent.packs[0].fields[R.string.bmsVoltage]).isEqualTo("102.00 V")
+        assertThat(absent.packs[0].fields[R.string.bmsCurrent]).isEqualTo("4.50 A")
+        assertThat(absent.packs[0].fields[R.string.bmsTemp1]).isEqualTo("41.0°C")
+        assertThat(absent.packs[0].fields[R.string.bmsTemp2]).isEqualTo("37.0°C")
+        assertThat(absent.packs[1].fields[R.string.bmsVoltage]).isEqualTo("99.00 V")
+        assertThat(absent.packs[1].fields[R.string.bmsCurrent]).isEqualTo("-4.00 A")
+        assertThat(absent.packs[1].fields[R.string.bmsTemp6]).isEqualTo("56.0°C")
         model.resetBmsData()
         shadowOf(Looper.getMainLooper()).idle()
         packs = listOf(pack(1, List(16) { 4.0 }), pack(2, List(16) { 3.9 }))
         publish(4, "Leaperkim", "Lynx",
             data(4).copy(voltage = 103.0, current = -5.0, temperature = 28.0, motorTemperature = 38.0))
         val reset = model.bmsDisplay.value
-        listOf(reset.first, reset.second).forEach {
+        listOf(reset.packs[0], reset.packs[1]).forEach {
             assertThat(it.fields[R.string.bmsVoltage]).isEqualTo("103.00 V")
             assertThat(it.fields[R.string.bmsCurrent]).isEqualTo("-5.00 A")
             assertThat(it.fields[R.string.bmsTemp1]).isEqualTo("28.0°C")
@@ -303,7 +354,7 @@ class BmsSessionTest {
             packs = emptyList()
             publish(2)
             assertThat(model.bmsSnapshots.replayCache.single()).isEmpty()
-            assertThat(model.bmsDisplay.value.first.cellNum).isEqualTo(2)
+            assertThat(model.bmsDisplay.value.packs[0].cellNum).isEqualTo(2)
             shadowOf(Looper.getMainLooper()).idle()
             assertThat(emissions.last()).isEmpty()
             assertThat(emissions).contains(copied)
@@ -354,5 +405,39 @@ class BmsSessionTest {
         shadowOf(Looper.getMainLooper()).idle()
         write.invoke(service)
         verify(exactly = 0) { file.writeLine(any()) }
+    }
+
+    @Test fun `BMS CSV writes every Gotway group at the configured interval`() {
+        org.koin.core.context.loadKoinModules(module { single { model } })
+        org.koin.core.context.GlobalContext.get().get<AppConfig>().enableBmsData = true
+        val service = LoggingService()
+        val file = mockk<FileUtil>(relaxed = true)
+        val lines = mutableListOf<String>()
+        every { file.writeLine(any()) } answers { lines.add(firstArg()); Unit }
+        service.javaClass.getDeclaredField("bmsFileUtil").apply { isAccessible = true }.set(service, file)
+        val write = service.javaClass.getDeclaredMethod("updateBmsFile").apply { isAccessible = true }
+        packs = (0..3).reversed().map { index ->
+            pack(index, listOf(4.0 + index * 0.1, 4.01 + index * 0.1),
+                voltage = 80.0 + index, current = if (index == 0) 0.0 else -index.toDouble(),
+                temps = listOf(20.0 + index, 30.0 + index))
+        }
+        publish()
+        write.invoke(service)
+        assertThat(lines.map { it.substringAfter(';') }).containsExactly(
+            "0;80.000;0.000;;;;;\"[20.00,30.00]\";\"[4.0000,4.0100]\"",
+            "1;81.000;-1.000;;;;;\"[21.00,31.00]\";\"[4.1000,4.1100]\"",
+            "2;82.000;-2.000;;;;;\"[22.00,32.00]\";\"[4.2000,4.2100]\"",
+            "3;83.000;-3.000;;;;;\"[23.00,33.00]\";\"[4.3000,4.3100]\""
+        ).inOrder()
+
+        lines.clear()
+        packs = packs!!.map { if (it.bmsIndex == 3) it.copy(voltage = 84.0) else it }
+        publish(2)
+        write.invoke(service)
+        assertThat(lines).isEmpty()
+        shadowOf(Looper.getMainLooper()).idleFor(5, java.util.concurrent.TimeUnit.SECONDS)
+        write.invoke(service)
+        assertThat(lines).hasSize(4)
+        assertThat(lines.last().substringAfter(';')).startsWith("3;84.000;-3.000;")
     }
 }

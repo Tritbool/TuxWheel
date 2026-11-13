@@ -232,6 +232,8 @@
     <string name="pedal_sensivity_description">Більше - чутливість вища</string>
     <string name="bmsBattery1Title">Батарея 1</string>
     <string name="bmsBattery2Title">Батарея 2</string>
+    <string name="bmsBatteryTitle">Батарея %1$d</string>
+    <string name="bmsGroupTitle">Група %1$d</string>
     <string name="bmsFactoryCap">Ємність початкова</string>
     <string name="bmsActualCap">Залишок ємності</string>
     <string name="bmsCycles">Циклів</string>

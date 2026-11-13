@@ -41,8 +41,10 @@ class BmsRendererTest {
             isAccessible = true
         }.get(renderer) as State<BmsPresentation>).value
     private fun snapshot(cells: Int = 0, second: Int = 0, voltage: Double = 100.0) = BmsSnapshot(
-        WHEEL_TYPE.GOTWAY, "Rocket", "", BmsMapper.pack(SmartBms().apply { cellNum = cells; this.voltage = voltage }),
-        BmsMapper.pack(SmartBms().apply { cellNum = second }), 80, voltage, -2.0, 25.0, 35.0
+        WHEEL_TYPE.GOTWAY, "Rocket", "", listOf(
+            BmsMapper.pack(SmartBms().apply { cellNum = cells; this.voltage = voltage }),
+            BmsMapper.pack(SmartBms().apply { cellNum = second }, 2)
+        ), 80, voltage, -2.0, 25.0, 35.0
     )
 
     @Before fun setup() {
@@ -78,8 +80,8 @@ class BmsRendererTest {
             holder.bmsRenderer!!.preferences(config.appTheme)
             assertThat(compose.visibility).isEqualTo(View.VISIBLE)
             config.setValue("use_compose_bms", false)
-            assertThat(presentation(holder.bmsRenderer!!).showSecond).isTrue()
-            assertThat(presentation(holder.bmsRenderer!!).rows).hasSize(62)
+            assertThat(presentation(holder.bmsRenderer!!).packNumbers.size > 1).isTrue()
+            assertThat(presentation(holder.bmsRenderer!!).rows).hasSize(58)
             holder.bmsRenderer!!.preferences(R.style.AJDMTheme)
             assertThat(holder.itemView).isSameInstanceAs(page)
             adapter.position = 2
@@ -89,7 +91,7 @@ class BmsRendererTest {
             clearMocks(model, answers = false, recordedCalls = true)
             state.value = snapshot()
             holder.bmsRenderer!!.refresh()
-            assertThat(presentation(holder.bmsRenderer!!).showSecond).isFalse()
+            assertThat(presentation(holder.bmsRenderer!!).packNumbers.size > 1).isFalse()
             assertThat(presentation(holder.bmsRenderer!!).rows).hasSize(5)
             verify(exactly = 0) { model.bmsView = any() }
             adapter.onViewRecycled(holder)
@@ -120,7 +122,7 @@ class BmsRendererTest {
         BmsScroll::class.java.getDeclaredField("compose").apply { isAccessible = true }
             .set(scroll, androidx.compose.foundation.ScrollState(27))
         val renderer = BmsPageRenderer(page, model, config, scroll, owner)
-        fun voltage() = presentation(renderer).rows.first { it.label == R.string.bmsVoltage }.first
+        fun voltage() = presentation(renderer).rows.first { it.label == R.string.bmsVoltage }.values[0]
         try {
             renderer.start()
             idle()
@@ -135,7 +137,7 @@ class BmsRendererTest {
             config.useFahrenheit = true
             idle()
             assertThat(page.findViewById<ComposeView>(R.id.bmsComposeView).visibility).isEqualTo(View.VISIBLE)
-            assertThat(presentation(renderer).rows.first { it.label == R.string.bmsTemp1 }.first).isEqualTo("25.0°C")
+            assertThat(presentation(renderer).rows.first { it.label == R.string.bmsTemp1 }.values[0]).isEqualTo("25.0°C")
             assertThat(scroll.compose.value).isEqualTo(27)
             renderer.stop()
             idle()

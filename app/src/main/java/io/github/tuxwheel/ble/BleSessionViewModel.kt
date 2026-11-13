@@ -11,6 +11,7 @@ import androidx.annotation.RequiresPermission
 import androidx.annotation.MainThread
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.tuxwheel.R
 import io.github.tuxwheel.utils.Calculator
 import io.github.tuxwheel.utils.Constants
 import io.github.tuxwheel.utils.Constants.wheel_type_from_string
@@ -85,6 +86,7 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
 
 
     internal val rawTraffic = RawTrafficCapture()
+    internal val bmsLabCapture = BmsLabCapture()
     private var rawTrafficAddress = ""
 
     private val _bmsSnapshots = MutableSharedFlow<List<BMSData>>(
@@ -155,21 +157,16 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
     var bmsView: Boolean = false
 
     // BMS data
-    val bms1 = SmartBms()
-    val bms2 = SmartBms()
     private class BmsFieldPresence {
         var voltage = false
         var current = false
         val temperatures = BooleanArray(6)
-
-        fun reset() {
-            voltage = false
-            current = false
-            temperatures.fill(false)
-        }
     }
-    private val bms1Fields = BmsFieldPresence()
-    private val bms2Fields = BmsFieldPresence()
+    private class BmsPackState {
+        val bms = SmartBms()
+        val fields = BmsFieldPresence()
+    }
+    private val bmsPacks = sortedMapOf<Int, BmsPackState>()
     private var bmsWheelIdentity: Pair<Constants.WHEEL_TYPE, String>? = null
     private val _bmsDisplay = MutableStateFlow(captureBmsDisplay())
     val bmsDisplay: StateFlow<BmsSnapshot> = _bmsDisplay.asStateFlow()
@@ -183,7 +180,22 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
         val model = state.deviceModel.takeUnless { it.isBlank() || it.equals("Unknown", ignoreCase = true) }
             ?: bmsWheelIdentity?.second.orEmpty()
         return BmsSnapshot(
-            type, model, protoVer, BmsMapper.pack(bms1), BmsMapper.pack(bms2),
+            type, model, protoVer, java.util.Collections.unmodifiableList(bmsPacks.map { (number, pack) ->
+                val snapshot = BmsMapper.pack(pack.bms, number)
+                if (type != Constants.WHEEL_TYPE.GOTWAY) snapshot else {
+                    val unavailable = buildSet {
+                        if (!pack.fields.voltage) add(R.string.bmsVoltage)
+                        if (!pack.fields.current) add(R.string.bmsCurrent)
+                        if (!pack.fields.temperatures[0]) add(R.string.bmsTemp1)
+                        if (!pack.fields.temperatures[1]) add(R.string.bmsTemp2)
+                    }
+                    snapshot.copy(
+                        fields = java.util.Collections.unmodifiableMap(snapshot.fields - unavailable),
+                        hasMeasurements = pack.fields.voltage || pack.fields.current ||
+                            pack.fields.temperatures.any { it }
+                    )
+                }
+            }),
             state.batteryLevel, state.currentVoltage, state.currentCurrent, state.currentTemperature,
             ((state.motorTemperature ?: 0.0) * 100).toInt() / 100.0
         )
@@ -191,10 +203,7 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
 
     @MainThread
     private fun clearBmsPacks() {
-        bms1.reset()
-        bms2.reset()
-        bms1Fields.reset()
-        bms2Fields.reset()
+        bmsPacks.clear()
         bmsWheelIdentity = null
         _bmsSnapshots.tryEmit(emptyList())
     }
@@ -461,6 +470,24 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
 
         client.setDataCallback(object : DataCallback {
             override fun onDataReceived(data: EUCData) {
+                val receivedAt = System.currentTimeMillis()
+                val labSession = bmsLabCapture.session()
+                if (appConfig.enableBmsLabData && labSession != null) {
+                    val address = mac
+                    val packs = runCatching {
+                        client.getBMSData()?.map { pack ->
+                            pack.copy(
+                                temperatures = pack.temperatures?.toList(),
+                                cellVoltages = pack.cellVoltages?.toList(),
+                            )
+                        }
+                    }.onFailure { Timber.w(it, "Unable to capture BMS lab snapshot") }.getOrNull()
+                    if (address.isNotBlank() && !packs.isNullOrEmpty() &&
+                        !bmsLabCapture.record(labSession, receivedAt, address, packs)
+                    ) {
+                        Timber.e("BMS lab capture queue is full; frame dropped")
+                    }
+                }
                 viewModelScope.launch {
                     try {
                         updateTelemetryData(data)
@@ -833,10 +860,8 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
 
     @MainThread
     private fun updateBmsData(data: EUCData) {
-        // Wheels with two battery packs (e.g. ExtremeBull Rocket) report per-pack cell
-        // voltages through the active protocol's getBMSData(), while EUCData.cellVoltages
-        // can carry the two packs concatenated together. Only the per-pack API
-        // provides a reliable mapping to each battery.
+        // EUCData.cellVoltages can concatenate packs or groups; only the per-pack
+        // API provides a reliable mapping to each battery.
         val bmsPacks = runCatching {
             _eucBleClient.getBMSData()
                 ?.map { it.copy(
@@ -854,21 +879,22 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
             _bmsSnapshots.tryEmit(java.util.Collections.unmodifiableList(bmsPacks))
         }
         if (!bmsPacks.isNullOrEmpty()) {
-            // Gotway uses zero-based pack indices; the other decoders use 1/2.
+            // Gotway uses zero-based group indices; other decoders use one-based indices.
             val type = bmsWheelIdentity?.first ?: wheel_type_from_string(data.manufacturer)
-            val firstIndex = if (type == Constants.WHEEL_TYPE.GOTWAY) 0 else 1
             bmsPacks.forEach { pack ->
-                when (pack.bmsIndex) {
-                    firstIndex -> applyBmsPackData(bms1, bms1Fields, pack)
-                    firstIndex + 1 -> applyBmsPackData(bms2, bms2Fields, pack)
+                val number = if (type == Constants.WHEEL_TYPE.GOTWAY) pack.bmsIndex + 1 else pack.bmsIndex
+                if (number > 0) {
+                    val target = this.bmsPacks.getOrPut(number) { BmsPackState() }
+                    applyBmsPackData(target.bms, target.fields, pack)
+                } else {
+                    Timber.w("Ignoring invalid BMS index %d for %s", pack.bmsIndex, type)
                 }
             }
         }
 
         // EUCData cells can concatenate multiple packs. Never assign them to a
         // pack; retain authoritative per-pack data across partial packets.
-        refreshBmsFallbacks(bms1, bms1Fields, data)
-        refreshBmsFallbacks(bms2, bms2Fields, data)
+        this.bmsPacks.values.forEach { refreshBmsFallbacks(it.bms, it.fields, data) }
     }
 
     @MainThread
@@ -883,12 +909,8 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     /**
-     * Populates a single BMS pack (bms1 or bms2) from a [BMSData] snapshot returned by the
-     * active protocol. Since library 0.0.8, Gotway/Begode protocols decode per-pack
-     * voltage/current/temperatures (from Type 1 BMS summary frames) in addition to
-     * per-pack cell voltages, so those are preferred over the shared [EUCData] fields
-     * whenever the protocol provides them; fields the protocol doesn't measure per-pack
-     * fall back to the overall [EUCData] values.
+     * Populates a BMS pack from a [BMSData] snapshot, retaining its measurements
+     * across partial updates.
      */
     @MainThread
     private fun applyBmsPackData(bms: SmartBms, fields: BmsFieldPresence, pack: BMSData) {
@@ -1436,7 +1458,7 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
         )
 
     // BMS data
-    val bms: Any? get() = bms1
+    val bms: Any? get() = bmsPacks.values.firstOrNull()?.bms
 
     // Current limit
     val currentLimit: Double get() = _sessionState.value.lastData?.current ?: 0.0
@@ -1459,7 +1481,7 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
         }
     val avgVoltagePerCell: Double
         get() = when {
-            bms1.cellNum > 0 -> bms1.avgCell
+            (bmsPacks[1]?.bms?.cellNum ?: 0) > 0 -> bmsPacks.getValue(1).bms.avgCell
             else -> 0.0
         }
 

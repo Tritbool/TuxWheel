@@ -18,6 +18,12 @@ import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.distinctUntilChanged
 
 class AppConfig(var context: Context) : KoinComponent {
+    companion object {
+        const val BMS_LOG_INTERVAL_MIN_SECONDS = 1
+        const val BMS_LOG_INTERVAL_MAX_SECONDS = 60
+        const val BMS_LOG_INTERVAL_DEFAULT_SECONDS = 5
+    }
+
     private val notifications: NotificationUtil by inject()
     private val volumeKeyController: VolumeKeyController by inject()
     private val sharedPreferences: SharedPreferences =
@@ -280,6 +286,16 @@ class AppConfig(var context: Context) : KoinComponent {
     var enableBmsData: Boolean
         get() = getValue(R.string.use_bms_data, false)
         set(value) = setValue(R.string.use_bms_data, value)
+
+    var enableBmsLabData: Boolean
+        get() = getValue(R.string.use_bms_lab_data, false)
+        set(value) = setValue(R.string.use_bms_lab_data, value)
+
+    var bmsLogIntervalSeconds: Int
+        get() = getValue(R.string.bms_log_interval, BMS_LOG_INTERVAL_DEFAULT_SECONDS)
+            .coerceIn(BMS_LOG_INTERVAL_MIN_SECONDS, BMS_LOG_INTERVAL_MAX_SECONDS)
+        set(value) = setValue(R.string.bms_log_interval,
+            value.coerceIn(BMS_LOG_INTERVAL_MIN_SECONDS, BMS_LOG_INTERVAL_MAX_SECONDS))
 
     var startAutoLoggingWhenIsMovingMore: Float
         get() = getValue(R.string.auto_log_when_moving_more, 7f)

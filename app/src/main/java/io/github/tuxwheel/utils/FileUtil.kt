@@ -26,6 +26,9 @@ class FileUtil(val context: Context, private val buffered: Boolean = false) {
     private var ignoreTimber = false
     private var stream: OutputStream? = null
 
+    internal val outputStream: OutputStream?
+        get() = stream
+
     internal class CachedFile {
         var file: File? = null
         var uri: Uri? = null

@@ -78,6 +78,8 @@ are not deleted by this cleanup.
 - Speed, battery, temperature, current, PWM, and other available telemetry.
 - Configurable alarms and charts; optional trips and events pages.
 - Smart BMS presentation with per-pack measurements and cell details when available.
+  Gotway/Begode smart BMS wheels show their reported groups independently; swipe
+  horizontally to see additional groups.
 - CSV ride logging through a foreground service, plus optional raw BLE diagnostics.
 - Picture-in-picture (PiP) on supported Android versions.
 - Configurable speed/distance and temperature units.
@@ -162,6 +164,21 @@ should be used as input to a decoder or replay tool; ride and BMS CSVs are uncha
 Outgoing KingSong authentication frames are omitted to keep plaintext passwords
 out of raw CSV files; this also produces sequence gaps.
 
+**High-frequency BMS lab capture** is an independent logging setting. While logging
+is active it saves one record per received telemetry callback with an available
+BMS snapshot, including unchanged snapshots, to `*.bms.jsonl.gz` in the wheel's
+Downloads/TuxWheel folder. It does not generate samples between callbacks or change
+the wheel's polling rate. Each UTF-8 JSON Lines record has an app callback time
+`timestamp_ms`, a `sequence`, and a `packs` array containing raw library indices,
+nullable measurements, and cell and temperature arrays. It can be read with
+`pandas.read_json(path, lines=True, compression="gzip")` and converted to Parquet.
+The library returns its latest BMS state, so values may predate the telemetry
+callback; callback rate and BMS freshness depend on the wheel and library. This
+mode cannot guarantee 10–20 Hz or capture frames not delivered by the library.
+The bounded queue warns on overflow; gaps in sequence indicate dropped records.
+Files are finalized when logging stops; an abrupt process termination can leave a
+truncated gzip file. The normal BMS CSV and its recording interval are unaffected.
+
 Before sharing CSVs or diagnostic logs, inspect and sanitize them:
 remove MAC addresses, device names, location/route data, and other identifiers.
 Attach only the relevant, sanitized excerpt to a bug report.
@@ -170,16 +187,15 @@ Attach only the relevant, sanitized excerpt to a bug report.
 
 BLE is provided by [EUC_BLE_LIBRARY](https://github.com/Tritbool/euc_ble_library),
 not by wheel protocol decoders embedded in this app.
-The dependency is `io.github.tritbool:euc-ble-library:0.1.2`;
+The dependency is `io.github.tritbool:euc-ble-library:0.1.3`;
 its version is pinned in `gradle/libs.versions.toml`.
 
-Version 0.1.2 is not yet on Maven Central. Until published, build and publish
+Version 0.1.3 is not yet on Maven Central. Until published, build and publish
 `euc-ble-core` to Maven Local from revision
-`62524e5e1af92da5f53ccea6543b281649e5be73` using
-`./gradlew :euc-ble-core:publishToMavenLocal`. App checks pin that revision,
-which includes raw traffic and the KingSong authentication, speed-limit, and
-password-management APIs from
-[PR #76](https://github.com/Tritbool/euc_ble_library/pull/76).
+`0812eff691836b1943359d56efc3829bc3566bb9` using
+`./gradlew :euc-ble-core:publishToMavenLocal`. This revision includes the
+Gotway/Begode four-group BMS decoding from
+[PR #82](https://github.com/Tritbool/euc_ble_library/pull/82).
 
 KingSong password set, change, and removal controls appear in Wheel Settings
 when the active protocol supports them. A missing wheel confirmation is reported

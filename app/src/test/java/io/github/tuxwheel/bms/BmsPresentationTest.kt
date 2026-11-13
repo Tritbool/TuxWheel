@@ -18,15 +18,15 @@ class BmsPresentationTest {
     private val context = ApplicationProvider.getApplicationContext<Application>()
     private fun snapshot(type: WHEEL_TYPE, model: String = "", cells: Int = 30, second: Int = 0, proto: String = "") =
         BmsSnapshot(type, model, proto,
-            BmsMapper.pack(SmartBms().apply { cellNum = cells }),
-            BmsMapper.pack(SmartBms().apply { cellNum = second }),
+            listOf(BmsMapper.pack(SmartBms().apply { cellNum = cells }),
+                BmsMapper.pack(SmartBms().apply { cellNum = second }, 2)),
             73, 100.125, -4.25, 26.5, 39.25)
     private fun names(s: BmsSnapshot) = BmsMapper.fields(s).map { context.resources.getResourceEntryName(it) }
     private val fallback = "bmsRemPerc bmsVoltage bmsCurrent bmsTemp1 bmsTemp2".split(" ")
     private val extrema = "bmsAvgCell bmsMaxCell bmsMinCell bmsCellDiff".split(" ")
     private val ksBase = "bmsSn bmsFw bmsFactoryCap bmsCycles bmsRemCap bmsRemPerc bmsCurrent bmsVoltage bmsTemp1 bmsTemp2".split(" ")
     private val veteranBase = "bmsCurrent bmsVoltage bmsTemp1 bmsTemp2 bmsTemp3 bmsTemp4 bmsTemp5 bmsTemp6".split(" ")
-    private val gotwayBase = "bmsCurrent bmsVoltage bmsSemiVoltage1 bmsSemiVoltage2 bmsTemp1 bmsTemp2 bmsTemp3 bmsTemp4".split(" ")
+    private val gotwayBase = "bmsCurrent bmsVoltage bmsTemp1 bmsTemp2".split(" ")
     private fun expected(base: List<String>, count: Int) = base + extrema + (1..count).map { "bmsCell$it" }
 
     @Test fun `Kingsong legacy fixtures preserve all model specific fields and order for one and two packs`() {
@@ -45,13 +45,13 @@ class BmsPresentationTest {
             listOf(0, count).forEach { second ->
                 val s = snapshot(WHEEL_TYPE.KINGSONG, model, count, second)
                 assertThat(names(s)).containsExactlyElementsIn(expected(ksBase + extras, count)).inOrder()
-                assertThat(BmsMapper.present(s).showSecond).isEqualTo(second > 0)
+                assertThat(BmsMapper.present(s).packNumbers.size > 1).isEqualTo(second > 0)
             }
         }
         assertThat(names(snapshot(WHEEL_TYPE.KINGSONG, "KS-18L"))).containsExactlyElementsIn(fallback).inOrder()
     }
 
-    @Test fun `Veteran fixtures and Begode count thresholds match legacy rather than invented capabilities`() {
+    @Test fun `Veteran fixtures preserve legacy fields and Begode shows reported cell counts`() {
         val veterans = mapOf("Lynx" to 36, "Lynx S" to 36, "Sherman L" to 36,
             "Nosfet Apex" to 36, "Nosfet Aeon" to 36, "Patton S" to 30, "Nosfet Aero" to 30, "Oryx" to 42)
         veterans.forEach { (model, count) ->
@@ -61,11 +61,10 @@ class BmsPresentationTest {
             }
         }
         assertThat(names(snapshot(WHEEL_TYPE.VETERAN, "Patton"))).containsExactlyElementsIn(fallback).inOrder()
-        mapOf(1 to 16, 16 to 16, 17 to 20, 20 to 20, 21 to 24, 24 to 24,
-            25 to 32, 32 to 32, 33 to 36, 36 to 36, 37 to 40, 40 to 40, 41 to 50, 50 to 50).forEach { (reported, count) ->
+        listOf(1, 16, 17, 20, 21, 24, 25, 32, 33, 36, 37, 40, 41, 50).forEach { reported ->
             listOf(0, reported).forEach { second ->
                 assertThat(names(snapshot(WHEEL_TYPE.GOTWAY, "Rocket", reported, second)))
-                    .containsExactlyElementsIn(expected(gotwayBase, count)).inOrder()
+                    .containsExactlyElementsIn(expected(gotwayBase, reported)).inOrder()
             }
         }
     }
@@ -90,11 +89,10 @@ class BmsPresentationTest {
             assertThat(result.rows.map { it.label }).containsExactly(
                 R.string.bmsRemPerc, R.string.bmsVoltage, R.string.bmsCurrent, R.string.bmsTemp1, R.string.bmsTemp2
             ).inOrder()
-            assertThat(result.rows.map { it.first }).containsExactly("73 %", "100.13 V", "-4.25 A", "26.5°C", "39.3°C").inOrder()
-            assertThat(result.rows.map { it.second }).containsExactly("-", "-", "-", "-", "-").inOrder()
-            assertThat(result.showSecond).isFalse()
+            assertThat(result.rows.map { it.values.single() }).containsExactly("73 %", "100.13 V", "-4.25 A", "26.5°C", "39.3°C").inOrder()
+            assertThat(result.packNumbers).containsExactly(1)
         }
-        assertThat(BmsMapper.present(snapshot(WHEEL_TYPE.GOTWAY, cells = 0, second = 16)).showSecond).isTrue()
+        assertThat(BmsMapper.present(snapshot(WHEEL_TYPE.GOTWAY, cells = 0, second = 16)).packNumbers).containsExactly(2)
     }
 
     @Test fun `scalar formatting indices and balance mask use authoritative pack fields with US decimals`() {
@@ -122,15 +120,14 @@ class BmsPresentationTest {
             R.string.bmsMaxCell to "4.200 V [7]", R.string.bmsMinCell to "3.600 V [19]", R.string.bmsCellDiff to "0.600 V"
         )
         expected.forEach { (field, text) -> assertThat(p.fields[field]).isEqualTo(text) }
-        val result = BmsMapper.present(snapshot(WHEEL_TYPE.GOTWAY, cells = 50).copy(first = p))
-        fun cell(label: Int) = result.rows.single { it.label == label }.first
+        val result = BmsMapper.present(snapshot(WHEEL_TYPE.GOTWAY, cells = 50).copy(packs = listOf(p)))
+        fun cell(label: Int) = result.rows.single { it.label == label }.values[0]
         assertThat(cell(R.string.bmsCell1)).isEqualTo("4.012 V [B]")
         assertThat(cell(R.string.bmsCell32)).isEqualTo("4.100 V [B]")
         assertThat(cell(R.string.bmsCell33)).isEqualTo("3.900 V ")
-        assertThat(cell(R.string.bmsCell50)).isEqualTo("0.000 V ")
+        assertThat(cell(R.string.bmsCell50)).isEmpty()
         result.rows.filter { it.label in BmsMapper.cellLabels.drop(32) }.forEach {
-            assertThat(it.first).doesNotContain("[B]")
-            assertThat(it.second).doesNotContain("[B]")
+            assertThat(it.values[0]).doesNotContain("[B]")
         }
     }
 
@@ -153,18 +150,18 @@ class BmsPresentationTest {
         val first = SmartBms().apply { cellNum = 50; voltage = 123.4; cells = arrayOf(4.125) }
         val second = SmartBms().apply { cellNum = 30; voltage = 120.5; temp1 = 41.0; cells[0] = 3.75 }
         val result = BmsMapper.present(snapshot(WHEEL_TYPE.GOTWAY, cells = 50).copy(
-            first = BmsMapper.pack(first), second = BmsMapper.pack(second)
+            packs = listOf(BmsMapper.pack(first), BmsMapper.pack(second, 2))
         ))
         fun row(id: Int) = result.rows.single { it.label == id }
-        assertThat(row(R.string.bmsVoltage).first).isEqualTo("123.40 V")
-        assertThat(row(R.string.bmsVoltage).second).isEqualTo("120.50 V")
-        assertThat(row(R.string.bmsTemp1).first).isEqualTo("0.0°C")
-        assertThat(row(R.string.bmsTemp1).second).isEqualTo("41.0°C")
-        assertThat(row(R.string.bmsCell1).first).isEqualTo("4.125 V ")
-        assertThat(row(R.string.bmsCell1).second).isEqualTo("3.750 V ")
-        assertThat(row(R.string.bmsCell50).first).isEqualTo("0.000 V ")
-        val ninebot = BmsMapper.present(snapshot(WHEEL_TYPE.NINEBOT_Z).copy(first = BmsMapper.pack(first)))
-        assertThat(ninebot.rows.single { it.label == R.string.bmsSn }.first).isEmpty()
-        assertThat(ninebot.rows.single { it.label == R.string.bmsActualCap }.first).isEqualTo("0 mAh")
+        assertThat(row(R.string.bmsVoltage).values[0]).isEqualTo("123.40 V")
+        assertThat(row(R.string.bmsVoltage).values[1]).isEqualTo("120.50 V")
+        assertThat(row(R.string.bmsTemp1).values[0]).isEqualTo("0.0°C")
+        assertThat(row(R.string.bmsTemp1).values[1]).isEqualTo("41.0°C")
+        assertThat(row(R.string.bmsCell1).values[0]).isEqualTo("4.125 V ")
+        assertThat(row(R.string.bmsCell1).values[1]).isEqualTo("3.750 V ")
+        assertThat(row(R.string.bmsCell50).values[0]).isEmpty()
+        val ninebot = BmsMapper.present(snapshot(WHEEL_TYPE.NINEBOT_Z).copy(packs = listOf(BmsMapper.pack(first))))
+        assertThat(ninebot.rows.single { it.label == R.string.bmsSn }.values[0]).isEmpty()
+        assertThat(ninebot.rows.single { it.label == R.string.bmsActualCap }.values[0]).isEqualTo("0 mAh")
     }
 }

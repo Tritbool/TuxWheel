@@ -22,12 +22,12 @@ jobs:
         with:
           persist-credentials: false
 
-      # 0.1.2 is not yet on Maven Central; pin the P6 BMS API from merged PR #79.
+      # 0.1.3 is not yet on Maven Central; pin the revision used by the app.
       - name: Checkout BLE library
         uses: actions/checkout@v4
         with:
           repository: Tritbool/euc_ble_library
-          ref: c371d75a62c9f3b3450c331199308e72300a2ff5
+          ref: 0812eff691836b1943359d56efc3829bc3566bb9
           path: .ci/euc-ble-library
           persist-credentials: false
 
@@ -43,4 +43,4 @@ jobs:
         run: bash ./gradlew :euc-ble-core:publishToMavenLocal --no-daemon
 
       - name: Run unit tests and lint
-        run: ./gradlew :app:lintDebug --no-daemon
+        run: ./gradlew :app:testDebugUnitTest --tests io.github.tuxwheel.ble.BmsLabCaptureTest --tests io.github.tuxwheel.bms.BmsSessionTest :app:lintDebug --no-daemon
