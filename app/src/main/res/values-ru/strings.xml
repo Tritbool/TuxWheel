@@ -349,6 +349,8 @@
     <string name="ks18l_scaler_description">18L показывает неправильную дистанцию, которую приложение может скорректировать</string>
     <string name="bmsBattery1Title">Батарея 1</string>
     <string name="bmsBattery2Title">Батарея 2</string>
+    <string name="bmsBatteryTitle">Батарея %1$d</string>
+    <string name="bmsGroupTitle">Группа %1$d</string>
     <string name="bmsFactoryCap">Начальная емкость</string>
     <string name="bmsActualCap">Емкость</string>
     <string name="bmsCycles">Циклов</string>

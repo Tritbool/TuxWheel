@@ -11,6 +11,7 @@ import android.os.PowerManager
 import android.os.Build
 import android.os.Environment
 import android.os.IBinder
+import android.os.SystemClock
 import android.widget.Toast
 import io.github.tuxwheel.data.TripDao
 import io.github.tuxwheel.utils.Constants
@@ -46,8 +47,7 @@ class LoggingService : Service() {
     private var rawLoggingJob: Job? = null
 
     private var bmsFileUtil: FileUtil? = null
-    private var lastBmsSignature: String? = null
-    private var lastBmsWriteTimestamp: Long = 0L
+    private var lastBmsWriteElapsed: Long? = null
     private var wakeLock: PowerManager.WakeLock? = null
 
     fun updateConnectionState(connectionState: BLEConstants.ConnectionState) {
@@ -251,11 +251,11 @@ class LoggingService : Service() {
         rawFileAddress = null
     }
 
+    @Synchronized
     private fun closeBmsFile() {
         bmsFileUtil?.close()
         bmsFileUtil = null
-        lastBmsSignature = null
-        lastBmsWriteTimestamp = 0L
+        lastBmsWriteElapsed = null
     }
 
     private fun getOrCreateRawFile(address: String): FileUtil? {
@@ -276,20 +276,6 @@ class LoggingService : Service() {
         rawFileAddress = address
         Timber.i("RAW BLE logging started: %s", rawFile.absolutePath)
         return rawFile
-    }
-
-    private fun bmsSignature(pack: BMSData): String {
-        return listOf(
-            pack.bmsIndex,
-            pack.voltage,
-            pack.current,
-            pack.remainingCapacity,
-            pack.factoryCapacity,
-            pack.cycles,
-            pack.isCharging,
-            pack.temperatures?.joinToString(separator = ";"),
-            pack.cellVoltages?.joinToString(separator = ";"),
-        ).joinToString(separator = "|")
     }
 
     private fun formatBmsLine(
@@ -382,6 +368,7 @@ class LoggingService : Service() {
             return Environment.MEDIA_MOUNTED == state || Environment.MEDIA_MOUNTED_READ_ONLY == state
         }
 
+    @Synchronized
     private fun updateBmsFile() {
         if (!appConfig.enableBmsData) {
             closeBmsFile()
@@ -402,26 +389,20 @@ class LoggingService : Service() {
             return
         }
 
-        val now = System.currentTimeMillis()
-        val signature = packs.joinToString(separator = "|") { pack ->
-            bmsSignature(pack)
-        }
-
-        val changed = signature != lastBmsSignature
-        val intervalElapsed = now - lastBmsWriteTimestamp >= BMS_LOG_MIN_INTERVAL_MS
-
-        if (!changed && !intervalElapsed) {
+        val elapsed = SystemClock.elapsedRealtime()
+        val intervalMillis = appConfig.bmsLogIntervalSeconds * 1_000L
+        if (lastBmsWriteElapsed?.let { elapsed - it < intervalMillis } == true) {
             return
         }
 
         val file = getOrCreateBmsFile() ?: return
+        val now = System.currentTimeMillis()
 
         packs.forEach { pack ->
             file.writeLine(formatBmsLine(now, pack))
         }
 
-        lastBmsSignature = signature
-        lastBmsWriteTimestamp = now
+        lastBmsWriteElapsed = elapsed
     }
 
     fun updateFile() {
@@ -466,8 +447,6 @@ class LoggingService : Service() {
 
     companion object {
         private var instance: LoggingService? = null
-
-        private const val BMS_LOG_MIN_INTERVAL_MS = 1000L
 
         fun isInstanceCreated(): Boolean {
             return instance != null

@@ -7,29 +7,30 @@ import java.util.Collections
 import java.util.Locale
 
 data class BmsPackSnapshot(
+    val number: Int,
     val cellNum: Int,
     val fields: Map<Int, String>,
     val cells: List<Double>,
-    val balanceMap: Int
+    val balanceMap: Int,
+    val hasMeasurements: Boolean = false
 )
 
 data class BmsSnapshot(
     val wheelType: WHEEL_TYPE,
     val model: String,
     val protoVer: String,
-    val first: BmsPackSnapshot,
-    val second: BmsPackSnapshot,
+    val packs: List<BmsPackSnapshot>,
     val battery: Int,
     val voltage: Double,
     val current: Double,
     val temperature: Double,
     val motorTemperature: Double
 ) {
-    val hasDetails: Boolean get() = first.cellNum > 0 || second.cellNum > 0
+    val hasDetails: Boolean get() = packs.any { it.cellNum > 0 || it.hasMeasurements }
 }
 
-data class BmsRow(val label: Int, val first: String, val second: String)
-data class BmsPresentation(val rows: List<BmsRow>, val showSecond: Boolean)
+data class BmsRow(val label: Int, val values: List<String>)
+data class BmsPresentation(val rows: List<BmsRow>, val packNumbers: List<Int>, val isGotway: Boolean)
 
 object BmsMapper {
     private fun format(pattern: String, vararg values: Any) = String.format(Locale.US, pattern, *values)
@@ -54,7 +55,7 @@ object BmsMapper {
     private val veteran = setOf("Lynx", "Lynx S", "Sherman L", "Nosfet Apex", "Nosfet Aeon", "Patton S", "Nosfet Aero", "Oryx")
 
     // Capture on the session's main-thread update boundary, never from a composable.
-    fun pack(b: SmartBms): BmsPackSnapshot {
+    fun pack(b: SmartBms, number: Int = 1): BmsPackSnapshot {
         val fields = linkedMapOf(
             R.string.bmsSn to b.serialNumber, R.string.bmsFw to b.versionNumber,
             R.string.bmsFactoryCap to format("%d mAh", b.factoryCap),
@@ -83,7 +84,7 @@ object BmsMapper {
             R.string.bmsMinCell to format("%.3f V [%d]", b.minCell, b.minCellNum),
             R.string.bmsCellDiff to format("%.3f V", b.cellDiff)
         )
-        return BmsPackSnapshot(b.cellNum, Collections.unmodifiableMap(fields),
+        return BmsPackSnapshot(number, b.cellNum, Collections.unmodifiableMap(fields),
             Collections.unmodifiableList(b.cells.toList()), b.balanceMap)
     }
 
@@ -123,18 +124,10 @@ object BmsMapper {
                 count = when (model) { "Oryx" -> 42; "Patton S", "Nosfet Aero" -> 30; else -> 36 }
             }
             WHEEL_TYPE.GOTWAY -> {
-                if (s.first.cellNum <= 0) return fallback
-                fields += listOf(R.string.bmsCurrent, R.string.bmsVoltage, R.string.bmsSemiVoltage1,
-                    R.string.bmsSemiVoltage2, R.string.bmsTemp1, R.string.bmsTemp2, R.string.bmsTemp3, R.string.bmsTemp4)
-                count = when {
-                    s.first.cellNum > 40 -> 50
-                    s.first.cellNum > 36 -> 40
-                    s.first.cellNum > 32 -> 36
-                    s.first.cellNum > 24 -> 32
-                    s.first.cellNum > 20 -> 24
-                    s.first.cellNum > 16 -> 20
-                    else -> 16
-                }
+                fields += listOf(R.string.bmsCurrent, R.string.bmsVoltage, R.string.bmsTemp1, R.string.bmsTemp2)
+                    .filter { field -> s.packs.any { field in it.fields } }
+                count = s.packs.maxOfOrNull { it.cellNum } ?: 0
+                return fields + (if (count > 0) extrema else emptyList()) + cellLabels.take(count)
             }
             WHEEL_TYPE.NINEBOT_Z -> {
                 if (s.protoVer.isNotEmpty()) return fallback
@@ -142,7 +135,7 @@ object BmsMapper {
                     R.string.bmsCycles, R.string.bmsChrgCount, R.string.bmsMfgDate, R.string.bmsStatus,
                     R.string.bmsRemCap, R.string.bmsRemPerc, R.string.bmsCurrent, R.string.bmsVoltage,
                     R.string.bmsTemp1, R.string.bmsTemp2, R.string.bmsHealth)
-                count = s.first.cellNum.coerceIn(14, 16)
+                count = (s.packs.maxOfOrNull { it.cellNum } ?: 0).coerceIn(14, 16)
             }
             else -> return fallback
         }
@@ -160,15 +153,25 @@ object BmsMapper {
         )
         fun value(pack: BmsPackSnapshot, field: Int): String {
             val index = cellLabels.indexOf(field)
-            if (index < 0) return pack.fields[field].orEmpty()
+            if (index < 0) {
+                if (s.wheelType == WHEEL_TYPE.GOTWAY && field in extrema && pack.cellNum == 0) return ""
+                return pack.fields[field].orEmpty()
+            }
+            if (s.wheelType == WHEEL_TYPE.GOTWAY &&
+                (index >= pack.cellNum || (pack.cells.getOrNull(index) ?: 0.0) <= 0.0)) return ""
             // Read-only: balancing status is unavailable for cells 33+ because the
             // authoritative mask is an Int. Never infer [B] by wrapping a shift.
             val balance = if (index < Int.SIZE_BITS && (pack.balanceMap ushr index and 1) == 1) "[B]" else ""
             return format("%.3f V %s", pack.cells.getOrElse(index) { 0.0 }, balance)
         }
-        return BmsPresentation(Collections.unmodifiableList(selected.map {
-            if (!s.hasDetails) BmsRow(it, fallbackValues.getValue(it), "-")
-            else BmsRow(it, value(s.first, it), value(s.second, it))
-        }), s.second.cellNum > 0)
+        val shownPacks = if (s.hasDetails) {
+            s.packs.filter { it.cellNum > 0 || it.hasMeasurements }
+        } else emptyList()
+        val numbers = shownPacks.map { it.number }.ifEmpty { listOf(1) }
+        return BmsPresentation(Collections.unmodifiableList(selected.map { field ->
+            val values = if (!s.hasDetails) listOf(fallbackValues.getValue(field))
+            else shownPacks.map { value(it, field) }
+            BmsRow(field, Collections.unmodifiableList(values))
+        }), Collections.unmodifiableList(numbers), s.wheelType == WHEEL_TYPE.GOTWAY && s.hasDetails)
     }
 }

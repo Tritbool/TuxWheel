@@ -289,6 +289,8 @@
     <string name="watt">"W"</string>
     <string name="bmsBattery1Title">"배터리 1"</string>
     <string name="bmsBattery2Title">"배터리 2"</string>
+    <string name="bmsBatteryTitle">배터리 %1$d</string>
+    <string name="bmsGroupTitle">그룹 %1$d</string>
 
     <!-- Fuzzy -->
     <string name="bmsSn">"일련번호"</string>

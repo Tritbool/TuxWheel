@@ -268,6 +268,8 @@
 
     <string name="use_bms_data_title">BMS data logging</string>
     <string name="use_bms_data_description">Save detailed BMS data in a separated file.</string>
+    <string name="bms_log_interval_title">BMS recording interval</string>
+    <string name="bms_log_interval_description">Minimum time between BMS CSV samples. Does not change wheel polling or live telemetry.</string>
 
     <string name="on_off_strobe">Off/On/Strobe</string>
     <string name="soft_medium_hard">Soft/Medium/Hard</string>
@@ -381,6 +383,8 @@
     <string name="watt">W</string>
     <string name="bmsBattery1Title">Battery 1</string>
     <string name="bmsBattery2Title">Battery 2</string>
+    <string name="bmsBatteryTitle">Battery %1$d</string>
+    <string name="bmsGroupTitle">Group %1$d</string>
     <string name="bmsSn">S/N</string>
     <string name="bmsFw">FW</string>
     <string name="bmsFactoryCap">Factory capacity</string>

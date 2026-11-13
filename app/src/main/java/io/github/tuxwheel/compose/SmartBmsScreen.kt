@@ -2,7 +2,9 @@ package io.github.tuxwheel.compose
 
 import android.widget.TextView
 import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,6 +21,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.dp
 import io.github.tuxwheel.R
 import io.github.tuxwheel.bms.BmsPresentation
 
@@ -44,22 +47,25 @@ fun SmartBmsScreen(presentation: BmsPresentation, appTheme: Int, scroll: ScrollS
     val titlePadding = with(density) {
         PaddingValues(title.paddingLeft.toDp(), title.paddingTop.toDp(), title.paddingRight.toDp(), title.paddingBottom.toDp())
     }
-    Column(Modifier.fillMaxSize().verticalScroll(scroll)) {
-        Row(Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.bmsBattery1Title), Modifier.weight(1f).padding(titlePadding),
-                style = titleStyle.copy(fontSize = 20.sp, textAlign = TextAlign.Center))
-            if (presentation.showSecond) {
-                Text(stringResource(R.string.bmsBattery2Title), Modifier.weight(1f).padding(titlePadding),
-                    style = titleStyle.copy(fontSize = 20.sp, textAlign = TextAlign.Center))
+    val horizontalScroll = rememberScrollState()
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val packWidth = maxOf(maxWidth / presentation.packNumbers.size, 220.dp)
+        Column(Modifier.fillMaxSize().horizontalScroll(horizontalScroll).verticalScroll(scroll)) {
+            Row {
+                presentation.packNumbers.forEach { number ->
+                    val titleId = if (presentation.isGotway) R.string.bmsGroupTitle else R.string.bmsBatteryTitle
+                    Text(stringResource(titleId, number), Modifier.width(packWidth).padding(titlePadding),
+                        style = titleStyle.copy(fontSize = 20.sp, textAlign = TextAlign.Center))
+                }
             }
-        }
-        presentation.rows.forEach { row ->
-            Row(Modifier.fillMaxWidth()) {
-                Text(stringResource(row.label), Modifier.weight(1f).alignByBaseline().padding(titlePadding), style = titleStyle)
-                Text(row.first, Modifier.weight(1f).alignByBaseline(), style = valueStyle)
-                if (presentation.showSecond) {
-                    Text(stringResource(row.label), Modifier.weight(1f).alignByBaseline().padding(titlePadding), style = titleStyle)
-                    Text(row.second, Modifier.weight(1f).alignByBaseline(), style = valueStyle)
+            presentation.rows.forEach { row ->
+                Row {
+                    row.values.forEach { text ->
+                        Row(Modifier.width(packWidth)) {
+                            Text(stringResource(row.label), Modifier.weight(1f).alignByBaseline().padding(titlePadding), style = titleStyle)
+                            Text(text, Modifier.weight(1f).alignByBaseline(), style = valueStyle)
+                        }
+                    }
                 }
             }
         }

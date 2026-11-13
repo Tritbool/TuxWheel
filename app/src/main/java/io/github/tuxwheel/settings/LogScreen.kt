@@ -30,6 +30,7 @@ import org.koin.compose.koinInject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlin.math.roundToInt
 
 @Composable
 fun logScreen(appConfig: AppConfig = koinInject()) {
@@ -87,12 +88,27 @@ fun logScreen(appConfig: AppConfig = koinInject()) {
             appConfig.enableRawData = it
         }
 
+        var bmsLogEnabled by remember { mutableStateOf(appConfig.enableBmsData) }
         switchPref(
             name = stringResource(R.string.use_bms_data_title),
             desc = stringResource(R.string.use_bms_data_description),
-            default = appConfig.enableBmsData,
+            default = bmsLogEnabled,
         ) {
             appConfig.enableBmsData = it
+            bmsLogEnabled = it
+        }
+
+        AnimatedVisibility(bmsLogEnabled) {
+            sliderPref(
+                name = stringResource(R.string.bms_log_interval_title),
+                desc = stringResource(R.string.bms_log_interval_description),
+                position = appConfig.bmsLogIntervalSeconds.toFloat(),
+                min = AppConfig.BMS_LOG_INTERVAL_MIN_SECONDS.toFloat(),
+                max = AppConfig.BMS_LOG_INTERVAL_MAX_SECONDS.toFloat(),
+                unit = R.string.sec,
+            ) {
+                appConfig.bmsLogIntervalSeconds = it.roundToInt()
+            }
         }
 
         switchPref(

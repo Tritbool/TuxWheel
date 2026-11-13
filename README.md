@@ -78,6 +78,8 @@ are not deleted by this cleanup.
 - Speed, battery, temperature, current, PWM, and other available telemetry.
 - Configurable alarms and charts; optional trips and events pages.
 - Smart BMS presentation with per-pack measurements and cell details when available.
+  Gotway/Begode smart BMS wheels show their reported groups independently; swipe
+  horizontally to see additional groups.
 - CSV ride logging through a foreground service, plus optional raw BLE diagnostics.
 - Picture-in-picture (PiP) on supported Android versions.
 - Configurable speed/distance and temperature units.
@@ -170,16 +172,15 @@ Attach only the relevant, sanitized excerpt to a bug report.
 
 BLE is provided by [EUC_BLE_LIBRARY](https://github.com/Tritbool/euc_ble_library),
 not by wheel protocol decoders embedded in this app.
-The dependency is `io.github.tritbool:euc-ble-library:0.1.2`;
+The dependency is `io.github.tritbool:euc-ble-library:0.1.3`;
 its version is pinned in `gradle/libs.versions.toml`.
 
-Version 0.1.2 is not yet on Maven Central. Until published, build and publish
+Version 0.1.3 is not yet on Maven Central. Until published, build and publish
 `euc-ble-core` to Maven Local from revision
-`62524e5e1af92da5f53ccea6543b281649e5be73` using
-`./gradlew :euc-ble-core:publishToMavenLocal`. App checks pin that revision,
-which includes raw traffic and the KingSong authentication, speed-limit, and
-password-management APIs from
-[PR #76](https://github.com/Tritbool/euc_ble_library/pull/76).
+`0812eff691836b1943359d56efc3829bc3566bb9` using
+`./gradlew :euc-ble-core:publishToMavenLocal`. This revision includes the
+Gotway/Begode four-group BMS decoding from
+[PR #82](https://github.com/Tritbool/euc_ble_library/pull/82).
 
 KingSong password set, change, and removal controls appear in Wheel Settings
 when the active protocol supports them. A missing wheel confirmation is reported
