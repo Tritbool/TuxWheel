@@ -146,11 +146,13 @@ sharing the file remain explicit user actions. Live-wheel behavior is unverified
 Build against your local `euc_ble_library` checkout instead of a published release:
 
 ```sh
-./gradlew -PeucBleLibraryDir=/absolute/path/to/euc_ble_library :app:assembleDebug
+./gradlew -PeucBleLibraryDir=/absolute/path/to/euc_ble_library \
+  -Peuc.androidGradlePluginVersion=9.2.1 :app:assembleDebug
 ```
 
 Or set `eucBleLibraryDir=/absolute/path/to/euc_ble_library` in your local
-`~/.gradle/gradle.properties`. The composite build substitutes all four BLE modules,
+`~/.gradle/gradle.properties`, along with `euc.androidGradlePluginVersion=9.2.1`
+to match this app's Android Gradle plugin version. The composite build substitutes all four BLE modules,
 including the Android connector; no version bump or `publishToMavenLocal` is needed.
 Without that property, the regular dependency coordinates remain unchanged.
 

@@ -27,7 +27,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Tritbool/euc_ble_library
-          ref: 92fef1f285899c2e42f2a81f7ae53a9e73e9fd4f
+          ref: 6ffdef8e4949c1508112dd1cc1c3cfd9cd4b3dab
           path: .ci/euc-ble-library
           persist-credentials: false
 
@@ -43,6 +43,7 @@ jobs:
       - name: Run unit tests and lint
         run: >-
           ./gradlew -PeucBleLibraryDir=.ci/euc-ble-library
+          -Peuc.androidGradlePluginVersion=9.2.1
           :app:testDebugUnitTest
           --tests io.github.tuxwheel.ble.BmsLabCaptureTest
           --tests io.github.tuxwheel.bms.BmsSessionTest
