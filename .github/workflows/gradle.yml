@@ -17,18 +17,31 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Checkout BLE library
+        uses: actions/checkout@v4
+        with:
+          repository: Tritbool/euc_ble_library
+          ref: 5a6ddde876f85de19264a828988427658029bd92
+          path: .ci/euc-ble-library
+          persist-credentials: false
+
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: |
+            21
+            25
           cache: gradle
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
       - name: Assemble release APK
-        run: ./gradlew :app:assembleRelease --no-daemon
+        run: >-
+          ./gradlew -PeucBleLibraryDir=.ci/euc-ble-library
+          -Peuc.androidGradlePluginVersion=9.2.1
+          :app:assembleRelease --no-daemon
 
       - name: Sign and verify APK
         shell: bash

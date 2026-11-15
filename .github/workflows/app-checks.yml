@@ -27,7 +27,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Tritbool/euc_ble_library
-          ref: 8aa97d40b9e02937ec31ee4fcac6645ebbe6b35e
+          ref: 5a6ddde876f85de19264a828988427658029bd92
           path: .ci/euc-ble-library
           persist-credentials: false
 
@@ -40,34 +40,20 @@ jobs:
             25
           cache: gradle
 
-      - name: Regenerate BLE Android dependency locks
-        run: >-
-          ./gradlew -p .ci/euc-ble-library
-          :euc-ble-android:dependencies --write-locks --no-daemon
-          > "$RUNNER_TEMP/ble-dependencies.txt"
-
-      - name: Run unit tests and lint
+      - name: Run unit tests, lint, and release assembly
         run: >-
           ./gradlew -PeucBleLibraryDir=.ci/euc-ble-library
           -Peuc.androidGradlePluginVersion=9.2.1
-          --write-locks
           :app:testDebugUnitTest
           --tests io.github.tuxwheel.ble.BmsLabCaptureTest
+          --tests io.github.tuxwheel.ble.RawTrafficCaptureTest
           --tests io.github.tuxwheel.bms.BmsSessionTest
           --tests io.github.tuxwheel.bms.SmartBmsScreenTest
           --tests io.github.tuxwheel.ble.WheelPasswordTest
           --tests io.github.tuxwheel.ble.WheelDiagnosticLogTest
           --tests io.github.tuxwheel.settings.WheelLockControlsTest
           --tests io.github.tuxwheel.settings.InMotionControlsTest
-          :app:lintDebug --no-daemon
-
-      - name: Retain regenerated BLE dependency locks
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ble-dependency-locks
-          path: .ci/euc-ble-library/**/gradle.lockfile
-          include-hidden-files: true
+          :app:lintDebug :app:assembleRelease --no-daemon
 
       - name: Retain Android regression reports
         if: always()
