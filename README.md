@@ -129,6 +129,31 @@ Smart BMS visibility and detail depend on the connected wheel.
 Wheel settings and actions are capability-dependent. Verify changes while
 stationary; app alarms do not replace the wheel's own safety protections.
 
+InMotion V9 lock controls appear after model identification and wait for the wheel's
+automatic token handshake, without asking for a KingSong PIN. Lock-state requests
+and subsequent wheel notifications confirm the state; a BLE write alone does not.
+P6 lock-state querying is not yet verified, so it does not expose this control.
+
+For identified InMotion V9/P6 wheels, **Wheel diagnostic file** downloads the wheel's
+opaque binary log, shows progress, and offers cancellation. **Save verified file**
+opens Android's document picker only after the library verifies the complete file's
+CRC. Failed/cancelled transfers cannot be saved. No storage permission, automatic
+upload, or diagnostic-content decoding is required; choosing a destination and
+sharing the file remain explicit user actions. Live-wheel behavior is unverified.
+
+### Using the latest local BLE library
+
+Build against your local `euc_ble_library` checkout instead of a published release:
+
+```sh
+./gradlew -PeucBleLibraryDir=/absolute/path/to/euc_ble_library :app:assembleDebug
+```
+
+Or set `eucBleLibraryDir=/absolute/path/to/euc_ble_library` in your local
+`~/.gradle/gradle.properties`. The composite build substitutes all four BLE modules,
+including the Android connector; no version bump or `publishToMavenLocal` is needed.
+Without that property, the regular dependency coordinates remain unchanged.
+
 ## Logging, trips, and diagnostics
 
 The app allows the logging of:

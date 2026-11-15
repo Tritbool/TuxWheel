@@ -19,3 +19,16 @@ dependencyResolutionManagement {
 rootProject.name = "TuxWheel"
 
 include ':app'
+
+// Use the latest local source without publishing or changing release coordinates.
+def eucBleLibraryDir = providers.gradleProperty('eucBleLibraryDir')
+if (eucBleLibraryDir.isPresent()) {
+    includeBuild(eucBleLibraryDir.get()) {
+        dependencySubstitution {
+            substitute module('io.github.tritbool:euc-ble-library') using project(':euc-ble-android')
+            substitute module('io.github.tritbool:euc-ble-core') using project(':euc-ble-core')
+            substitute module('io.github.tritbool:euc-ble-session') using project(':euc-ble-session')
+            substitute module('io.github.tritbool:euc-ble-protocols') using project(':euc-ble-protocols')
+        }
+    }
+}

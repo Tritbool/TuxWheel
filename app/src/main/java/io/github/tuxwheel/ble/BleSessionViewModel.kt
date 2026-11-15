@@ -6,6 +6,7 @@ import android.app.Application
 import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.os.Build
+import android.net.Uri
 import androidx.annotation.RequiresApi
 import androidx.annotation.RequiresPermission
 import androidx.annotation.MainThread
@@ -30,6 +31,7 @@ import io.github.tritbool.euc.ble.models.BMSData
 import io.github.tritbool.euc.ble.models.EUCData
 import io.github.tritbool.euc.ble.models.EUCDevice
 import io.github.tritbool.euc.ble.models.AuthenticationState
+import io.github.tritbool.euc.ble.models.DiagnosticLogState
 import io.github.tritbool.euc.ble.models.WheelSecurityEvent
 import io.github.tritbool.euc.ble.models.WheelSecurityState
 import io.github.tritbool.euc.ble.models.WheelLockState
@@ -50,6 +52,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.isActive
+import java.io.IOException
 import timber.log.Timber
 import java.util.ArrayList
 import java.util.Calendar
@@ -124,7 +130,7 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
 
         viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
             client.securityStateFlow.collect { security ->
-                updateWheelSecurity(security)
+                updateWheelSecurity(security, client)
             }
         }
         viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
@@ -225,12 +231,25 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
     private var protocolWatchdogJob: Job? = null
     private var passwordPromptOffered = false
     private var passwordResponseJob: Job? = null
+    private var diagnosticLogJob: Job? = null
 
-    internal fun updateWheelSecurity(security: WheelSecurityState?) {
+    internal fun refreshSecurityCapabilities(client: EucBleClient = _eucBleClient) {
+        val commands = setOf(
+            CommandType.LOCK, CommandType.UNLOCK, CommandType.REQUEST_LOCK_STATE,
+            CommandType.AUTHENTICATE, CommandType.REQUEST_DIAGNOSTIC_LOG, CommandType.CANCEL_DIAGNOSTIC_LOG,
+        ).filterTo(mutableSetOf()) { client.getCommandSupport(it) == CommandSupport.SUPPORTED }
+        _sessionState.update { it.copy(supportedSecurityCommands = commands) }
+    }
+
+    internal fun updateWheelSecurity(security: WheelSecurityState?, client: EucBleClient = _eucBleClient) {
+        refreshSecurityCapabilities(client)
         _sessionState.update {
-            it.copy(wheelLockState = security?.lock ?: WheelLockState.UNKNOWN)
+            it.copy(
+                wheelLockState = security?.lock ?: WheelLockState.UNKNOWN,
+                wheelAuthentication = security?.authentication ?: AuthenticationState.UNKNOWN,
+            )
         }
-        if (security == null) {
+        if (security == null || CommandType.AUTHENTICATE !in _sessionState.value.supportedSecurityCommands) {
             resetPasswordPrompt()
         } else if (!passwordPromptOffered) {
             passwordPromptOffered = true
@@ -464,6 +483,7 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
                         selection.reason
                     )
                     sendConnectBeepIfEnabled()
+                    refreshSecurityCapabilities()
                 }
             }
         })
@@ -551,7 +571,9 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
             lastDataTimestamp = null,
             lastError = null,
             isScanning = false,
-            wheelLockState = WheelLockState.UNKNOWN
+            wheelLockState = WheelLockState.UNKNOWN,
+            wheelAuthentication = AuthenticationState.UNKNOWN,
+            supportedSecurityCommands = emptySet(),
         )
         _bmsDisplay.value = captureBmsDisplay()
 
@@ -565,6 +587,8 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     private suspend fun updateDisconnectedState() {
+        diagnosticLogJob?.cancel()
+        diagnosticLogJob = null
         resetPasswordPrompt()
         wheelIsReady = false
         wheelAlarm = false
@@ -581,7 +605,13 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
             lastDataTimestamp = null,
             protocolSelectionRequired = false,
             protocolCandidates = emptyList(),
-            wheelLockState = WheelLockState.UNKNOWN
+            wheelLockState = WheelLockState.UNKNOWN,
+            wheelAuthentication = AuthenticationState.UNKNOWN,
+            supportedSecurityCommands = emptySet(),
+            diagnosticLogBusy = false,
+            diagnosticLogError = if (_sessionState.value.diagnosticLogBusy)
+                getApplication<Application>().getString(R.string.wheel_diagnostic_disconnected)
+            else _sessionState.value.diagnosticLogError,
         )
         _bmsDisplay.value = captureBmsDisplay()
 
@@ -632,6 +662,7 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
 
     @MainThread
     private fun updateTelemetryData(rawData: EUCData) {
+        refreshSecurityCapabilities()
         val data = applyGotwayCorrections(rawData)
         val type = wheel_type_from_string(data.manufacturer)
         val model = data.model.takeUnless { it.isBlank() || it.equals("Unknown", ignoreCase = true) }
@@ -1235,6 +1266,98 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
 
     fun isCommandSupported(commandType: CommandType): Boolean {
         return _eucBleClient.getCommandSupport(commandType) == CommandSupport.SUPPORTED
+    }
+
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    fun requestDiagnosticLog() {
+        val state = _sessionState.value
+        if (state.diagnosticLogBusy || state.diagnosticLogSaving) return
+        if (!state.isConnected || !isCommandSupported(CommandType.REQUEST_DIAGNOSTIC_LOG)) {
+            _sessionState.update {
+                it.copy(diagnosticLogError = getApplication<Application>().getString(R.string.wheel_diagnostic_unavailable))
+            }
+            return
+        }
+        _sessionState.update {
+            it.copy(diagnosticLogTransfer = null, diagnosticLogBusy = true,
+                diagnosticLogError = null, diagnosticLogSaved = false)
+        }
+        diagnosticLogJob = viewModelScope.launch {
+            _eucBleClient.requestDiagnosticLog()
+            // Encoding starts synchronously, but a rejected command may produce no snapshot.
+            val transfer = withTimeoutOrNull(5_000) {
+                while (_eucBleClient.getDiagnosticLogTransfer() == null) delay(100)
+                _eucBleClient.getDiagnosticLogTransfer()
+            }
+            if (transfer == null) {
+                _sessionState.update {
+                    it.copy(diagnosticLogBusy = false,
+                        diagnosticLogError = getApplication<Application>().getString(R.string.wheel_diagnostic_not_started))
+                }
+                return@launch
+            }
+            while (isActive) {
+                val snapshot = _eucBleClient.getDiagnosticLogTransfer()
+                if (snapshot == null) {
+                    _sessionState.update {
+                        it.copy(diagnosticLogBusy = false,
+                            diagnosticLogError = getApplication<Application>().getString(R.string.wheel_diagnostic_disconnected))
+                    }
+                    return@launch
+                }
+                _sessionState.update {
+                    it.copy(diagnosticLogTransfer = snapshot, diagnosticLogBusy = !snapshot.state.isTerminal)
+                }
+                if (snapshot.state.isTerminal) return@launch
+                delay(250)
+            }
+        }
+    }
+
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    fun cancelDiagnosticLog() {
+        if (!_sessionState.value.diagnosticLogBusy) return
+        _eucBleClient.cancelDiagnosticLog()
+        diagnosticLogJob?.cancel()
+        diagnosticLogJob = null
+        _sessionState.update {
+            it.copy(diagnosticLogTransfer = _eucBleClient.getDiagnosticLogTransfer(), diagnosticLogBusy = false)
+        }
+    }
+
+    fun saveDiagnosticLog(uri: Uri) {
+        val state = _sessionState.value
+        if (state.diagnosticLogSaving) return
+        val data = state.diagnosticLogTransfer?.takeIf { it.state == DiagnosticLogState.COMPLETED }?.copyData()
+        if (data == null) {
+            _sessionState.update {
+                it.copy(diagnosticLogError = getApplication<Application>().getString(R.string.wheel_diagnostic_not_verified))
+            }
+            return
+        }
+        _sessionState.update { it.copy(diagnosticLogSaving = true, diagnosticLogSaved = false, diagnosticLogError = null) }
+        viewModelScope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    val resolver = getApplication<Application>().contentResolver
+                    val stream = resolver.openOutputStream(uri, "wt") ?: throw IOException("No output stream")
+                    stream.use { it.write(data) }
+                }
+                _sessionState.update { it.copy(diagnosticLogSaved = true) }
+            } catch (e: IOException) {
+                Timber.e(e, "Unable to save wheel diagnostic log")
+                _sessionState.update {
+                    it.copy(diagnosticLogError = getApplication<Application>().getString(R.string.wheel_diagnostic_save_failed))
+                }
+            } catch (e: SecurityException) {
+                Timber.e(e, "Access denied saving wheel diagnostic log")
+                _sessionState.update {
+                    it.copy(diagnosticLogError = getApplication<Application>().getString(R.string.wheel_diagnostic_save_failed))
+                }
+            } finally {
+                _sessionState.update { it.copy(diagnosticLogSaving = false) }
+            }
+        }
     }
 
     /**
