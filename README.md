@@ -169,7 +169,12 @@ out of raw CSV files; this also produces sequence gaps.
 is active it saves one record per received telemetry callback with an available
 BMS snapshot, including unchanged snapshots, to `*.bms.jsonl.gz` in the wheel's
 Downloads/TuxWheel folder. It does not generate samples between callbacks or change
-the wheel's polling rate. Each UTF-8 JSON Lines record has an app callback time
+the wheel's polling rate. Telemetry/BMS presentation and standard ride CSV updates
+are coalesced to at most 20 refreshes per second, keeping only one pending refresh
+instead of queuing work on the UI thread for every callback. Session peaks and
+battery/voltage minima are retained across coalesced samples. High-frequency BMS
+lab and raw BLE capture are not throttled by this presentation limit.
+Each UTF-8 JSON Lines record has an app callback time
 `timestamp_ms`, a `sequence`, and a `packs` array containing raw library indices,
 nullable measurements, and cell and temperature arrays. It can be read with
 `pandas.read_json(path, lines=True, compression="gzip")` and converted to Parquet.

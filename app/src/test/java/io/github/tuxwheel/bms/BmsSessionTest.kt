@@ -11,16 +11,20 @@ import io.github.tuxwheel.LoggingService
 import io.github.tuxwheel.ble.BleSessionViewModel
 import com.google.common.truth.Truth.assertThat
 import io.github.tritbool.euc.ble.EucBleClient
+import io.github.tritbool.euc.ble.core.DataCallback
 import io.github.tritbool.euc.ble.models.BMSData
 import io.github.tritbool.euc.ble.models.EUCData
+import io.github.tritbool.euc.ble.models.EUCDevice
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import io.mockk.clearMocks
+import io.mockk.slot
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.runBlocking
 import io.github.tuxwheel.utils.FileUtil
 import org.junit.After
 import org.junit.Before
@@ -33,6 +37,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import kotlin.coroutines.Continuation
+import java.time.Duration
 
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class, sdk = [28])
@@ -134,6 +139,42 @@ class BmsSessionTest {
         publish(4, manufacturer = "Kingsong")
         assertThat(model.sessionState.value.wheelMaxSpeed).isNull()
         assertThat(model.sessionState.value.lastData?.dynamicSpeedLimit).isNull()
+    }
+
+    @Test fun `callback burst keeps every lab record but only refreshes presentation once`() = runBlocking {
+        val callback = slot<DataCallback>()
+        every { client.setDataCallback(capture(callback)) } returns Unit
+        model.javaClass.getDeclaredMethod("setupCallbacks", EucBleClient::class.java)
+            .apply { isAccessible = true }.invoke(model, client)
+        val device = EUCDevice(
+            name = "KS-S22", address = "AA:BB:CC:DD:EE:FF", manufacturerId = 0, rssi = -50
+        )
+        model.javaClass.getDeclaredMethod("updateConnectedDevice", EUCDevice::class.java)
+            .apply { isAccessible = true }.invoke(model, device)
+        org.koin.core.context.GlobalContext.get().get<AppConfig>().enableBmsLabData = true
+        packs = listOf(pack(1, listOf(4.1, 4.2), voltage = 84.0))
+        val frames = model.bmsLabCapture.start { error("unexpected overflow") }
+        shadowOf(Looper.getMainLooper()).idle()
+        repeat(1000) { index ->
+            callback.captured.onDataReceived(data(index.toLong()).copy(
+                manufacturer = "Kingsong",
+                speed = if (index == 20) 60.0 else 10.0,
+                lightMode = if (index == 20) 2 else null,
+            ))
+        }
+        assertThat(model.sessionState.value.lastData).isNull()
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(50))
+        assertThat(model.sessionState.value.lastData?.timestamp).isEqualTo(999)
+        assertThat(model.sessionState.value.sessionTopSpeed).isEqualTo(60.0)
+        assertThat(model.sessionState.value.lightMode).isEqualTo(2)
+        verify(exactly = 1001) { client.getBMSData() }
+        model.bmsLabCapture.stop()
+        var count = 0
+        for (frame in frames) {
+            count++
+            assertThat(frame.sequence).isEqualTo(count.toLong())
+        }
+        assertThat(count).isEqualTo(1000)
     }
 
     @Test fun `disconnect and reset drop carried packs and next wheel cannot resurrect combined cells`() {

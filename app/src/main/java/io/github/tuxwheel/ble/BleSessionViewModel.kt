@@ -84,6 +84,9 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
     private val _sessionState = MutableStateFlow(BleSessionState.EMPTY)
     val sessionState: StateFlow<BleSessionState> = _sessionState.asStateFlow()
 
+    private val telemetryUpdates = TelemetryUpdateBuffer { data, previous ->
+        carryForwardSettingsFields(data, previous)
+    }
 
     internal val rawTraffic = RawTrafficCapture()
     internal val bmsLabCapture = BmsLabCapture()
@@ -378,6 +381,17 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
     init {
         Timber.i("BleSessionViewModel initialized - REPLACES WheelData")
         startRidingTimerControl()
+        viewModelScope.launch {
+            telemetryUpdates.collect { update ->
+                if (!_sessionState.value.isConnected) return@collect
+                try {
+                    applyTelemetryExtrema(update)
+                    updateTelemetryData(update.data, update.receivedAt)
+                } catch (e: Exception) {
+                    Timber.e(e, "Failed to process telemetry refresh")
+                }
+            }
+        }
     }
 
     private fun setupCallbacks(client: EucBleClient) {
@@ -488,14 +502,7 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
                         Timber.e("BMS lab capture queue is full; frame dropped")
                     }
                 }
-                viewModelScope.launch {
-                    try {
-                        updateTelemetryData(data)
-                    } catch (e: Exception) {
-                        // A single malformed packet must not tear down the update pipeline
-                        Timber.e(e, "Failed to process telemetry packet")
-                    }
-                }
+                telemetryUpdates.offer(data, applyGotwayCorrections(data), receivedAt)
             }
         })
 
@@ -540,6 +547,7 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     private fun updateConnectedDevice(device: EUCDevice?) {
+        telemetryUpdates.clear()
         // Reset session statistics
         resetSessionStatistics()
         clearBmsPacks()
@@ -565,6 +573,7 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     private suspend fun updateDisconnectedState() {
+        telemetryUpdates.clear()
         resetPasswordPrompt()
         wheelIsReady = false
         wheelAlarm = false
@@ -631,7 +640,11 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     @MainThread
-    private fun updateTelemetryData(rawData: EUCData) {
+    private fun updateTelemetryData(rawData: EUCData) =
+        updateTelemetryData(rawData, System.currentTimeMillis())
+
+    @MainThread
+    private fun updateTelemetryData(rawData: EUCData, receivedAt: Long) {
         val data = applyGotwayCorrections(rawData)
         val type = wheel_type_from_string(data.manufacturer)
         val model = data.model.takeUnless { it.isBlank() || it.equals("Unknown", ignoreCase = true) }
@@ -757,7 +770,7 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
 
         val nextState = _sessionState.value.copy(
             lastData = mergedData,
-            lastDataTimestamp = System.currentTimeMillis(),
+            lastDataTimestamp = receivedAt,
             sessionTopSpeed = sessionTopSpeed.takeIf { it > 0 },
             sessionMaxPower = sessionMaxPower.takeIf { it > 0 },
             sessionMaxCurrent = sessionMaxCurrent.takeIf { it > 0 },
@@ -775,6 +788,26 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
             "Telemetry updated: manufacturer=%s, model =%s, speed=%.2f, voltage=%.2f, current=%.2f, pwm=%.2f",
             data.manufacturer, data.model, data.speed, data.voltage, data.current, data.pwm
         )
+    }
+
+    @MainThread
+    private fun applyTelemetryExtrema(update: TelemetryUpdate) {
+        sessionTopSpeed = max(sessionTopSpeed, update.maxSpeed)
+        sessionMaxPower = max(sessionMaxPower, update.maxPower)
+        sessionMaxCurrent = max(sessionMaxCurrent, update.maxCurrent)
+        update.maxPhaseCurrent?.let { sessionMaxPhaseCurrent = max(sessionMaxPhaseCurrent, it) }
+        update.maxPwm?.let { sessionMaxPwm = max(sessionMaxPwm, it) }
+        sessionMaxTemperature = max(sessionMaxTemperature, update.maxTemperature)
+        if (batteryStart == -1) batteryStart = update.first.batteryLevel
+        batteryLowest = minOf(batteryLowest, update.minBattery)
+        update.minVoltage?.let { voltageSag = minOf(voltageSag, it.toInt()) }
+        val firstDistance = update.first.totalDistance
+        if (sessionStartDistance == 0.0 && firstDistance != null) {
+            sessionStartDistance = firstDistance
+        }
+        if (sessionStartTotalDistance == 0.0 && firstDistance != null && firstDistance > 0) {
+            sessionStartTotalDistance = firstDistance
+        }
     }
 
     /**
@@ -834,8 +867,11 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
      * letting a null in the current packet overwrite a previously known value. Only a
      * genuine disconnect (which clears lastData entirely) should reset them.
      */
-    private fun carryForwardSettingsFields(data: EUCData): EUCData {
-        val previous = _sessionState.value.lastData ?: return data
+    private fun carryForwardSettingsFields(
+        data: EUCData,
+        previous: EUCData? = _sessionState.value.lastData,
+    ): EUCData {
+        previous ?: return data
         if (previous.manufacturer != data.manufacturer) return data
         val kingsong = wheel_type_from_string(data.manufacturer) == Constants.WHEEL_TYPE.KINGSONG
 
@@ -1271,6 +1307,7 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
 
     fun resetSessionStatistics() {
         viewModelScope.launch {
+            telemetryUpdates.clear()
             sessionTopSpeed = 0.0
             sessionMaxPower = 0.0
             sessionMaxCurrent = 0.0
@@ -1305,6 +1342,7 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     fun resetMaxValues() {
+        telemetryUpdates.clear()
         sessionTopSpeed = 0.0
         sessionMaxPower = 0.0
         sessionMaxCurrent = 0.0
