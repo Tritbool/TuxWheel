@@ -1,6 +1,7 @@
 package io.github.tuxwheel.ble
 
 import com.google.common.truth.Truth.assertThat
+import io.github.tritbool.euc.ble.core.EucUuid
 import io.github.tritbool.euc.ble.core.TrafficDirection
 import io.github.tritbool.euc.ble.core.TrafficEvent
 import kotlinx.coroutines.CoroutineStart
@@ -11,11 +12,10 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import java.util.Locale
-import java.util.UUID
 
 class RawTrafficCaptureTest {
     private val address = "AA:BB:CC:DD:EE:FF"
-    private val uuid = UUID.fromString("0000ffe1-0000-1000-8000-00805f9b34fb")
+    private val uuid = EucUuid.parse("0000ffe1-0000-1000-8000-00805f9b34fb")
 
     private fun event(sequence: Long, direction: TrafficDirection = TrafficDirection.RX) =
         TrafficEvent(sequence, 123456789L, direction, uuid, byteArrayOf(0, 0x80.toByte(), 0xFF.toByte()))

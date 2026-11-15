@@ -27,7 +27,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Tritbool/euc_ble_library
-          ref: 6ffdef8e4949c1508112dd1cc1c3cfd9cd4b3dab
+          ref: 8aa97d40b9e02937ec31ee4fcac6645ebbe6b35e
           path: .ci/euc-ble-library
           persist-credentials: false
 
@@ -42,7 +42,7 @@ jobs:
 
       - name: Regenerate BLE Android dependency locks
         run: >-
-          ./gradlew -p .ci/euc-ble-library -Peuc.androidGradlePluginVersion=9.2.1
+          ./gradlew -p .ci/euc-ble-library
           :euc-ble-android:dependencies --write-locks --no-daemon
           > "$RUNNER_TEMP/ble-dependencies.txt"
 
