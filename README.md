@@ -155,6 +155,8 @@ Or set `eucBleLibraryDir=/absolute/path/to/euc_ble_library` in your local
 to match this app's Android Gradle plugin version. The composite build substitutes all four BLE modules,
 including the Android connector; no version bump or `publishToMavenLocal` is needed.
 Without that property, the regular dependency coordinates remain unchanged.
+The app-check and release workflows both check out a pinned BLE source revision
+and use this composite build. Keep their library revisions aligned when updating.
 
 ## Logging, trips, and diagnostics
 
@@ -283,22 +285,22 @@ The app currently uses **compileSdk 37** and **targetSdk 36**.
 ```sh
 git clone https://github.com/Tritbool/TuxWheel.git
 cd TuxWheel
-./gradlew :app:assembleDebug :app:assembleRelease :app:testDebugUnitTest :app:lintDebug
+./gradlew -PeucBleLibraryDir=../euc_ble_library \
+  -Peuc.androidGradlePluginVersion=9.2.1 \
+  :app:assembleDebug :app:assembleRelease :app:testDebugUnitTest :app:lintDebug
 ```
 
 These tasks require working resolution of the configured Gradle plugins and
 dependencies from Google Maven, Maven Central, the Gradle Plugin Portal and
-JitPack (MPAndroidChart). Local Maven artifacts are intentionally not used:
-a clean checkout must resolve the published BLE dependency remotely.
+JitPack (MPAndroidChart). The command assumes a sibling library checkout containing
+the current InMotion APIs, as described above. Local Maven artifacts are
+intentionally not used: the composite consumes the library source directly.
 Do not downgrade the pinned library or plugins to bypass resolution failures.
 
-Pull requests and pushes to `main` run the debug unit tests and Android lint on
-a hosted Linux runner. These checks need no emulator or release-signing secrets.
-
-During F-Droid preparation, the local build stopped before compilation because
-**AGP 9.2.1** could not be resolved. Build, unit-test and lint results for these
-changes therefore remain unverified; the existing `0.0.1` GitHub release build
-succeeded, but does not validate these changes.
+Pull requests and pushes to `master` run the selected debug regression tests,
+Android lint, and unsigned release assembly against pinned library source on a
+hosted Linux runner. These checks need no emulator or release-signing secrets.
+They do not replace BLE testing on a physical wheel.
 
 The application ID and Android namespace are `io.github.tuxwheel`
 (`io.github.tuxwheel.debug` for debug builds).
