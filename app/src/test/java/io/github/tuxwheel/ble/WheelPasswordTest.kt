@@ -58,6 +58,31 @@ class WheelPasswordTest {
         assertThat(model.sessionState.value.passwordPromptRequired).isTrue()
     }
 
+    @Test fun `passwordless InMotion authentication never offers a KingSong PIN popup`() {
+        every { client.getCommandSupport(CommandType.AUTHENTICATE) } returns CommandSupport.UNSUPPORTED
+        model.updateWheelSecurity(WheelSecurityState())
+        model.updateWheelSecurity(WheelSecurityState(AuthenticationState.REQUIRED))
+        assertThat(model.sessionState.value.passwordPromptRequired).isFalse()
+        model.updateWheelSecurity(WheelSecurityState(AuthenticationState.AUTHENTICATED))
+        assertThat(model.sessionState.value.wheelAuthentication).isEqualTo(AuthenticationState.AUTHENTICATED)
+        verify(exactly = 0) { client.authenticate(any()) }
+    }
+
+    @Test fun `late V9 identification refreshes observable lock and diagnostic capabilities`() {
+        every { client.getCommandSupport(any()) } returns CommandSupport.UNSUPPORTED
+        model.refreshSecurityCapabilities()
+        assertThat(model.sessionState.value.supportedSecurityCommands).isEmpty()
+        every { client.getCommandSupport(CommandType.REQUEST_LOCK_STATE) } returns CommandSupport.SUPPORTED
+        every { client.getCommandSupport(CommandType.REQUEST_DIAGNOSTIC_LOG) } returns CommandSupport.SUPPORTED
+        model.updateWheelSecurity(WheelSecurityState(AuthenticationState.REQUIRED))
+        assertThat(model.sessionState.value.supportedSecurityCommands)
+            .containsAtLeast(CommandType.REQUEST_LOCK_STATE, CommandType.REQUEST_DIAGNOSTIC_LOG)
+        assertThat(model.sessionState.value.passwordPromptRequired).isFalse()
+        every { client.getCommandSupport(any()) } returns CommandSupport.UNSUPPORTED
+        model.updateWheelSecurity(null)
+        assertThat(model.sessionState.value.supportedSecurityCommands).isEmpty()
+    }
+
     @Test fun `wheel lock state follows wheel notifications and resets when unavailable`() {
         model.updateWheelSecurity(WheelSecurityState(lock = WheelLockState.LOCKED))
         assertThat(model.sessionState.value.wheelLockState).isEqualTo(WheelLockState.LOCKED)

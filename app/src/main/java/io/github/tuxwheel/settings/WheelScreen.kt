@@ -1,6 +1,8 @@
 package io.github.tuxwheel.settings
 
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.rememberScrollState
@@ -9,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -32,6 +35,8 @@ import io.github.tritbool.euc.ble.protocols.CommandType
 import io.github.tritbool.euc.ble.models.PasswordOperation
 import io.github.tritbool.euc.ble.models.PasswordOperationStatus
 import io.github.tritbool.euc.ble.models.WheelLockState
+import io.github.tritbool.euc.ble.models.AuthenticationState
+import io.github.tritbool.euc.ble.models.DiagnosticLogState
 import org.koin.compose.koinInject
 
 @Composable
@@ -51,6 +56,8 @@ fun wheelScreen(
             },
             desc = if (viewModel.isConnected) viewModel.manufacturer else "",
         )
+
+        diagnosticLogSetting(viewModel)
 
         if (!viewModel.isConnected) {
             return@Column
@@ -409,17 +416,21 @@ private fun connectBeepSetting(appConfig: AppConfig, viewModel: BleSessionViewMo
 
 @Composable
 @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
-private fun lockSetting(appConfig: AppConfig, viewModel: BleSessionViewModel) {
-    val supportsLock = viewModel.isCommandSupported(CommandType.LOCK)
-    val supportsUnlock = viewModel.isCommandSupported(CommandType.UNLOCK)
-    val supportsLockState = viewModel.isCommandSupported(CommandType.REQUEST_LOCK_STATE)
+internal fun lockSetting(appConfig: AppConfig, viewModel: BleSessionViewModel) {
+    val state by viewModel.sessionState.collectAsState()
+    val supportsLock = CommandType.LOCK in state.supportedSecurityCommands
+    val supportsUnlock = CommandType.UNLOCK in state.supportedSecurityCommands
+    val supportsLockState = CommandType.REQUEST_LOCK_STATE in state.supportedSecurityCommands
     if (!(supportsLock && supportsUnlock && supportsLockState)) return
 
-    val state by viewModel.sessionState.collectAsState()
+    val ready = CommandType.AUTHENTICATE in state.supportedSecurityCommands ||
+        state.wheelAuthentication == AuthenticationState.AUTHENTICATED
     val checkedState = remember(state.selectedDevice?.address) { mutableStateOf(appConfig.wheelLocked) }
     androidx.compose.runtime.LaunchedEffect(
         state.selectedDevice?.address,
         state.isConnected,
+        supportsLockState,
+        ready,
     ) {
         viewModel.requestWheelLockState()
     }
@@ -442,11 +453,67 @@ private fun lockSetting(appConfig: AppConfig, viewModel: BleSessionViewModel) {
     }
     switchPref(
         name = stringResource(R.string.lock_mode_title),
-        desc = stringResource(R.string.lock_mode_description),
+        desc = stringResource(when {
+            !ready -> R.string.wheel_lock_authenticating
+            state.wheelLockState == WheelLockState.UNKNOWN -> R.string.wheel_lock_unknown
+            else -> R.string.lock_mode_description
+        }),
         defaultState = checkedState,
+        enabled = ready,
     ) { checked ->
         appConfig.wheelLocked = checked
         viewModel.setWheelLocked(checked)
+    }
+}
+
+@Composable
+@androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
+internal fun diagnosticLogSetting(viewModel: BleSessionViewModel) {
+    val state by viewModel.sessionState.collectAsState()
+    val supported = state.isConnected && CommandType.REQUEST_DIAGNOSTIC_LOG in state.supportedSecurityCommands
+    val transfer = state.diagnosticLogTransfer
+    if (!supported && transfer == null && state.diagnosticLogError == null) return
+    val save = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
+        if (uri != null) viewModel.saveDiagnosticLog(uri)
+    }
+    val description = when {
+        state.diagnosticLogError != null -> state.diagnosticLogError!!
+        state.diagnosticLogSaving -> stringResource(R.string.wheel_diagnostic_saving)
+        state.diagnosticLogSaved -> stringResource(R.string.wheel_diagnostic_saved)
+        transfer?.state == DiagnosticLogState.FAILED -> stringResource(
+            R.string.wheel_diagnostic_failed, transfer.failure?.name.orEmpty())
+        transfer?.state == DiagnosticLogState.CANCELLED -> stringResource(R.string.wheel_diagnostic_cancelled)
+        transfer?.state == DiagnosticLogState.COMPLETED -> stringResource(R.string.wheel_diagnostic_verified)
+        transfer?.state == DiagnosticLogState.VERIFYING -> stringResource(R.string.wheel_diagnostic_verifying)
+        transfer?.state == DiagnosticLogState.READING -> stringResource(
+            R.string.wheel_diagnostic_progress, transfer.receivedBytes, transfer.totalBytes ?: 0)
+        state.diagnosticLogBusy -> stringResource(R.string.wheel_diagnostic_opening)
+        else -> stringResource(R.string.wheel_diagnostic_description)
+    }
+    Column {
+        baseSettings(name = stringResource(R.string.wheel_diagnostic_title), desc = description)
+        if (state.diagnosticLogBusy) {
+            val progress = transfer?.progress?.toFloat()
+            if (progress == null) LinearProgressIndicator()
+            else LinearProgressIndicator(progress = { progress })
+        }
+        Row {
+            TextButton(
+                enabled = supported && !state.diagnosticLogBusy && !state.diagnosticLogSaving,
+                onClick = viewModel::requestDiagnosticLog,
+            ) { Text(stringResource(R.string.wheel_diagnostic_download)) }
+            if (state.diagnosticLogBusy) {
+                TextButton(onClick = viewModel::cancelDiagnosticLog) {
+                    Text(stringResource(android.R.string.cancel))
+                }
+            }
+            if (transfer?.state == DiagnosticLogState.COMPLETED) {
+                TextButton(
+                    enabled = !state.diagnosticLogSaving && !state.diagnosticLogBusy,
+                    onClick = { save.launch("inmotion-diagnostic.bin") },
+                ) { Text(stringResource(R.string.wheel_diagnostic_save)) }
+            }
+        }
     }
 }
 

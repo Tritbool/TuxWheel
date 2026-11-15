@@ -1,4 +1,23 @@
 <resources>
+    <string name="wheel_lock_authenticating">Waiting for the wheel to confirm automatic authentication.</string>
+    <string name="wheel_lock_unknown">Lock state unknown. A request is not confirmation from the wheel.</string>
+    <string name="wheel_diagnostic_title">Wheel diagnostic file</string>
+    <string name="wheel_diagnostic_description">Download the wheel’s binary diagnostic log while stationary. Save it only after verification.</string>
+    <string name="wheel_diagnostic_download">Download</string>
+    <string name="wheel_diagnostic_save">Save verified file</string>
+    <string name="wheel_diagnostic_opening">Opening the wheel diagnostic file…</string>
+    <string name="wheel_diagnostic_progress">Received %1$d / %2$d bytes</string>
+    <string name="wheel_diagnostic_verifying">Verifying the complete file…</string>
+    <string name="wheel_diagnostic_verified">Complete; checksum verified. Choose Save to keep the binary file.</string>
+    <string name="wheel_diagnostic_cancelled">Download cancelled. No partial file is available.</string>
+    <string name="wheel_diagnostic_failed">Download failed (%1$s). No partial file is available.</string>
+    <string name="wheel_diagnostic_unavailable">Diagnostic download is unavailable for this connection.</string>
+    <string name="wheel_diagnostic_disconnected">Connection or protocol session ended during download. Reconnect and try again.</string>
+    <string name="wheel_diagnostic_not_started">The wheel diagnostic download did not start. Try again.</string>
+    <string name="wheel_diagnostic_not_verified">No checksum-verified diagnostic file is available.</string>
+    <string name="wheel_diagnostic_saving">Saving diagnostic file…</string>
+    <string name="wheel_diagnostic_saved">Diagnostic file saved.</string>
+    <string name="wheel_diagnostic_save_failed">Could not save the diagnostic file. Choose a destination and try again.</string>
     <string name="update_available">New version available</string>
     <string name="update_message">TuxWheel %1$s is available on GitHub.</string>
     <string name="update_download">Download</string>

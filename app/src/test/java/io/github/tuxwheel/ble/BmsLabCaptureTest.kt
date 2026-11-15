@@ -1,5 +1,6 @@
 package io.github.tuxwheel.ble
 
+import android.app.Application
 import com.google.common.truth.Truth.assertThat
 import io.github.tritbool.euc.ble.models.BMSData
 import kotlinx.coroutines.runBlocking
@@ -7,11 +8,13 @@ import org.json.JSONObject
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import java.util.zip.GZIPInputStream
 
 @RunWith(RobolectricTestRunner::class)
+@Config(application = Application::class, sdk = [28])
 class BmsLabCaptureTest {
     private val pack = BMSData(
         3, 84.1, -2.0, null, null, null, listOf(20.0), listOf(4.1, 4.2)
