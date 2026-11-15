@@ -1,5 +1,8 @@
 import com.github.jk1.license.filter.LicenseBundleNormalizer
 import com.github.jk1.license.render.InventoryMarkdownReportRenderer
+import org.gradle.api.artifacts.type.ArtifactTypeDefinition
+import org.gradle.api.attributes.AttributeDisambiguationRule
+import org.gradle.api.attributes.MultipleCandidatesDetails
 
 plugins {
     alias(libs.plugins.android.application)
@@ -161,6 +164,24 @@ licenseReport {
         'third_party_licenses.md', 'TuxWheel', null, false
     )]
     filters = [new LicenseBundleNormalizer()]
+}
+
+// The license reader uses Gradle's legacy artifact API, which does not request
+// an artifact type and otherwise cannot choose among Android composite variants.
+abstract class PreferJarForLegacyArtifactReaders implements AttributeDisambiguationRule<String> {
+    void execute(MultipleCandidatesDetails<String> details) {
+        if (details.consumerValue == null && details.candidateValues.contains('jar')) {
+            details.closestMatch('jar')
+        }
+    }
+}
+
+dependencies.attributesSchema.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE) {
+    disambiguationRules.add(PreferJarForLegacyArtifactReaders)
+}
+
+tasks.named('generateLicenseReport') {
+    notCompatibleWithConfigurationCache('License reader retains Gradle project references')
 }
 
 abstract class SyncLicenseAssets extends Sync {

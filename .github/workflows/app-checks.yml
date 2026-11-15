@@ -40,6 +40,12 @@ jobs:
             25
           cache: gradle
 
+      - name: Regenerate BLE Android dependency locks
+        run: >-
+          ./gradlew -p .ci/euc-ble-library -Peuc.androidGradlePluginVersion=9.2.1
+          :euc-ble-android:dependencies --write-locks --no-daemon
+          > "$RUNNER_TEMP/ble-dependencies.txt"
+
       - name: Run unit tests and lint
         run: >-
           ./gradlew -PeucBleLibraryDir=.ci/euc-ble-library
@@ -62,3 +68,13 @@ jobs:
           name: ble-dependency-locks
           path: .ci/euc-ble-library/**/gradle.lockfile
           include-hidden-files: true
+
+      - name: Retain Android regression reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-regression-reports
+          path: |
+            app/build/test-results/testDebugUnitTest
+            app/build/reports/tests/testDebugUnitTest
+            app/build/reports/lint-results-debug.*
