@@ -78,7 +78,7 @@ class BmsPresentationTest {
             }
         }
         assertThat(names(snapshot(WHEEL_TYPE.NINEBOT_Z, "S2", proto = "S2"))).containsExactlyElementsIn(fallback).inOrder()
-        listOf(WHEEL_TYPE.Unknown, WHEEL_TYPE.NINEBOT, WHEEL_TYPE.INMOTION, WHEEL_TYPE.INMOTION_V2).forEach {
+        listOf(WHEEL_TYPE.Unknown, WHEEL_TYPE.NINEBOT).forEach {
             assertThat(names(snapshot(it, "V14"))).containsExactlyElementsIn(fallback).inOrder()
         }
     }
@@ -93,6 +93,26 @@ class BmsPresentationTest {
             assertThat(result.packNumbers).containsExactly(1)
         }
         assertThat(BmsMapper.present(snapshot(WHEEL_TYPE.GOTWAY, cells = 0, second = 16)).packNumbers).containsExactly(2)
+    }
+
+    @Test fun `Inmotion variants show only reported cells and leave missing pack cells blank`() {
+        listOf(WHEEL_TYPE.INMOTION, WHEEL_TYPE.INMOTION_V2).forEach { type ->
+            val first = BmsMapper.pack(SmartBms().apply {
+                cellNum = 2
+                cells[0] = 3.837
+            }).copy(fields = mapOf(R.string.bmsVoltage to "76.89 V"), hasMeasurements = true)
+            val second = BmsMapper.pack(SmartBms()).copy(
+                number = 2, fields = mapOf(R.string.bmsVoltage to "76.88 V"), hasMeasurements = true
+            )
+            val result = BmsMapper.present(snapshot(type).copy(packs = listOf(first, second)))
+            assertThat(result.packNumbers).containsExactly(1, 2).inOrder()
+            assertThat(result.rows.single { it.label == R.string.bmsCell1 }.values)
+                .containsExactly("3.837 V ", "").inOrder()
+            assertThat(result.rows.single { it.label == R.string.bmsCell2 }.values)
+                .containsExactly("", "").inOrder()
+            assertThat(result.rows.map { it.label }).doesNotContain(R.string.bmsCell3)
+            assertThat(result.isGotway).isFalse()
+        }
     }
 
     @Test fun `scalar formatting indices and balance mask use authoritative pack fields with US decimals`() {

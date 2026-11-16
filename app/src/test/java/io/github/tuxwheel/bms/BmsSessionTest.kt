@@ -207,6 +207,49 @@ class BmsSessionTest {
         assertThat(presentation.rows.single { it.label == R.string.bmsVoltage }.values[0]).isEqualTo("131.20 V")
     }
 
+    @Test fun `Inmotion V9 sparse pack snapshots refresh into independent cell displays`() {
+        packs = listOf(pack(1, null), pack(2, null))
+        publish(manufacturer = "Inmotion", wheelModel = "V9")
+        val initial = BmsMapper.present(model.bmsDisplay.value)
+        assertThat(initial.packNumbers).containsExactly(1)
+        assertThat(initial.rows.map { it.label }).doesNotContain(R.string.bmsCell1)
+
+        packs = listOf(
+            pack(1, null, voltage = 76.89, firmwareVersion = "0.0.14"),
+            pack(2, null, voltage = 76.88, firmwareVersion = "0.0.14")
+        )
+        publish(2, "Inmotion", "V9")
+        val summary = BmsMapper.present(model.bmsDisplay.value)
+        assertThat(summary.packNumbers).containsExactly(1, 2).inOrder()
+        assertThat(summary.rows.single { it.label == R.string.bmsVoltage }.values)
+            .containsExactly("76.89 V", "76.88 V").inOrder()
+        assertThat(summary.rows.single { it.label == R.string.bmsFw }.values)
+            .containsExactly("0.0.14", "0.0.14").inOrder()
+        assertThat(summary.rows.map { it.label }).doesNotContain(R.string.bmsCell1)
+
+        packs = listOf(
+            pack(1, List(20) { if (it == 0) 3.837 else 3.851 }),
+            pack(2, null)
+        )
+        publish(3, "Inmotion", "V9")
+        val partial = BmsMapper.present(model.bmsDisplay.value)
+        assertThat(partial.rows.single { it.label == R.string.bmsCell1 }.values)
+            .containsExactly("3.837 V ", "").inOrder()
+        assertThat(partial.rows.single { it.label == R.string.bmsAvgCell }.values[1]).isEmpty()
+
+        packs = listOf(pack(2, List(20) { if (it == 0) 3.850 else 3.837 }))
+        publish(4, "Inmotion", "V9")
+        val complete = BmsMapper.present(model.bmsDisplay.value)
+        assertThat(complete.rows.single { it.label == R.string.bmsCell1 }.values)
+            .containsExactly("3.837 V ", "3.850 V ").inOrder()
+        assertThat(complete.rows.single { it.label == R.string.bmsCell20 }.values)
+            .containsExactly("3.851 V ", "3.837 V ").inOrder()
+        assertThat(complete.rows.map { it.label }).doesNotContain(R.string.bmsCell21)
+        packs = null
+        publish(5, "Inmotion", "V9")
+        assertThat(BmsMapper.present(model.bmsDisplay.value)).isEqualTo(complete)
+    }
+
     @Test fun `actual ExtremeBull manufacturer maps zero based packs independently`() {
         packs = listOf(pack(0, listOf(4.1, 4.2), voltage = 100.1), pack(1, listOf(3.7, 3.8), voltage = 99.2))
         publish(manufacturer = "ExtremeBull")
