@@ -73,6 +73,7 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.channels.BufferOverflow
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * ViewModel that manages the BLE session state and provides a reactive interface
@@ -321,7 +322,7 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
         if (password.isEmpty()) return
         if (!isCommandSupported(CommandType.AUTHENTICATE)) return
         passwordResponseJob = viewModelScope.launch {
-            delay(10_000)
+            delay(10_000.milliseconds)
             retryPasswordPrompt()
         }
         _eucBleClient.authenticate(password)
@@ -679,19 +680,19 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
         updateBmsData(data)
 
         // Update session statistics
-        data.speed?.let { speed ->
+        data.speed.let { speed ->
             if (speed > sessionTopSpeed) {
                 sessionTopSpeed = speed
             }
         }
 
-        data.power?.let { power ->
+        data.power.let { power ->
             if (power > sessionMaxPower) {
                 sessionMaxPower = power
             }
         }
 
-        data.current?.let { current ->
+        data.current.let { current ->
             if (current > sessionMaxCurrent) {
                 sessionMaxCurrent = current
             }
@@ -720,7 +721,7 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
         // Feed the rolling power/distance window used to compute Wh/km
         // consumption (see Calculator.whByKm). Distance is tracked in km
         // elsewhere in this app, but Calculator expects metres.
-        data.power?.let { power ->
+        data.power.let { power ->
             val totalDistanceKm = data.totalDistance ?: data.wheelDistance
             totalDistanceKm?.let { Calculator.pushPower(power, (it * 1000).toInt()) }
         }
@@ -761,8 +762,8 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
         val currentTime = Calendar.getInstance().timeInMillis
         if (graphLastUpdateTime + graphUpdateInterval < currentTime) {
             graphLastUpdateTime = currentTime
-            currentAxis.add(data.current?.toFloat() ?: 0f)
-            speedAxis.add(data.speed?.toFloat() ?: 0f)
+            currentAxis.add(data.current.toFloat() ?: 0f)
+            speedAxis.add(data.speed.toFloat() ?: 0f)
             xAxis.add(
                 java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US)
                     .format(Calendar.getInstance().time)
@@ -1009,7 +1010,6 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
 
     // ========== PUBLIC API ==========
 
-    @RequiresApi(Build.VERSION_CODES.M)
     @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
     fun startScan() {
         viewModelScope.launch {
@@ -1285,8 +1285,8 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
         diagnosticLogJob = viewModelScope.launch {
             _eucBleClient.requestDiagnosticLog()
             // Encoding starts synchronously, but a rejected command may produce no snapshot.
-            val transfer = withTimeoutOrNull(5_000) {
-                while (_eucBleClient.getDiagnosticLogTransfer() == null) delay(100)
+            val transfer = withTimeoutOrNull(5_000.milliseconds) {
+                while (_eucBleClient.getDiagnosticLogTransfer() == null) delay(100.milliseconds)
                 _eucBleClient.getDiagnosticLogTransfer()
             }
             if (transfer == null) {
@@ -1309,7 +1309,7 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
                     it.copy(diagnosticLogTransfer = snapshot, diagnosticLogBusy = !snapshot.state.isTerminal)
                 }
                 if (snapshot.state.isTerminal) return@launch
-                delay(250)
+                delay(250.milliseconds)
             }
         }
     }
@@ -1648,7 +1648,7 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     // ========== CLEANUP ==========
-    @androidx.annotation.RequiresPermission(android.Manifest.permission.BLUETOOTH_CONNECT)
+    @androidx.annotation.RequiresPermission(allOf = [android.Manifest.permission.BLUETOOTH_SCAN, android.Manifest.permission.BLUETOOTH_CONNECT])
     override fun onCleared() {
         super.onCleared()
         ridingTimerControl?.cancel()
