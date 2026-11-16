@@ -188,7 +188,28 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
         return BmsSnapshot(
             type, model, protoVer, java.util.Collections.unmodifiableList(bmsPacks.map { (number, pack) ->
                 val snapshot = BmsMapper.pack(pack.bms, number)
-                if (type != Constants.WHEEL_TYPE.GOTWAY) snapshot else {
+                if (type == Constants.WHEEL_TYPE.INMOTION || type == Constants.WHEEL_TYPE.INMOTION_V2) {
+                    val available = buildSet {
+                        if (pack.bms.serialNumber.isNotBlank()) add(R.string.bmsSn)
+                        if (pack.bms.versionNumber.isNotBlank()) add(R.string.bmsFw)
+                        if (pack.fields.voltage) add(R.string.bmsVoltage)
+                        if (pack.fields.current) add(R.string.bmsCurrent)
+                        val temperatures = listOf(
+                            R.string.bmsTemp1, R.string.bmsTemp2, R.string.bmsTemp3,
+                            R.string.bmsTemp4, R.string.bmsTemp5, R.string.bmsTemp6
+                        )
+                        temperatures.forEachIndexed { index, field ->
+                            if (pack.fields.temperatures[index]) add(field)
+                        }
+                    }
+                    snapshot.copy(
+                        fields = java.util.Collections.unmodifiableMap(snapshot.fields.filterKeys {
+                            it in available || it == R.string.bmsAvgCell || it == R.string.bmsMaxCell ||
+                                it == R.string.bmsMinCell || it == R.string.bmsCellDiff
+                        }),
+                        hasMeasurements = available.isNotEmpty()
+                    )
+                } else if (type != Constants.WHEEL_TYPE.GOTWAY) snapshot else {
                     val unavailable = buildSet {
                         if (!pack.fields.voltage) add(R.string.bmsVoltage)
                         if (!pack.fields.current) add(R.string.bmsCurrent)
