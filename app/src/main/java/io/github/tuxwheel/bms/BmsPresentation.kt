@@ -129,6 +129,15 @@ object BmsMapper {
                 count = s.packs.maxOfOrNull { it.cellNum } ?: 0
                 return fields + (if (count > 0) extrema else emptyList()) + cellLabels.take(count)
             }
+            WHEEL_TYPE.INMOTION, WHEEL_TYPE.INMOTION_V2 -> {
+                fields += listOf(
+                    R.string.bmsSn, R.string.bmsFw, R.string.bmsCurrent, R.string.bmsVoltage,
+                    R.string.bmsTemp1, R.string.bmsTemp2, R.string.bmsTemp3,
+                    R.string.bmsTemp4, R.string.bmsTemp5, R.string.bmsTemp6
+                ).filter { field -> s.packs.any { field in it.fields } }
+                count = s.packs.maxOfOrNull { it.cellNum } ?: 0
+                return fields + (if (count > 0) extrema else emptyList()) + cellLabels.take(count)
+            }
             WHEEL_TYPE.NINEBOT_Z -> {
                 if (s.protoVer.isNotEmpty()) return fallback
                 fields += listOf(R.string.bmsSn, R.string.bmsFw, R.string.bmsFactoryCap, R.string.bmsActualCap,
@@ -153,11 +162,13 @@ object BmsMapper {
         )
         fun value(pack: BmsPackSnapshot, field: Int): String {
             val index = cellLabels.indexOf(field)
+            val sparseCells = s.wheelType == WHEEL_TYPE.GOTWAY ||
+                s.wheelType == WHEEL_TYPE.INMOTION || s.wheelType == WHEEL_TYPE.INMOTION_V2
             if (index < 0) {
-                if (s.wheelType == WHEEL_TYPE.GOTWAY && field in extrema && pack.cellNum == 0) return ""
+                if (sparseCells && field in extrema && pack.cellNum == 0) return ""
                 return pack.fields[field].orEmpty()
             }
-            if (s.wheelType == WHEEL_TYPE.GOTWAY &&
+            if (sparseCells &&
                 (index >= pack.cellNum || (pack.cells.getOrNull(index) ?: 0.0) <= 0.0)) return ""
             // Read-only: balancing status is unavailable for cells 33+ because the
             // authoritative mask is an Int. Never infer [B] by wrapping a shift.

@@ -48,6 +48,7 @@ jobs:
           --tests io.github.tuxwheel.ble.BmsLabCaptureTest
           --tests io.github.tuxwheel.ble.RawTrafficCaptureTest
           --tests io.github.tuxwheel.bms.BmsSessionTest
+          --tests io.github.tuxwheel.bms.BmsPresentationTest
           --tests io.github.tuxwheel.bms.SmartBmsScreenTest
           --tests io.github.tuxwheel.ble.WheelPasswordTest
           --tests io.github.tuxwheel.ble.WheelDiagnosticLogTest

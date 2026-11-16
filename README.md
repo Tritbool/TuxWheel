@@ -120,6 +120,8 @@ runtime ceiling (or “—” until known), which may differ from configured max
 Swipe between the dashboard, wheel settings, and enabled optional pages.
 Enable charts, trips, and events in the page settings as needed.
 Smart BMS visibility and detail depend on the connected wheel.
+For Inmotion wheels, reported pack measurements and cell voltages appear as they
+arrive; unavailable values are left blank.
 
 - **Long-press a dashboard block** to choose its replacement.
 - **Single tap** triggers the horn only when that gesture is enabled.
