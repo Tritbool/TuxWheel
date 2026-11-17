@@ -12,9 +12,14 @@ import io.github.tritbool.euc.ble.models.WheelSecurityState
 import io.github.tritbool.euc.ble.models.WheelLockState
 import io.github.tritbool.euc.ble.models.PasswordOperation
 import io.github.tritbool.euc.ble.models.PasswordOperationStatus
-import io.github.tritbool.euc.ble.protocols.CommandSupport
+import io.github.tritbool.euc.ble.protocols.CommandDescriptor
+import io.github.tritbool.euc.ble.protocols.CommandEncoding
+import io.github.tritbool.euc.ble.protocols.CommandInput
 import io.github.tritbool.euc.ble.protocols.CommandType
+import io.github.tritbool.euc.ble.protocols.CommandValue
+import io.github.tritbool.euc.ble.protocols.PasswordChangeRequest
 import io.mockk.every
+import io.mockk.match
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.cancel
@@ -32,17 +37,52 @@ import java.time.Duration
 class WheelPasswordTest {
     private lateinit var model: BleSessionViewModel
     private val client = mockk<EucBleClient>(relaxed = true)
+    private var descriptors = listOf(
+        textCommand(CommandType.AUTHENTICATE.name),
+    )
 
     @Before fun setup() {
         model = BleSessionViewModel(ApplicationProvider.getApplicationContext())
         model.javaClass.getDeclaredField("_eucBleClient\$delegate").apply { isAccessible = true }
             .set(model, lazyOf(client))
-        every { client.getCommandSupport(CommandType.AUTHENTICATE) } returns CommandSupport.SUPPORTED
+        every { client.getCommandDescriptors() } answers { descriptors }
+        model.refreshCommandDescriptors(client, forceContextRefresh = true)
     }
 
     @After fun cleanup() {
         model.viewModelScope.cancel()
     }
+
+    private fun setCommands(vararg commands: CommandDescriptor) {
+        descriptors = commands.toList()
+        model.refreshSecurityCapabilities(client, forceContextRefresh = true)
+    }
+
+    private fun textCommand(id: String) = CommandDescriptor(
+        id,
+        id,
+        "",
+        CommandInput.Text(4, 4, "[0-9]{4}", sensitive = true),
+        CommandEncoding.AVAILABLE,
+    )
+
+    private fun passwordCommands() = arrayOf(
+        textCommand(CommandType.SET_PASSWORD.name),
+        CommandDescriptor(
+            CommandType.CHANGE_PASSWORD.name,
+            CommandType.CHANGE_PASSWORD.name,
+            "",
+            CommandInput.Record(
+                "PasswordChangeRequest",
+                listOf(
+                    CommandInput.Field("oldPassword", CommandInput.Text(4, 4, "[0-9]{4}", true)),
+                    CommandInput.Field("newPassword", CommandInput.Text(4, 4, "[0-9]{4}", true)),
+                ),
+            ),
+            CommandEncoding.AVAILABLE,
+        ),
+        textCommand(CommandType.REMOVE_PASSWORD.name),
+    )
 
     @Test fun `prompt once per protocol session including reconnect`() {
         model.updateWheelSecurity(null)
@@ -52,33 +92,40 @@ class WheelPasswordTest {
         model.submitWheelPassword("")
         model.updateWheelSecurity(WheelSecurityState(AuthenticationState.REQUIRED))
         assertThat(model.sessionState.value.passwordPromptRequired).isFalse()
-        verify(exactly = 0) { client.authenticate(any()) }
+        verify(exactly = 0) { client.sendCommand(CommandType.AUTHENTICATE.name, any<CommandValue>()) }
         model.updateWheelSecurity(null)
         model.updateWheelSecurity(WheelSecurityState())
         assertThat(model.sessionState.value.passwordPromptRequired).isTrue()
     }
 
     @Test fun `passwordless InMotion authentication never offers a KingSong PIN popup`() {
-        every { client.getCommandSupport(CommandType.AUTHENTICATE) } returns CommandSupport.UNSUPPORTED
+        setCommands()
         model.updateWheelSecurity(WheelSecurityState())
         model.updateWheelSecurity(WheelSecurityState(AuthenticationState.REQUIRED))
         assertThat(model.sessionState.value.passwordPromptRequired).isFalse()
         model.updateWheelSecurity(WheelSecurityState(AuthenticationState.AUTHENTICATED))
         assertThat(model.sessionState.value.wheelAuthentication).isEqualTo(AuthenticationState.AUTHENTICATED)
-        verify(exactly = 0) { client.authenticate(any()) }
+        verify(exactly = 0) { client.sendCommand(CommandType.AUTHENTICATE.name, any<CommandValue>()) }
     }
 
     @Test fun `late V9 identification refreshes observable lock and diagnostic capabilities`() {
-        every { client.getCommandSupport(any()) } returns CommandSupport.UNSUPPORTED
-        model.refreshSecurityCapabilities()
+        setCommands()
         assertThat(model.sessionState.value.supportedSecurityCommands).isEmpty()
-        every { client.getCommandSupport(CommandType.REQUEST_LOCK_STATE) } returns CommandSupport.SUPPORTED
-        every { client.getCommandSupport(CommandType.REQUEST_DIAGNOSTIC_LOG) } returns CommandSupport.SUPPORTED
+        setCommands(
+            CommandDescriptor(
+                CommandType.REQUEST_LOCK_STATE.name, "Lock status", "", CommandInput.None,
+                CommandEncoding.AVAILABLE,
+            ),
+            CommandDescriptor(
+                CommandType.REQUEST_DIAGNOSTIC_LOG.name, "Diagnostic log", "", CommandInput.None,
+                CommandEncoding.CONDITIONAL,
+            ),
+        )
         model.updateWheelSecurity(WheelSecurityState(AuthenticationState.REQUIRED))
         assertThat(model.sessionState.value.supportedSecurityCommands)
             .containsAtLeast(CommandType.REQUEST_LOCK_STATE, CommandType.REQUEST_DIAGNOSTIC_LOG)
         assertThat(model.sessionState.value.passwordPromptRequired).isFalse()
-        every { client.getCommandSupport(any()) } returns CommandSupport.UNSUPPORTED
+        setCommands()
         model.updateWheelSecurity(null)
         assertThat(model.sessionState.value.supportedSecurityCommands).isEmpty()
     }
@@ -95,9 +142,14 @@ class WheelPasswordTest {
     }
 
     @Test fun `lock toggle chooses command from wheel state and queries when unknown`() {
-        every { client.getCommandSupport(CommandType.LOCK) } returns CommandSupport.SUPPORTED
-        every { client.getCommandSupport(CommandType.UNLOCK) } returns CommandSupport.SUPPORTED
-        every { client.getCommandSupport(CommandType.REQUEST_LOCK_STATE) } returns CommandSupport.SUPPORTED
+        setCommands(
+            CommandDescriptor(CommandType.LOCK.name, "Lock", "", CommandInput.None, CommandEncoding.AVAILABLE),
+            CommandDescriptor(CommandType.UNLOCK.name, "Unlock", "", CommandInput.None, CommandEncoding.AVAILABLE),
+            CommandDescriptor(
+                CommandType.REQUEST_LOCK_STATE.name, "Status", "", CommandInput.None,
+                CommandEncoding.AVAILABLE,
+            ),
+        )
 
         model.toggleWheelLock()
         model.updateWheelSecurity(WheelSecurityState(lock = WheelLockState.UNLOCKED))
@@ -105,19 +157,21 @@ class WheelPasswordTest {
         model.updateWheelSecurity(WheelSecurityState(lock = WheelLockState.LOCKED))
         model.toggleWheelLock()
 
-        verify(exactly = 1) { client.sendCommand(CommandType.LOCK, Unit) }
-        verify(exactly = 1) { client.sendCommand(CommandType.UNLOCK, Unit) }
-        verify(exactly = 3) { client.sendCommand(CommandType.REQUEST_LOCK_STATE, Unit) }
+        verify(exactly = 1) { client.sendCommand(CommandType.LOCK.name, CommandValue.None) }
+        verify(exactly = 1) { client.sendCommand(CommandType.UNLOCK.name, CommandValue.None) }
+        verify(exactly = 3) { client.sendCommand(CommandType.REQUEST_LOCK_STATE.name, CommandValue.None) }
     }
 
     @Test fun `validate ASCII digits and preserve leading zeros without sending unlock`() {
         model.updateWheelSecurity(WheelSecurityState())
         listOf("12", "12345", "abcd", "１２３４").forEach { model.submitWheelPassword(it) }
-        verify(exactly = 0) { client.authenticate(any()) }
+        verify(exactly = 0) { client.sendCommand(CommandType.AUTHENTICATE.name, any<CommandValue>()) }
         assertThat(model.sessionState.value.passwordPromptRequired).isTrue()
         model.submitWheelPassword("0012")
-        verify(exactly = 1) { client.authenticate("0012") }
-        verify(exactly = 0) { client.unlock() }
+        verify(exactly = 1) {
+            client.sendCommand(CommandType.AUTHENTICATE.name, CommandValue.Text("0012"))
+        }
+        verify(exactly = 0) { client.sendCommand(CommandType.UNLOCK.name, CommandValue.None) }
         assertThat(model.sessionState.value.passwordPromptRequired).isFalse()
     }
 
@@ -145,15 +199,13 @@ class WheelPasswordTest {
     }
 
     @Test fun `password management sends requests and waits for wheel confirmation`() {
-        every { client.getCommandSupport(CommandType.SET_PASSWORD) } returns CommandSupport.SUPPORTED
-        every { client.getCommandSupport(CommandType.CHANGE_PASSWORD) } returns CommandSupport.SUPPORTED
-        every { client.getCommandSupport(CommandType.REMOVE_PASSWORD) } returns CommandSupport.SUPPORTED
+        setCommands(*passwordCommands())
         model.updateWheelSecurity(WheelSecurityState())
 
         assertThat(model.setWheelPassword("0012")).isTrue()
         assertThat(model.sessionState.value.passwordOperationPending).isTrue()
         assertThat(model.sessionState.value.passwordOperationStatus).isNull()
-        verify { client.setPassword("0012") }
+        verify { client.sendCommand(CommandType.SET_PASSWORD.name, CommandValue.Text("0012")) }
         model.handleWheelSecurityEvent(
             WheelSecurityEvent.PasswordOperationResult(PasswordOperation.SET, PasswordOperationStatus.CONFIRMED)
         )
@@ -162,7 +214,15 @@ class WheelPasswordTest {
 
         model.clearWheelPasswordOperationResult()
         assertThat(model.changeWheelPassword("0012", "0034")).isTrue()
-        verify { client.changePassword("0012", "0034") }
+        verify {
+            client.sendCommand(
+                CommandType.CHANGE_PASSWORD.name,
+                match {
+                    it is PasswordChangeRequest &&
+                        it.oldPassword == "0012" && it.newPassword == "0034"
+                },
+            )
+        }
         model.handleWheelSecurityEvent(
             WheelSecurityEvent.PasswordOperationResult(
                 PasswordOperation.CHANGE,
@@ -174,17 +234,19 @@ class WheelPasswordTest {
 
         model.clearWheelPasswordOperationResult()
         assertThat(model.removeWheelPassword("0034")).isTrue()
-        verify { client.removePassword("0034") }
+        verify { client.sendCommand(CommandType.REMOVE_PASSWORD.name, CommandValue.Text("0034")) }
     }
 
     @Test fun `password management rejects invalid credentials and overlapping requests`() {
-        every { client.getCommandSupport(CommandType.SET_PASSWORD) } returns CommandSupport.SUPPORTED
+        setCommands(textCommand(CommandType.SET_PASSWORD.name))
         model.updateWheelSecurity(WheelSecurityState())
 
         assertThat(model.setWheelPassword("１２３４")).isFalse()
         assertThat(model.sessionState.value.passwordOperationPending).isFalse()
         assertThat(model.setWheelPassword("0012")).isTrue()
         assertThat(model.setWheelPassword("0034")).isFalse()
-        verify(exactly = 1) { client.setPassword(any()) }
+        verify(exactly = 1) {
+            client.sendCommand(CommandType.SET_PASSWORD.name, any<CommandValue>())
+        }
     }
 }

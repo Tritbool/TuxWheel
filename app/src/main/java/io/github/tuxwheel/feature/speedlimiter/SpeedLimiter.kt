@@ -7,6 +7,8 @@ import io.github.tuxwheel.ble.BleSessionViewModel
 import io.github.tuxwheel.ble.getWheelType
 import io.github.tuxwheel.utils.Constants
 import io.github.tritbool.euc.ble.protocols.CommandType
+import io.github.tritbool.euc.ble.protocols.CommandInput
+import io.github.tritbool.euc.ble.protocols.CommandValue
 
 /**
  * App-side speed limiter built on [CommandType.SET_SPEED_LIMIT].
@@ -24,7 +26,16 @@ object SpeedLimiter {
         session: BleSessionViewModel,
         state: BleSessionState = session.sessionState.value
     ): Boolean {
-        if (!state.isConnected || !session.isCommandSupported(CommandType.SET_SPEED_LIMIT)) return false
+        val range = state.commandDescriptors.firstOrNull { it.id == CommandType.SET_SPEED_LIMIT.name }
+            ?.input as? CommandInput.Range
+        if (!state.isConnected || range == null ||
+            range.unit.lowercase() !in setOf("km/h", "kmh") ||
+            range.scale != 1.0 ||
+            range.min > range.max ||
+            range.step <= 0 ||
+            (range.max.toLong() - range.min.toLong()) % range.step.toLong() != 0L ||
+            !session.isCommandSupported(CommandType.SET_SPEED_LIMIT)
+        ) return false
         if (state.getWheelType() != Constants.WHEEL_TYPE.KINGSONG) return true
         return reportedMaxSpeed(state) != null && state.alarm1Speed != null &&
             state.alarm2Speed != null && state.alarm3Speed != null
@@ -38,9 +49,13 @@ object SpeedLimiter {
     fun enable(session: BleSessionViewModel, config: AppConfig): Boolean {
         if (config.speedLimiterEnabled) return true
         if (!isAvailable(session)) return false
+        val limit = config.speedLimiterSpeed
+        if (!session.isCommandValueSupported(CommandType.SET_SPEED_LIMIT.name, CommandValue.Integer(limit))) {
+            return false
+        }
         config.speedLimiterSavedMaxSpeed = currentWheelMaxSpeed(session.sessionState.value, config)
         config.speedLimiterEnabled = true
-        session.sendCommand(CommandType.SET_SPEED_LIMIT, config.speedLimiterSpeed)
+        session.sendCommand(CommandType.SET_SPEED_LIMIT.name, CommandValue.Integer(limit))
         return true
     }
 
@@ -49,9 +64,12 @@ object SpeedLimiter {
         if (!config.speedLimiterEnabled) return true
         if (!isAvailable(session)) return false
         val saved = config.speedLimiterSavedMaxSpeed
+        if (!session.isCommandValueSupported(CommandType.SET_SPEED_LIMIT.name, CommandValue.Integer(saved))) {
+            return false
+        }
         config.wheelMaxSpeed = saved
         config.speedLimiterEnabled = false
-        session.sendCommand(CommandType.SET_SPEED_LIMIT, saved)
+        session.sendCommand(CommandType.SET_SPEED_LIMIT.name, CommandValue.Integer(saved))
         return true
     }
 
@@ -60,11 +78,16 @@ object SpeedLimiter {
 
     /** Updates the limiter speed and re-applies it to the wheel when the limiter is active. */
     @SuppressLint("MissingPermission")
-    fun setLimit(session: BleSessionViewModel, config: AppConfig, speed: Int) {
-        config.speedLimiterSpeed = speed.coerceIn(MIN_SPEED, MAX_SPEED)
-        if (config.speedLimiterEnabled && isAvailable(session)) {
-            session.sendCommand(CommandType.SET_SPEED_LIMIT, config.speedLimiterSpeed)
+    fun setLimit(session: BleSessionViewModel, config: AppConfig, speed: Int): Boolean {
+        val limit = speed
+        if (!session.isCommandValueSupported(CommandType.SET_SPEED_LIMIT.name, CommandValue.Integer(limit))) {
+            return false
         }
+        config.speedLimiterSpeed = limit
+        if (config.speedLimiterEnabled && isAvailable(session)) {
+            session.sendCommand(CommandType.SET_SPEED_LIMIT.name, CommandValue.Integer(limit))
+        }
+        return true
     }
 
     private fun reportedMaxSpeed(state: BleSessionState): Int? =

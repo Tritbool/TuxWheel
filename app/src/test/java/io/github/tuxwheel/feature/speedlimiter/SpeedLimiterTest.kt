@@ -2,7 +2,11 @@ package io.github.tuxwheel.feature.speedlimiter
 
 import com.google.common.truth.Truth.assertThat
 import io.github.tritbool.euc.ble.core.BLEConstants
+import io.github.tritbool.euc.ble.protocols.CommandDescriptor
+import io.github.tritbool.euc.ble.protocols.CommandEncoding
+import io.github.tritbool.euc.ble.protocols.CommandInput
 import io.github.tritbool.euc.ble.protocols.CommandType
+import io.github.tritbool.euc.ble.protocols.CommandValue
 import io.github.tuxwheel.AppConfig
 import io.github.tuxwheel.ble.BleSessionState
 import io.github.tuxwheel.ble.BleSessionViewModel
@@ -26,6 +30,7 @@ class SpeedLimiterTest {
     fun setUp() {
         every { session.sessionState } returns states
         every { session.isCommandSupported(CommandType.SET_SPEED_LIMIT) } returns true
+        every { session.isCommandValueSupported(any(), any()) } returns true
         every { config.speedLimiterEnabled } answers { enabled }
         every { config.speedLimiterEnabled = any() } answers { enabled = firstArg() }
         every { config.speedLimiterSpeed } answers { limit }
@@ -39,6 +44,15 @@ class SpeedLimiterTest {
     private fun connect(manufacturer: String = "Gotway", reportedMax: Int? = null) {
         states.value = BleSessionState(
             connectionState = BLEConstants.ConnectionState.CONNECTED,
+            commandDescriptors = listOf(
+                CommandDescriptor(
+                    id = CommandType.SET_SPEED_LIMIT.name,
+                    name = "Speed limit",
+                    description = "Set wheel speed limit",
+                    input = CommandInput.Range(1, 100, 1, "km/h"),
+                    encoding = CommandEncoding.AVAILABLE,
+                ),
+            ),
             lastData = mockk(relaxed = true) {
                 every { this@mockk.manufacturer } returns manufacturer
                 every { this@mockk.wheelMaxSpeed } returns reportedMax
@@ -56,12 +70,16 @@ class SpeedLimiterTest {
         assertThat(SpeedLimiter.enable(session, config)).isTrue()
         assertThat(enabled).isTrue()
         assertThat(saved).isEqualTo(35)
-        verify(exactly = 1) { session.sendCommand(CommandType.SET_SPEED_LIMIT, 20) }
+        verify(exactly = 1) {
+            session.sendCommand(CommandType.SET_SPEED_LIMIT.name, CommandValue.Integer(20))
+        }
 
         assertThat(SpeedLimiter.disable(session, config)).isTrue()
         assertThat(enabled).isFalse()
         assertThat(wheelMax).isEqualTo(35)
-        verify(exactly = 1) { session.sendCommand(CommandType.SET_SPEED_LIMIT, 35) }
+        verify(exactly = 1) {
+            session.sendCommand(CommandType.SET_SPEED_LIMIT.name, CommandValue.Integer(35))
+        }
     }
 
     @Test
@@ -87,17 +105,37 @@ class SpeedLimiterTest {
         connect()
         every { session.isCommandSupported(CommandType.SET_SPEED_LIMIT) } returns false
         assertThat(SpeedLimiter.enable(session, config)).isFalse()
-        verify(exactly = 0) { session.sendCommand(CommandType.SET_SPEED_LIMIT, any()) }
+        verify(exactly = 0) { session.sendCommand(any<String>(), any<CommandValue>()) }
     }
 
     @Test
     fun `changing the limit re-applies it only while active`() {
         connect()
         SpeedLimiter.setLimit(session, config, 15)
-        verify(exactly = 0) { session.sendCommand(CommandType.SET_SPEED_LIMIT, any()) }
+        verify(exactly = 0) { session.sendCommand(any<String>(), any<CommandValue>()) }
         SpeedLimiter.enable(session, config)
         SpeedLimiter.setLimit(session, config, 18)
-        verify(exactly = 1) { session.sendCommand(CommandType.SET_SPEED_LIMIT, 18) }
+        verify(exactly = 1) {
+            session.sendCommand(CommandType.SET_SPEED_LIMIT.name, CommandValue.Integer(18))
+        }
         assertThat(limit).isEqualTo(18)
+    }
+
+    @Test
+    fun `rejects stored values outside the current descriptor range`() {
+        connect()
+        enabled = true
+        saved = 120
+
+        every {
+            session.isCommandValueSupported(
+                CommandType.SET_SPEED_LIMIT.name,
+                CommandValue.Integer(120),
+            )
+        } returns false
+
+        assertThat(SpeedLimiter.disable(session, config)).isFalse()
+        assertThat(enabled).isTrue()
+        verify(exactly = 0) { session.sendCommand(any<String>(), any<CommandValue>()) }
     }
 }

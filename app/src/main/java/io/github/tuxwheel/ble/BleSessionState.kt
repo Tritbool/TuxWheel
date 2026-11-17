@@ -8,6 +8,7 @@ import io.github.tritbool.euc.ble.models.WheelLockState
 import io.github.tritbool.euc.ble.models.AuthenticationState
 import io.github.tritbool.euc.ble.models.DiagnosticLogTransfer
 import io.github.tritbool.euc.ble.protocols.CommandType
+import io.github.tritbool.euc.ble.protocols.CommandDescriptor
 import io.github.tritbool.euc.ble.models.PasswordOperation
 import io.github.tritbool.euc.ble.models.PasswordOperationStatus
 import io.github.tritbool.euc.ble.protocols.EUCProtocol
@@ -66,6 +67,8 @@ data class BleSessionState(
     /** Includes repeated reports so a rejected command can correct an optimistic toggle. */
     val wheelLockStateRevision: Long = 0,
     val wheelAuthentication: AuthenticationState = AuthenticationState.UNKNOWN,
+    val commandDescriptors: List<CommandDescriptor> = emptyList(),
+    val commandContextRevision: Long = 0,
     val supportedSecurityCommands: Set<CommandType> = emptySet(),
     val diagnosticLogTransfer: DiagnosticLogTransfer? = null,
     val diagnosticLogBusy: Boolean = false,
