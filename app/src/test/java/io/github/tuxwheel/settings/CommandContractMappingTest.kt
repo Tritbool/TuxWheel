@@ -5,10 +5,71 @@ import io.github.tritbool.euc.ble.protocols.CommandEncoding
 import io.github.tritbool.euc.ble.protocols.CommandInput
 import io.github.tritbool.euc.ble.protocols.CommandValue
 import io.github.tritbool.euc.ble.protocols.PasswordChangeRequest
+import io.github.tuxwheel.R
 import io.github.tuxwheel.commandDescriptor
 import org.junit.Test
 
 class CommandContractMappingTest {
+    @Test
+    fun `reported setting values populate command defaults only when accepted by the contract`() {
+        val pedals = commandDescriptor(
+            "SET_PEDALS_MODE",
+            input = CommandInput.Choice(
+                listOf(
+                    CommandInput.Option("soft", 1),
+                    CommandInput.Option("hard", 2),
+                ),
+            ),
+        )
+        val speed = commandDescriptor(
+            "SET_LIGHT_MODE",
+            input = CommandInput.Range(1, 5, 1, "level"),
+        )
+        val commands = wheelSettingsCommands(
+            listOf(pedals, speed),
+            mapOf("SET_PEDALS_MODE" to listOf(2), "SET_LIGHT_MODE" to listOf(7)),
+        )
+
+        assertThat(commands.map { it.id }).containsExactly("SET_PEDALS_MODE", "SET_LIGHT_MODE")
+        assertThat(commandInputDefaults(commands.first().input, commands.first().reportedValue))
+            .containsExactly("value", "hard")
+        assertThat(commands.last().reportedValue).isNull()
+        assertThat(commandInputDefaults(commands.last().input, commands.last().reportedValue)).isEmpty()
+    }
+
+    @Test
+    fun `wheel settings fallback values do not create a setter default`() {
+        val input = CommandInput.Choice(
+            listOf(CommandInput.Option("soft", 1), CommandInput.Option("hard", 2)),
+        )
+
+        assertThat(commandValueFromReportedValues(input, listOf(2)))
+            .isEqualTo(CommandValue.Integer(2))
+        assertThat(commandValueFromReportedValues(input, listOf(3))).isNull()
+        assertThat(commandInputDefaults(input, null)).isEmpty()
+    }
+
+    @Test
+    fun `stable command option IDs resolve to localized labels`() {
+        assertThat(commandOptionLabelResource("hard")).isEqualTo(R.string.hard)
+        assertThat(commandOptionLabelResource("soft")).isEqualTo(R.string.soft)
+        assertThat(commandOptionLabelResource("auto")).isEqualTo(R.string.auto)
+        assertThat(commandOptionLabelResource("medium")).isEqualTo(R.string.medium)
+        assertThat(commandOptionLabelResource("led_type1")).isEqualTo(R.string.led_type1)
+        assertThat(commandOptionLabelResource("HARD")).isEqualTo(R.string.hard)
+        assertThat(commandOptionLabelResource("unknown")).isNull()
+    }
+
+    @Test
+    fun `alarm command value follows the descriptor input rather than another decoded setting`() {
+        val choice = CommandInput.Choice(listOf(CommandInput.Option("sport", 1)))
+        val range = CommandInput.Range(5, 65, 5, "km/h")
+
+        assertThat(reportedAlarmCommandValue(choice, alarmMode = 1, alarmSpeed = 25)).isEqualTo(1)
+        assertThat(reportedAlarmCommandValue(range, alarmMode = 1, alarmSpeed = 25)).isEqualTo(25)
+        assertThat(reportedAlarmCommandValue(null, alarmMode = 1, alarmSpeed = 25)).isNull()
+    }
+
     @Test
     fun `wheel settings expose only actionable user-facing commands`() {
         val commands = wheelSettingsCommands(
