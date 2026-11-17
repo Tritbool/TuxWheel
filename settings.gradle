@@ -20,28 +20,15 @@ rootProject.name = "TuxWheel"
 
 include ':app'
 
-// The published 1.0.0 Android client predates the command descriptor API.
+// Use the latest local source without publishing or changing release coordinates.
 def eucBleLibraryDir = providers.gradleProperty('eucBleLibraryDir')
-def libraryDirectory = eucBleLibraryDir.isPresent()
-    ? file(eucBleLibraryDir.get())
-    : [file('.ci/euc-ble-library'), file('../euc_ble_library')].find { it.isDirectory() }
-
-if (libraryDirectory == null || !new File(libraryDirectory, 'settings.gradle.kts').isFile()) {
-    throw new GradleException(
-        'TuxWheel requires euc_ble_library source with the command contract API ' +
-        '(revision 1ba8dba9ffef0394f36b6e22afeb1b4a4abf16e7 or a compatible newer revision). ' +
-        'Published version 1.0.0 lacks EucBleClient.getCommandDescriptors() and ' +
-        'sendCommand(String, CommandValue). Set eucBleLibraryDir=/absolute/path/to/euc_ble_library ' +
-        'in ~/.gradle/gradle.properties or pass -PeucBleLibraryDir=/absolute/path/to/euc_ble_library. ' +
-        'See README.md, "Using the latest local BLE library".'
-    )
-}
-
-includeBuild(libraryDirectory) {
-    dependencySubstitution {
-        substitute module('io.github.tritbool:euc-ble-library') using project(':euc-ble-android')
-        substitute module('io.github.tritbool:euc-ble-core') using project(':euc-ble-core')
-        substitute module('io.github.tritbool:euc-ble-session') using project(':euc-ble-session')
-        substitute module('io.github.tritbool:euc-ble-protocols') using project(':euc-ble-protocols')
+if (eucBleLibraryDir.isPresent()) {
+    includeBuild(eucBleLibraryDir.get()) {
+        dependencySubstitution {
+            substitute module('io.github.tritbool:euc-ble-library') using project(':euc-ble-android')
+            substitute module('io.github.tritbool:euc-ble-core') using project(':euc-ble-core')
+            substitute module('io.github.tritbool:euc-ble-session') using project(':euc-ble-session')
+            substitute module('io.github.tritbool:euc-ble-protocols') using project(':euc-ble-protocols')
+        }
     }
 }

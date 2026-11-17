@@ -145,14 +145,7 @@ sharing the file remain explicit user actions. Live-wheel behavior is unverified
 
 ### Using the latest local BLE library
 
-The app requires an `euc_ble_library` source checkout; published version `1.0.0`
-does not expose `EucBleClient.getCommandDescriptors()` or
-`sendCommand(String, CommandValue)`. Using that release produces an unresolved
-`getCommandDescriptors` reference and a `String`/`CommandType` argument mismatch.
-Do not replace checked string-ID submissions with the older enum API.
-
-Gradle automatically uses `.ci/euc-ble-library`, or a sibling `../euc_ble_library`
-checkout when present. To choose another location explicitly:
+Build against your local `euc_ble_library` checkout instead of a published release:
 
 ```sh
 ./gradlew -PeucBleLibraryDir=/absolute/path/to/euc_ble_library \
@@ -168,10 +161,7 @@ Or set `eucBleLibraryDir=/absolute/path/to/euc_ble_library` in your local
 `~/.gradle/gradle.properties`, along with `euc.androidGradlePluginVersion=9.2.1`
 to match this app's Android Gradle plugin version. The composite build substitutes all four BLE modules,
 including the Android connector; no version bump or `publishToMavenLocal` is needed.
-An explicit `eucBleLibraryDir` takes precedence over automatic discovery, including
-in Android Studio. Sync Gradle after configuring it. If no source checkout is
-available, configuration stops with setup instructions rather than falling back
-to the incompatible published Android client.
+Without that property, the regular dependency coordinates remain unchanged.
 The app-check and release workflows both check out a pinned BLE source revision
 and use this composite build. Keep their library revisions aligned when updating.
 
@@ -234,8 +224,7 @@ Attach only the relevant, sanitized excerpt to a bug report.
 
 BLE is provided by [EUC_BLE_LIBRARY](https://github.com/Tritbool/euc_ble_library),
 not by wheel protocol decoders embedded in this app.
-The dependency coordinate is declared in `gradle/libs.versions.toml` and substituted
-with the required local source build in `settings.gradle`.
+The fallback dependency coordinate is pinned in `gradle/libs.versions.toml`.
 Command descriptors and checked command submission come from the library API;
 TuxWheel does not bundle or maintain a command catalogue.
 
