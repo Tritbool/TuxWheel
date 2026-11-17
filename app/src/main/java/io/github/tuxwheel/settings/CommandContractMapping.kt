@@ -109,7 +109,7 @@ internal fun commandInputDefaults(
                 mapOf("value" to it.id)
             }
         }.orEmpty()
-        is CommandInput.Tuple -> (value as? CommandValue.Integers)?.values
+        is CommandInput.Tuple -> (value as? CommandValue.Integers)?.copyValues()
             ?.takeIf { it.size == input.fields.size }
             ?.let { fields -> input.fields.mapIndexed { index, field ->
                 field.id to fields[index].toString()
@@ -118,7 +118,7 @@ internal fun commandInputDefaults(
         CommandInput.None, is CommandInput.Text, is CommandInput.Record,
         is CommandInput.RawPayload, is CommandInput.Unsupported -> emptyMap()
         else -> emptyMap()
-    }
+    } as Map<String, String>
 }
 
 internal fun commandOptionLabelResource(id: String): Int? = when (id.lowercase()) {
