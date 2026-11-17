@@ -71,7 +71,7 @@ class CommandContractMappingTest {
     }
 
     @Test
-    fun `wheel settings expose only actionable user-facing commands`() {
+    fun `wheel settings include known unavailable controls but exclude unsupported and unrelated commands`() {
         val commands = wheelSettingsCommands(
             listOf(
                 commandDescriptor("SET_LIGHT_MODE"),
@@ -83,10 +83,59 @@ class CommandContractMappingTest {
                 commandDescriptor("REQUEST_DIAGNOSTIC_LOG"),
                 commandDescriptor("SET_PEDALS_MODE", encoding = CommandEncoding.UNAVAILABLE),
                 commandDescriptor("SET_LED_MODE", input = CommandInput.Unsupported("Unknown input")),
+                commandDescriptor("LIGHT_BRIGHTNESS", encoding = CommandEncoding.UNKNOWN),
+                commandDescriptor(
+                    "LIGHT_ON",
+                    encoding = CommandEncoding.UNAVAILABLE,
+                    input = CommandInput.Unsupported("Unknown input"),
+                ),
             ),
         )
 
-        assertThat(commands.map { it.id }).containsExactly("SET_LIGHT_MODE", "RESET_TRIP")
+        assertThat(commands.map { it.id })
+            .containsExactly("SET_LIGHT_MODE", "RESET_TRIP", "SET_PEDALS_MODE")
+        assertThat(commands.single { it.id == "SET_PEDALS_MODE" }.editor)
+            .isEqualTo(WheelCommandEditor.UNAVAILABLE)
+    }
+
+    @Test
+    fun `simple options allow direct selection but alarm and numeric edits use a form`() {
+        val choice = CommandInput.Choice(listOf(CommandInput.Option("soft", 1)))
+        val commands = wheelSettingsCommands(
+            listOf(
+                commandDescriptor("SET_PEDALS_MODE", input = choice),
+                commandDescriptor("SET_ALARM_SPEED", input = choice),
+                commandDescriptor("LIGHT_BRIGHTNESS", input = CommandInput.Range(0, 5, 1, "level")),
+            ),
+        )
+
+        assertThat(commands.map { it.editor })
+            .containsExactly(WheelCommandEditor.PICK, WheelCommandEditor.FORM, WheelCommandEditor.FORM)
+            .inOrder()
+    }
+
+    @Test
+    fun `a boolean uses a switch only if the wheel reports its state`() {
+        val descriptors = listOf(commandDescriptor("SET_LIGHT_MODE", input = CommandInput.Boolean))
+
+        assertThat(wheelSettingsCommands(descriptors).single().editor)
+            .isEqualTo(WheelCommandEditor.PICK)
+        val reportedOff = wheelSettingsCommands(descriptors, mapOf("SET_LIGHT_MODE" to listOf(0))).single()
+        assertThat(reportedOff.reportedValue).isEqualTo(CommandValue.Toggle(false))
+        assertThat(reportedOff.editor).isEqualTo(WheelCommandEditor.SWITCH)
+    }
+
+    @Test
+    fun `power off and calibration retain confirmation`() {
+        val commands = wheelSettingsCommands(
+            listOf(commandDescriptor("POWER_OFF"), commandDescriptor("CALIBRATE"), commandDescriptor("LIGHT_ON")),
+        )
+
+        assertThat(commands.map { it.editor }).containsExactly(
+            WheelCommandEditor.CONFIRM_ACTION,
+            WheelCommandEditor.CONFIRM_ACTION,
+            WheelCommandEditor.ACTION,
+        ).inOrder()
     }
 
     @Test

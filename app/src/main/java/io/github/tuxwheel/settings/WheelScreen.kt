@@ -64,8 +64,6 @@ fun wheelScreen(
 
         lockSetting(appConfig, viewModel)
         passwordManagementSetting(viewModel)
-        rollAngleInfo(viewModel)
-        milesModeInfo(viewModel)
         connectBeepSetting(appConfig, viewModel)
         commandContractSettings(viewModel)
         gotwayCorrectionSettings(appConfig, viewModel)
@@ -431,44 +429,6 @@ internal fun diagnosticLogSetting(viewModel: BleSessionViewModel) {
             }
         }
     }
-}
-
-/**
- * Read-only display of the wheel-reported roll-angle cutoff sensitivity.
- */
-@Composable
-private fun rollAngleInfo(viewModel: BleSessionViewModel) {
-    val state by viewModel.sessionState.collectAsState()
-    val rollAngleMode = state.rollAngleMode ?: return
-
-    val label = when (rollAngleMode) {
-        0 -> stringResource(R.string.low)
-        1 -> stringResource(R.string.medium)
-        else -> stringResource(R.string.high)
-    }
-    baseSettings(
-        name = stringResource(R.string.roll_angle_title),
-        desc = stringResource(R.string.roll_angle_description),
-        rightContent = { Text(label) },
-    )
-}
-
-/**
- * Read-only display of whether the wheel's own controller currently reports
- * speed/distance in miles instead of km.
- */
-@Composable
-private fun milesModeInfo(viewModel: BleSessionViewModel) {
-    val state by viewModel.sessionState.collectAsState()
-    val usesMiles = state.usesMiles ?: return
-
-    baseSettings(
-        name = stringResource(R.string.gw_in_miles_title),
-        desc = stringResource(R.string.gw_in_miles_description),
-        rightContent = {
-            Text(stringResource(if (usesMiles) R.string.on else R.string.off))
-        },
-    )
 }
 
 /**

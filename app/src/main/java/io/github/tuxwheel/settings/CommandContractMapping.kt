@@ -9,19 +9,22 @@ import io.github.tuxwheel.R
 import io.github.tuxwheel.ble.isActionableContract
 import io.github.tuxwheel.ble.isSupportedCommandInput
 
-private val wheelSettingsCommandIds = setOf(
-    "LIGHT_ON",
-    "LIGHT_OFF",
-    "SET_LIGHT_MODE",
-    "LIGHT_BRIGHTNESS",
-    "SPEAKER_VOLUME",
-    "SET_PEDALS_MODE",
-    "SET_ALARM_SPEED",
-    "SET_LED_MODE",
-    "POWER_OFF",
-    "CALIBRATE",
-    "RESET_TRIP",
-)
+internal enum class WheelCommandSection(val title: Int, val commandIds: List<String>) {
+    PEDALS(R.string.wheel_section_pedals, listOf("SET_PEDALS_MODE")),
+    LIGHTING(
+        R.string.wheel_section_lighting,
+        listOf("SET_LIGHT_MODE", "LIGHT_BRIGHTNESS", "SET_LED_MODE", "LIGHT_ON", "LIGHT_OFF"),
+    ),
+    ALARMS(R.string.wheel_section_alarms, listOf("SET_ALARM_SPEED", "SPEAKER_VOLUME")),
+    ACTIONS(R.string.wheel_section_actions, listOf("CALIBRATE", "RESET_TRIP", "POWER_OFF")),
+}
+
+private val wheelSettingsCommandIds = WheelCommandSection.entries
+    .flatMap { it.commandIds }.toSet()
+
+internal enum class WheelCommandEditor {
+    UNAVAILABLE, ACTION, CONFIRM_ACTION, SWITCH, PICK, FORM,
+}
 
 internal data class CommandControlModel(
     val id: String,
@@ -32,7 +35,20 @@ internal data class CommandControlModel(
     val conditional: Boolean,
     val actionable: Boolean,
     val reportedValue: CommandValue? = null,
-)
+) {
+    val editor: WheelCommandEditor
+        get() = when {
+            !actionable -> WheelCommandEditor.UNAVAILABLE
+            input == CommandInput.None && (id == "POWER_OFF" || id == "CALIBRATE") ->
+                WheelCommandEditor.CONFIRM_ACTION
+            input == CommandInput.None -> WheelCommandEditor.ACTION
+            id == "SET_ALARM_SPEED" -> WheelCommandEditor.FORM
+            input == CommandInput.Boolean && reportedValue is CommandValue.Toggle ->
+                WheelCommandEditor.SWITCH
+            input == CommandInput.Boolean || input is CommandInput.Choice -> WheelCommandEditor.PICK
+            else -> WheelCommandEditor.FORM
+        }
+}
 
 internal fun CommandDescriptor.toControlModel() = CommandControlModel(
     id = id,
@@ -58,7 +74,10 @@ internal fun wheelSettingsCommands(
             ),
         )
     }
-    .filter { it.actionable }
+    .filter {
+        it.actionable ||
+            (it.encoding == CommandEncoding.UNAVAILABLE && it.input.isSupportedCommandInput())
+    }
     .toList()
 
 internal fun commandValueFromReportedValues(

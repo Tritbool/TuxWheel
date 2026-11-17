@@ -228,6 +228,12 @@ The fallback dependency coordinate is pinned in `gradle/libs.versions.toml`.
 Command descriptors and checked command submission come from the library API;
 TuxWheel does not bundle or maintain a command catalogue.
 
+Wheel Settings groups controls by theme. Tap a setting to change it: simple
+modes apply when selected, while numeric settings and alarm edits require
+**Apply**. The displayed value reflects the wheel’s report, not the last
+selection. Settings the wheel reports without a matching control appear under
+**Wheel information**. Power off and calibration require confirmation.
+
 KingSong password set, change, and removal controls appear in Wheel Settings
 when the active protocol supports them. A missing wheel confirmation is reported
 as unconfirmed; it does not prove the password was wrong or unchanged. Raw BLE
