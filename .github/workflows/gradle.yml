@@ -21,7 +21,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Tritbool/euc_ble_library
-          ref: 5a6ddde876f85de19264a828988427658029bd92
+          ref: 1ba8dba9ffef0394f36b6e22afeb1b4a4abf16e7
           path: .ci/euc-ble-library
           persist-credentials: false
 

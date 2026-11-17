@@ -152,6 +152,11 @@ Build against your local `euc_ble_library` checkout instead of a published relea
   -Peuc.androidGradlePluginVersion=9.2.1 :app:assembleDebug
 ```
 
+For the descriptor-based command contract, the checkout must include
+[euc_ble_library PR #101](https://github.com/Tritbool/euc_ble_library/pull/101) (revision
+`1ba8dba9ffef0394f36b6e22afeb1b4a4abf16e7`) until that API is available in a
+published release. The app-check and release workflows use this pinned revision.
+
 Or set `eucBleLibraryDir=/absolute/path/to/euc_ble_library` in your local
 `~/.gradle/gradle.properties`, along with `euc.androidGradlePluginVersion=9.2.1`
 to match this app's Android Gradle plugin version. The composite build substitutes all four BLE modules,
@@ -219,15 +224,9 @@ Attach only the relevant, sanitized excerpt to a bug report.
 
 BLE is provided by [EUC_BLE_LIBRARY](https://github.com/Tritbool/euc_ble_library),
 not by wheel protocol decoders embedded in this app.
-The dependency is `io.github.tritbool:euc-ble-library:0.1.3`;
-its version is pinned in `gradle/libs.versions.toml`.
-
-Version 0.1.3 is not yet on Maven Central. Until published, build and publish
-`euc-ble-core` to Maven Local from revision
-`0812eff691836b1943359d56efc3829bc3566bb9` using
-`./gradlew :euc-ble-core:publishToMavenLocal`. This revision includes the
-Gotway/Begode four-group BMS decoding from
-[PR #82](https://github.com/Tritbool/euc_ble_library/pull/82).
+The fallback dependency coordinate is pinned in `gradle/libs.versions.toml`.
+Command descriptors and checked command submission come from the library API;
+TuxWheel does not bundle or maintain a command catalogue.
 
 KingSong password set, change, and removal controls appear in Wheel Settings
 when the active protocol supports them. A missing wheel confirmation is reported

@@ -18,6 +18,19 @@
     <string name="wheel_diagnostic_saving">Saving diagnostic file…</string>
     <string name="wheel_diagnostic_saved">Diagnostic file saved.</string>
     <string name="wheel_diagnostic_save_failed">Could not save the diagnostic file. Choose a destination and try again.</string>
+    <string name="wheel_commands_title">Wheel commands</string>
+    <string name="command_set_value">Set value</string>
+    <string name="command_conditional">Conditional: the library checks live wheel prerequisites when sent.</string>
+    <string name="command_bounds_warning">Encoding bounds are not hardware-safe operating limits.</string>
+    <string name="command_input_unsupported">Unsupported input.</string>
+    <string name="command_payload_editor_missing">No compatible payload editor.</string>
+    <string name="command_unknown_context">Unknown in this context.</string>
+    <string name="command_unavailable_context">Unavailable in this context.</string>
+    <string name="command_no_control">No supported control for this input.</string>
+    <string name="command_not_actionable">Not actionable.</string>
+    <string name="command_range_details">Encoding range %1$d..%2$d, step %3$d; 1 value unit = %4$s %5$s.</string>
+    <string name="command_text_length">Allowed length: %1$d..%2$d</string>
+    <string name="speed_limiter_contract_invalid">The saved value is not permitted by this wheel’s command contract; choose a new value.</string>
     <string name="update_available">New version available</string>
     <string name="update_message">TuxWheel %1$s is available on GitHub.</string>
     <string name="update_download">Download</string>

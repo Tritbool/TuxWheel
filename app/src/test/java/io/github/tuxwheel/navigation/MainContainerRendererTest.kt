@@ -18,7 +18,6 @@ import io.github.tuxwheel.ble.BleSessionViewModel
 import io.github.tuxwheel.data.TripDao
 import io.github.tuxwheel.databinding.ActivityMainBinding
 import com.google.common.truth.Truth.assertThat
-import io.github.tritbool.euc.ble.protocols.CommandType
 import io.mockk.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Test
@@ -123,7 +122,7 @@ class MainContainerRendererTest {
             renderer.dispose()
             assertThat(binding.mainComposeContainer.hasComposition).isFalse()
             verify(exactly = 1) { adapter.unregisterAdapterDataObserver(any()) }
-            verify(exactly = 0) { session.sendCommand(any<CommandType>()) }
+            verify(exactly = 0) { session.sendCommand(any<String>()) }
             verify(exactly = 0) { session.startScan() }
             verify(exactly = 0) { session.connect(any()) }
         } finally {

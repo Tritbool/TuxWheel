@@ -14,6 +14,7 @@ import io.github.tuxwheel.feature.speedlimiter.SpeedLimiter
 import io.github.tuxwheel.utils.Alarms
 import io.github.tuxwheel.utils.SomeUtil
 import io.github.tritbool.euc.ble.protocols.CommandType
+import io.github.tritbool.euc.ble.protocols.CommandValue
 
 /** Dashboard commands live in gesture callbacks, never in Compose drawing or recomposition. */
 class DashboardActions(
@@ -101,8 +102,8 @@ class DashboardActions(
         private const val STATIONARY_SPEED_KMH = 1f
 
         fun toggleLight(session: BleSessionViewModel, config: AppConfig) {
-            val on = session.isCommandSupported(CommandType.LIGHT_ON)
-            val off = session.isCommandSupported(CommandType.LIGHT_OFF)
+            val on = session.isCommandValueSupported(CommandType.LIGHT_ON.name, CommandValue.None)
+            val off = session.isCommandValueSupported(CommandType.LIGHT_OFF.name, CommandValue.None)
             if (!on && !off) return
             val enabled = session.sessionState.value.lightMode?.let { it != 1 } ?: config.lightEnabled
             val command = when {
@@ -112,7 +113,7 @@ class DashboardActions(
                 else -> CommandType.LIGHT_OFF
             }
             config.lightEnabled = command == CommandType.LIGHT_ON
-            session.sendCommand(command)
+            session.sendCommand(command.name)
         }
     }
 }

@@ -16,7 +16,9 @@ import io.github.tritbool.euc.ble.models.AuthenticationState
 import io.github.tritbool.euc.ble.models.DiagnosticLogState
 import io.github.tritbool.euc.ble.models.DiagnosticLogTransfer
 import io.github.tritbool.euc.ble.models.WheelSecurityState
-import io.github.tritbool.euc.ble.protocols.CommandSupport
+import io.github.tritbool.euc.ble.protocols.CommandDescriptor
+import io.github.tritbool.euc.ble.protocols.CommandEncoding
+import io.github.tritbool.euc.ble.protocols.CommandInput
 import io.github.tritbool.euc.ble.protocols.CommandType
 import io.github.tuxwheel.AppConfig
 import io.github.tuxwheel.R
@@ -40,12 +42,14 @@ class InMotionControlsTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     private lateinit var model: BleSessionViewModel
     private val client = mockk<EucBleClient>(relaxed = true)
+    private var descriptors = emptyList<CommandDescriptor>()
 
     @Before fun setup() {
         model = BleSessionViewModel(ApplicationProvider.getApplicationContext())
         model.javaClass.getDeclaredField("_eucBleClient\$delegate").apply { isAccessible = true }
             .set(model, lazyOf(client))
-        every { client.getCommandSupport(any()) } returns CommandSupport.UNSUPPORTED
+        every { client.getCommandDescriptors() } answers { descriptors }
+        model.refreshCommandDescriptors(client, forceContextRefresh = true)
     }
 
     @After fun cleanup() {
@@ -58,8 +62,8 @@ class InMotionControlsTest {
         val title = compose.activity.getString(R.string.lock_mode_title)
         compose.onNodeWithText(title).assertDoesNotExist()
         compose.runOnIdle {
-            listOf(CommandType.LOCK, CommandType.UNLOCK, CommandType.REQUEST_LOCK_STATE).forEach {
-                every { client.getCommandSupport(it) } returns CommandSupport.SUPPORTED
+            descriptors = listOf(CommandType.LOCK, CommandType.UNLOCK, CommandType.REQUEST_LOCK_STATE).map {
+                CommandDescriptor(it.name, it.name, "", CommandInput.None, CommandEncoding.CONDITIONAL)
             }
             model.updateWheelSecurity(WheelSecurityState(AuthenticationState.REQUIRED))
         }

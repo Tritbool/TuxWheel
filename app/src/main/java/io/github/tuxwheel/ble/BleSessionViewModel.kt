@@ -37,9 +37,11 @@ import io.github.tritbool.euc.ble.models.WheelSecurityState
 import io.github.tritbool.euc.ble.models.WheelLockState
 import io.github.tritbool.euc.ble.models.PasswordOperation
 import io.github.tritbool.euc.ble.models.PasswordOperationStatus
-import io.github.tritbool.euc.ble.protocols.CommandSupport
+import io.github.tritbool.euc.ble.protocols.CommandDescriptor
 import io.github.tritbool.euc.ble.protocols.CommandType
+import io.github.tritbool.euc.ble.protocols.CommandValue
 import io.github.tritbool.euc.ble.protocols.EUCProtocol
+import io.github.tritbool.euc.ble.protocols.PasswordChangeRequest
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -255,11 +257,32 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
     private var passwordResponseJob: Job? = null
     private var diagnosticLogJob: Job? = null
 
-    internal fun refreshSecurityCapabilities(client: EucBleClient = _eucBleClient) {
+    internal fun refreshCommandDescriptors(
+        client: EucBleClient = _eucBleClient,
+        forceContextRefresh: Boolean = false,
+    ): List<CommandDescriptor> {
+        val descriptors = client.getCommandDescriptors()
+        _sessionState.update {
+            if (!forceContextRefresh && it.commandDescriptors == descriptors) it
+            else it.copy(
+                commandDescriptors = descriptors,
+                commandContextRevision = it.commandContextRevision + 1,
+            )
+        }
+        return descriptors
+    }
+
+    internal fun refreshSecurityCapabilities(
+        client: EucBleClient = _eucBleClient,
+        forceContextRefresh: Boolean = false,
+    ) {
+        val descriptors = refreshCommandDescriptors(client, forceContextRefresh)
         val commands = setOf(
             CommandType.LOCK, CommandType.UNLOCK, CommandType.REQUEST_LOCK_STATE,
             CommandType.AUTHENTICATE, CommandType.REQUEST_DIAGNOSTIC_LOG, CommandType.CANCEL_DIAGNOSTIC_LOG,
-        ).filterTo(mutableSetOf()) { client.getCommandSupport(it) == CommandSupport.SUPPORTED }
+        ).filterTo(mutableSetOf()) { commandId ->
+            descriptors.any { it.id == commandId.name && it.isActionableContract() }
+        }
         _sessionState.update { it.copy(supportedSecurityCommands = commands) }
     }
 
@@ -271,7 +294,7 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
                 wheelAuthentication = security?.authentication ?: AuthenticationState.UNKNOWN,
             )
         }
-        if (security == null || CommandType.AUTHENTICATE !in _sessionState.value.supportedSecurityCommands) {
+        if (security == null || !isCommandSupported(CommandType.AUTHENTICATE)) {
             resetPasswordPrompt()
         } else if (!passwordPromptOffered) {
             passwordPromptOffered = true
@@ -346,25 +369,28 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
             delay(10_000.milliseconds)
             retryPasswordPrompt()
         }
-        _eucBleClient.authenticate(password)
+        sendCommand(CommandType.AUTHENTICATE.name, CommandValue.Text(password))
     }
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     fun setWheelPassword(newPassword: String): Boolean =
         submitWheelPasswordOperation(PasswordOperation.SET, CommandType.SET_PASSWORD, newPassword) {
-            _eucBleClient.setPassword(newPassword)
+            sendCommand(CommandType.SET_PASSWORD.name, CommandValue.Text(newPassword))
         }
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     fun changeWheelPassword(oldPassword: String, newPassword: String): Boolean =
         submitWheelPasswordOperation(PasswordOperation.CHANGE, CommandType.CHANGE_PASSWORD, oldPassword, newPassword) {
-            _eucBleClient.changePassword(oldPassword, newPassword)
+            sendCommand(
+                CommandType.CHANGE_PASSWORD.name,
+                PasswordChangeRequest(oldPassword, newPassword),
+            )
         }
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     fun removeWheelPassword(currentPassword: String): Boolean =
         submitWheelPasswordOperation(PasswordOperation.REMOVE, CommandType.REMOVE_PASSWORD, currentPassword) {
-            _eucBleClient.removePassword(currentPassword)
+            sendCommand(CommandType.REMOVE_PASSWORD.name, CommandValue.Text(currentPassword))
         }
 
     private fun submitWheelPasswordOperation(
@@ -504,8 +530,8 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
                         selection.manufacturer,
                         selection.reason
                     )
+                    refreshSecurityCapabilities(forceContextRefresh = true)
                     sendConnectBeepIfEnabled()
-                    refreshSecurityCapabilities()
                 }
             }
         })
@@ -543,11 +569,13 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
 
         client.setErrorCallback(object : ErrorCallback {
             override fun onError(error: BLEException) {
-                viewModelScope.launch {
-                    updateError(error.message ?: "Unknown BLE error")
-                }
+                surfaceBleError(error.message ?: "Unknown BLE error")
             }
         })
+    }
+
+    internal fun surfaceBleError(message: String) {
+        viewModelScope.launch { updateError(message) }
     }
 
     private fun startRidingTimerControl() {
@@ -596,7 +624,9 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
             wheelLockState = WheelLockState.UNKNOWN,
             wheelAuthentication = AuthenticationState.UNKNOWN,
             supportedSecurityCommands = emptySet(),
+            commandDescriptors = emptyList(),
         )
+        refreshCommandDescriptors(forceContextRefresh = true)
         _bmsDisplay.value = captureBmsDisplay()
 
         if (device != null) {
@@ -630,6 +660,8 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
             wheelLockState = WheelLockState.UNKNOWN,
             wheelAuthentication = AuthenticationState.UNKNOWN,
             supportedSecurityCommands = emptySet(),
+            commandDescriptors = emptyList(),
+            commandContextRevision = _sessionState.value.commandContextRevision + 1,
             diagnosticLogBusy = false,
             diagnosticLogError = if (_sessionState.value.diagnosticLogBusy)
                 getApplication<Application>().getString(R.string.wheel_diagnostic_disconnected)
@@ -684,8 +716,11 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
 
     @MainThread
     private fun updateTelemetryData(rawData: EUCData) {
-        refreshSecurityCapabilities()
         val data = applyGotwayCorrections(rawData)
+        val previousData = _sessionState.value.lastData
+        val identityChanged = previousData == null ||
+            previousData.manufacturer != data.manufacturer || previousData.model != data.model
+        refreshSecurityCapabilities(forceContextRefresh = identityChanged)
         val type = wheel_type_from_string(data.manufacturer)
         val model = data.model.takeUnless { it.isBlank() || it.equals("Unknown", ignoreCase = true) }
         val previous = bmsWheelIdentity
@@ -1153,7 +1188,10 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
         _sessionState.value = _sessionState.value.copy(
             lastDataTimestamp = null,
             protocolSelectionRequired = false,
-            protocolCandidates = emptyList()
+            protocolCandidates = emptyList(),
+            commandDescriptors = emptyList(),
+            commandContextRevision = _sessionState.value.commandContextRevision + 1,
+            supportedSecurityCommands = emptySet(),
         )
     }
 
@@ -1230,6 +1268,7 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
         if (result) {
             protocolActive = true
             cancelProtocolWatchdog()
+            refreshSecurityCapabilities(forceContextRefresh = true)
             viewModelScope.launch {
                 _sessionState.value = _sessionState.value.copy(
                     protocolSelectionRequired = false,
@@ -1258,14 +1297,14 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
-    fun sendCommand(commandType: CommandType, value: Any = Unit) {
-        _eucBleClient.sendCommand(commandType, value)
+    fun sendCommand(commandId: String, value: CommandValue = CommandValue.None) {
+        _eucBleClient.sendCommand(commandId, value)
     }
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     fun setWheelLocked(locked: Boolean) {
         val command = if (locked) CommandType.LOCK else CommandType.UNLOCK
-        sendCommand(command)
+        sendCommand(command.name)
         requestWheelLockState()
     }
 
@@ -1281,13 +1320,20 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     fun requestWheelLockState() {
         if (isCommandSupported(CommandType.REQUEST_LOCK_STATE)) {
-            sendCommand(CommandType.REQUEST_LOCK_STATE)
+            sendCommand(CommandType.REQUEST_LOCK_STATE.name)
         }
     }
 
     fun isCommandSupported(commandType: CommandType): Boolean {
-        return _eucBleClient.getCommandSupport(commandType) == CommandSupport.SUPPORTED
+        return _sessionState.value.commandDescriptors.any {
+            it.id == commandType.name && it.isActionableContract()
+        }
     }
+
+    fun isCommandValueSupported(commandId: String, value: CommandValue): Boolean =
+        _sessionState.value.commandDescriptors.firstOrNull { it.id == commandId }
+            ?.takeIf { it.isActionableContract() && it.input.isSupportedCommandInput() }
+            ?.let { it.input.validationError(value) == null } == true
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     fun requestDiagnosticLog() {
@@ -1304,7 +1350,7 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
                 diagnosticLogError = null, diagnosticLogSaved = false)
         }
         diagnosticLogJob = viewModelScope.launch {
-            _eucBleClient.requestDiagnosticLog()
+            sendCommand(CommandType.REQUEST_DIAGNOSTIC_LOG.name)
             // Encoding starts synchronously, but a rejected command may produce no snapshot.
             val transfer = withTimeoutOrNull(5_000.milliseconds) {
                 while (_eucBleClient.getDiagnosticLogTransfer() == null) delay(100.milliseconds)
@@ -1338,7 +1384,7 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     fun cancelDiagnosticLog() {
         if (!_sessionState.value.diagnosticLogBusy) return
-        _eucBleClient.cancelDiagnosticLog()
+        sendCommand(CommandType.CANCEL_DIAGNOSTIC_LOG.name)
         diagnosticLogJob?.cancel()
         diagnosticLogJob = null
         _sessionState.update {
@@ -1398,7 +1444,7 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
                 "Beeping at connect time"
             )
             playBeep()
-            sendCommand(CommandType.BEEP)
+            sendCommand(CommandType.BEEP.name)
         }
     }
 
@@ -1643,7 +1689,7 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
     // Beep via wheel
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     fun wheelBeep() {
-        sendCommand(CommandType.BEEP)
+        sendCommand(CommandType.BEEP.name)
     }
 
     private fun formatRideTime(seconds: Long): String {

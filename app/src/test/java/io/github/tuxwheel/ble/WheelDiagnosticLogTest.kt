@@ -9,8 +9,11 @@ import io.github.tritbool.euc.ble.EucBleClient
 import io.github.tritbool.euc.ble.core.BLEConstants
 import io.github.tritbool.euc.ble.models.DiagnosticLogState
 import io.github.tritbool.euc.ble.models.DiagnosticLogTransfer
-import io.github.tritbool.euc.ble.protocols.CommandSupport
+import io.github.tritbool.euc.ble.protocols.CommandDescriptor
+import io.github.tritbool.euc.ble.protocols.CommandEncoding
+import io.github.tritbool.euc.ble.protocols.CommandInput
 import io.github.tritbool.euc.ble.protocols.CommandType
+import io.github.tritbool.euc.ble.protocols.CommandValue
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -56,7 +59,23 @@ class WheelDiagnosticLogTest {
             .get(model) as MutableStateFlow<BleSessionState>
         state = flow
         state.value = BleSessionState(connectionState = BLEConstants.ConnectionState.CONNECTED)
-        every { client.getCommandSupport(CommandType.REQUEST_DIAGNOSTIC_LOG) } returns CommandSupport.SUPPORTED
+        every { client.getCommandDescriptors() } returns listOf(
+            CommandDescriptor(
+                CommandType.REQUEST_DIAGNOSTIC_LOG.name,
+                "Diagnostic log",
+                "",
+                CommandInput.None,
+                CommandEncoding.CONDITIONAL,
+            ),
+            CommandDescriptor(
+                CommandType.CANCEL_DIAGNOSTIC_LOG.name,
+                "Cancel diagnostic log",
+                "",
+                CommandInput.None,
+                CommandEncoding.CONDITIONAL,
+            ),
+        )
+        model.refreshCommandDescriptors(client, forceContextRefresh = true)
         every { client.getDiagnosticLogTransfer() } answers { snapshot }
     }
 
@@ -77,7 +96,9 @@ class WheelDiagnosticLogTest {
         runCurrent()
         assertThat(model.sessionState.value.diagnosticLogTransfer).isSameInstanceAs(snapshot)
         model.requestDiagnosticLog()
-        verify(exactly = 1) { client.requestDiagnosticLog() }
+        verify(exactly = 1) {
+            client.sendCommand(CommandType.REQUEST_DIAGNOSTIC_LOG.name, CommandValue.None)
+        }
         val file = files.newFile()
         model.saveDiagnosticLog(Uri.fromFile(file))
         assertThat(model.sessionState.value.diagnosticLogError).isNotNull()
@@ -85,7 +106,9 @@ class WheelDiagnosticLogTest {
         snapshot = transfer(DiagnosticLogState.CANCELLED)
         model.cancelDiagnosticLog()
         assertThat(model.sessionState.value.diagnosticLogBusy).isFalse()
-        verify(exactly = 1) { client.cancelDiagnosticLog() }
+        verify(exactly = 1) {
+            client.sendCommand(CommandType.CANCEL_DIAGNOSTIC_LOG.name, CommandValue.None)
+        }
     }
 
     @Test fun `verified completion saves exact binary and a failed destination remains retryable`() = runTest(dispatcher) {

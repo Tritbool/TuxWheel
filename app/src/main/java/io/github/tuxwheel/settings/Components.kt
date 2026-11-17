@@ -121,6 +121,7 @@ fun sliderPref(
     position: Float = 0f,
     min: Float = 0f,
     max: Float = 100f,
+    step: Int? = null,
     @StringRes unit: Int = 0,
     visualMultiple: Float = 1f,
     format: String = "%.0f",
@@ -187,8 +188,16 @@ fun sliderPref(
                     onValueChange = {
                         val f = it.text.toFloatOrNull()
                         if (f != null && f in minV..maxV) {
-                            isError = false
-                            errorText = ""
+                                val units = step?.let { stepSize ->
+                                    (f / visualMultiple - min) / stepSize
+                                }
+                                if (units == null || kotlin.math.abs(units - units.toInt()) < 0.0001f) {
+                                    isError = false
+                                    errorText = ""
+                                } else {
+                                    isError = true
+                                    errorText = "Use increments of $step"
+                                }
                         } else {
                             isError = true
                             errorText = when {
@@ -291,6 +300,9 @@ fun sliderPref(
                         value = sliderPosition,
                         onValueChange = { sliderPosition = it },
                         valueRange = min * visualMultiple..max * visualMultiple,
+                        steps = step?.let { stepSize ->
+                            ((max - min).toInt() / stepSize - 1).coerceAtLeast(0)
+                        } ?: 0,
                         onValueChangeFinished = {
                             onChanged(sliderPosition / visualMultiple)
                         },

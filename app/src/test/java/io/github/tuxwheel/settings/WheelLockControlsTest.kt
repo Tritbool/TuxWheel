@@ -9,8 +9,11 @@ import io.github.tritbool.euc.ble.core.BLEConstants
 import io.github.tritbool.euc.ble.models.EUCData
 import io.github.tritbool.euc.ble.models.WheelLockState
 import io.github.tritbool.euc.ble.models.WheelSecurityEvent
-import io.github.tritbool.euc.ble.protocols.CommandSupport
+import io.github.tritbool.euc.ble.protocols.CommandEncoding
+import io.github.tritbool.euc.ble.protocols.CommandInput
+import io.github.tritbool.euc.ble.protocols.CommandDescriptor
 import io.github.tritbool.euc.ble.protocols.CommandType
+import io.github.tritbool.euc.ble.protocols.CommandValue
 import io.github.tuxwheel.ble.BleSessionState
 import io.github.tuxwheel.ble.BleSessionViewModel
 import io.mockk.every
@@ -35,7 +38,14 @@ class WheelLockControlsTest {
         model = BleSessionViewModel(ApplicationProvider.getApplicationContext())
         model.javaClass.getDeclaredField("_eucBleClient\$delegate").apply { isAccessible = true }
             .set(model, lazyOf(client))
-        every { client.getCommandSupport(any()) } returns CommandSupport.SUPPORTED
+        every { client.getCommandDescriptors() } returns listOf(
+            CommandType.LOCK,
+            CommandType.UNLOCK,
+            CommandType.REQUEST_LOCK_STATE,
+        ).map {
+            CommandDescriptor(it.name, it.name, "", CommandInput.None, CommandEncoding.AVAILABLE)
+        }
+        model.refreshCommandDescriptors(client, forceContextRefresh = true)
     }
 
     @After fun cleanup() {
@@ -47,11 +57,9 @@ class WheelLockControlsTest {
             model.setWheelLocked(true)
             model.setWheelLocked(false)
         }
-        verify(exactly = 3) { client.sendCommand(CommandType.LOCK, Unit) }
-        verify(exactly = 3) { client.sendCommand(CommandType.UNLOCK, Unit) }
-        verify(exactly = 6) { client.sendCommand(CommandType.REQUEST_LOCK_STATE, Unit) }
-        verify(exactly = 0) { client.getCommandSupport(CommandType.LOCK) }
-        verify(exactly = 0) { client.getCommandSupport(CommandType.UNLOCK) }
+        verify(exactly = 3) { client.sendCommand(CommandType.LOCK.name, CommandValue.None) }
+        verify(exactly = 3) { client.sendCommand(CommandType.UNLOCK.name, CommandValue.None) }
+        verify(exactly = 6) { client.sendCommand(CommandType.REQUEST_LOCK_STATE.name, CommandValue.None) }
     }
 
     @Test fun `speed telemetry age and reported lock state never suppress a selected command`() {
@@ -75,8 +83,8 @@ class WheelLockControlsTest {
             model.setWheelLocked(true)
             model.setWheelLocked(false)
         }
-        verify(exactly = states.size) { client.sendCommand(CommandType.LOCK, Unit) }
-        verify(exactly = states.size) { client.sendCommand(CommandType.UNLOCK, Unit) }
+        verify(exactly = states.size) { client.sendCommand(CommandType.LOCK.name, CommandValue.None) }
+        verify(exactly = states.size) { client.sendCommand(CommandType.UNLOCK.name, CommandValue.None) }
     }
 
     @Test fun `repeated wheel reports can correct an optimistic toggle without suppressing commands`() {
@@ -87,7 +95,7 @@ class WheelLockControlsTest {
         assertThat(model.sessionState.value.wheelLockState).isEqualTo(WheelLockState.UNLOCKED)
         assertThat(model.sessionState.value.wheelLockStateRevision).isEqualTo(revision + 1)
         model.setWheelLocked(true)
-        verify(exactly = 2) { client.sendCommand(CommandType.LOCK, Unit) }
+        verify(exactly = 2) { client.sendCommand(CommandType.LOCK.name, CommandValue.None) }
     }
 
     private fun data(speed: Double) = EUCData(

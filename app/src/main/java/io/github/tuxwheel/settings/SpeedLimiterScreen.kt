@@ -19,6 +19,9 @@ import io.github.tuxwheel.AppConfig
 import io.github.tuxwheel.R
 import io.github.tuxwheel.ble.BleSessionViewModel
 import io.github.tuxwheel.feature.speedlimiter.SpeedLimiter
+import io.github.tritbool.euc.ble.protocols.CommandInput
+import io.github.tritbool.euc.ble.protocols.CommandType
+import io.github.tritbool.euc.ble.protocols.CommandValue
 import io.github.tuxwheel.utils.ThemeIconEnum
 import org.koin.compose.koinInject
 
@@ -30,6 +33,13 @@ fun speedLimiterScreen(
     val context = LocalContext.current
     val state by viewModel.sessionState.collectAsState()
     val available = SpeedLimiter.isAvailable(viewModel, state)
+    val range = state.commandDescriptors
+        .firstOrNull { it.id == CommandType.SET_SPEED_LIMIT.name }
+        ?.input as? CommandInput.Range
+    val storedLimitAllowed = viewModel.isCommandValueSupported(
+        CommandType.SET_SPEED_LIMIT.name,
+        CommandValue.Integer(appConfig.speedLimiterSpeed),
+    )
     val enabled = remember { mutableStateOf(appConfig.speedLimiterEnabled) }
     var savedMaxSpeed by remember { mutableIntStateOf(appConfig.speedLimiterSavedMaxSpeed) }
 
@@ -41,7 +51,7 @@ fun speedLimiterScreen(
             desc = stringResource(R.string.speed_limiter_enabled_description),
             themeIcon = ThemeIconEnum.SettingsSpeedLimiter,
             defaultState = enabled,
-            enabled = available,
+            enabled = available && (enabled.value || storedLimitAllowed),
         ) { checked ->
             val applied = if (checked) SpeedLimiter.enable(viewModel, appConfig)
                 else SpeedLimiter.disable(viewModel, appConfig)
@@ -51,15 +61,25 @@ fun speedLimiterScreen(
             enabled.value = appConfig.speedLimiterEnabled
             savedMaxSpeed = appConfig.speedLimiterSavedMaxSpeed
         }
-        sliderPref(
-            name = stringResource(R.string.speed_limiter_speed_title),
-            desc = stringResource(R.string.speed_limiter_speed_description),
-            position = appConfig.speedLimiterSpeed.toFloat(),
-            min = SpeedLimiter.MIN_SPEED.toFloat(),
-            max = SpeedLimiter.MAX_SPEED.toFloat(),
-            unit = R.string.kmh,
-        ) {
-            SpeedLimiter.setLimit(viewModel, appConfig, it.toInt())
+        if (available && range != null) {
+            if (!storedLimitAllowed) {
+                Text(stringResource(R.string.speed_limiter_contract_invalid))
+            }
+            sliderPref(
+                name = stringResource(R.string.speed_limiter_speed_title),
+                desc = stringResource(R.string.speed_limiter_speed_description) + " " +
+                    stringResource(R.string.command_bounds_warning),
+                position = if (storedLimitAllowed) appConfig.speedLimiterSpeed.toFloat()
+                    else range.min.toFloat(),
+                min = range.min.toFloat(),
+                max = range.max.toFloat(),
+                step = range.step,
+                unit = R.string.kmh,
+            ) {
+                if (!SpeedLimiter.setLimit(viewModel, appConfig, it.toInt())) {
+                    Toast.makeText(context, R.string.speed_limiter_unavailable, Toast.LENGTH_SHORT).show()
+                }
+            }
         }
         if (enabled.value) {
             baseSettings(

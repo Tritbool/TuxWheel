@@ -23,6 +23,7 @@ import io.github.tuxwheel.data.TripDao
 import io.github.tuxwheel.utils.ThemeEnum
 import com.google.common.truth.Truth.assertThat
 import io.github.tritbool.euc.ble.protocols.CommandType
+import io.github.tritbool.euc.ble.protocols.CommandValue
 import io.mockk.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Before
@@ -99,7 +100,7 @@ class DashboardRendererTest {
             adapter.onViewRecycled(holder)
             assertThat(holder.dashboardRenderer).isNull()
             assertThat(compose.hasComposition).isFalse()
-            verify(exactly = 0) { session.sendCommand(any<CommandType>()) }
+            verify(exactly = 0) { session.sendCommand(any<String>()) }
         } finally {
             adapter.onDetachedFromRecyclerView(recycler)
             lifecycle.currentState = Lifecycle.State.DESTROYED
@@ -169,8 +170,8 @@ class DashboardRendererTest {
     @Test fun `single tap never swaps speed battery or temperature and double tap anywhere sends light once`() {
         val config = AppConfig(context)
         val session = session()
-        every { session.isCommandSupported(CommandType.LIGHT_ON) } returns true
-        every { session.isCommandSupported(CommandType.LIGHT_OFF) } returns true
+        every { session.isCommandValueSupported(CommandType.LIGHT_ON.name, CommandValue.None) } returns true
+        every { session.isCommandValueSupported(CommandType.LIGHT_OFF.name, CommandValue.None) } returns true
         val actions = DashboardActions(context, session, config)
         val state = DashboardUiState.EMPTY
         val geometry = DashboardGeometry.calculate(400f, 800f, 1f, false, 0)
@@ -198,17 +199,17 @@ class DashboardRendererTest {
         tap(3100, geometry.speed.cx, geometry.speed.cy)
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(400))
         assertThat(config.swapSpeedPwm).isTrue()
-        verify(exactly = 1) { session.sendCommand(CommandType.LIGHT_ON) }
+        verify(exactly = 1) { session.sendCommand(CommandType.LIGHT_ON.name) }
         tap(4000, geometry.inner.left, geometry.inner.cy)
         tap(4100, geometry.inner.left, geometry.inner.cy)
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(400))
         assertThat(config.swapSpeedPwm).isTrue()
-        verify(exactly = 1) { session.sendCommand(CommandType.LIGHT_OFF) }
+        verify(exactly = 1) { session.sendCommand(CommandType.LIGHT_OFF.name) }
         tap(5000, geometry.inner.right, geometry.inner.cy)
         tap(5100, geometry.inner.right, geometry.inner.cy)
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(400))
         assertThat(config.swapSpeedPwm).isTrue()
-        verify(exactly = 2) { session.sendCommand(CommandType.LIGHT_ON) }
+        verify(exactly = 2) { session.sendCommand(CommandType.LIGHT_ON.name) }
         actions.dispose()
     }
 
@@ -258,7 +259,7 @@ class DashboardRendererTest {
             dialog.listView.performItemClick(null, 0, 0)
             assertThat(AppConfig(activity).viewBlocks.toList()).containsExactly(battery, voltage).inOrder()
             assertThat(config.swapSpeedPwm).isFalse()
-            verify(exactly = 0) { session.sendCommand(any<CommandType>()) }
+            verify(exactly = 0) { session.sendCommand(any<String>()) }
         } finally {
             actions.dispose()
             controller.pause().stop().destroy()
@@ -270,14 +271,14 @@ class DashboardRendererTest {
         val session = session()
         val actions = DashboardActions(context, session, config)
         actions.doubleTap()
-        verify(exactly = 0) { session.sendCommand(any<CommandType>()) }
-        every { session.isCommandSupported(CommandType.LIGHT_OFF) } returns true
+        verify(exactly = 0) { session.sendCommand(any<String>()) }
+        every { session.isCommandValueSupported(CommandType.LIGHT_OFF.name, CommandValue.None) } returns true
         actions.doubleTap()
-        verify(exactly = 1) { session.sendCommand(CommandType.LIGHT_OFF) }
+        verify(exactly = 1) { session.sendCommand(CommandType.LIGHT_OFF.name) }
         actions.dispose()
         actions.doubleTap()
         actions.singleTap()
-        verify(exactly = 1) { session.sendCommand(any<CommandType>()) }
+        verify(exactly = 1) { session.sendCommand(any<String>()) }
         assertThat(config.swapSpeedPwm).isFalse()
     }
 
@@ -319,7 +320,7 @@ class DashboardRendererTest {
             actions.dispose()
             actions.singleTap()
             verify(exactly = 1) { io.github.tuxwheel.utils.SomeUtil.playBeep() }
-            verify(exactly = 0) { session.sendCommand(any<CommandType>()) }
+            verify(exactly = 0) { session.sendCommand(any<String>()) }
         } finally {
             actions.dispose()
             unmockkObject(io.github.tuxwheel.utils.SomeUtil)
