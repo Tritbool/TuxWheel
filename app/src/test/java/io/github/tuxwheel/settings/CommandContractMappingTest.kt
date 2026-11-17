@@ -7,6 +7,7 @@ import io.github.tritbool.euc.ble.protocols.CommandValue
 import io.github.tritbool.euc.ble.protocols.PasswordChangeRequest
 import io.github.tuxwheel.R
 import io.github.tuxwheel.commandDescriptor
+import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class CommandContractMappingTest {
@@ -179,12 +180,16 @@ class CommandContractMappingTest {
                 "D",
                 input = CommandInput.RawPayload("Opaque protocol bytes", setOf("bytes")),
             ),
-            commandDescriptor("E", input = CommandInput.Choice(emptyList())),
-            commandDescriptor("F", input = CommandInput.Range(1, 9, 0, "units")),
         )
 
         assertThat(descriptors.map { it.toControlModel().actionable })
-            .containsExactly(false, false, false, false, false, false)
+            .containsExactly(false, false, false, false)
+    }
+
+    @Test
+    fun `library rejects empty choices and zero range steps before mapping`() {
+        assertThrows(IllegalArgumentException::class.java) { CommandInput.Choice(emptyList()) }
+        assertThrows(IllegalArgumentException::class.java) { CommandInput.Range(1, 9, 0, "units") }
     }
 
     @Test
@@ -206,7 +211,7 @@ class CommandContractMappingTest {
             .isEqualTo(CommandValue.Integer(5))
         assertThat(commandValueFromInputs(CommandInput.Range(1, 9, 2, "units"), mapOf("value" to "4")))
             .isNull()
-        assertThat(commandValueFromInputs(CommandInput.Range(1, 9, 0, "units"), mapOf("value" to "5")))
+        assertThat(commandValueFromInputs(CommandInput.Range(1, 9, 2, "units"), mapOf("value" to "11")))
             .isNull()
         assertThat(commandValueFromInputs(choice, mapOf("value" to "auto")))
             .isEqualTo(CommandValue.Integer(4))
