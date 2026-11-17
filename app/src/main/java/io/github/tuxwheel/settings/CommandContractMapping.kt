@@ -8,6 +8,20 @@ import io.github.tritbool.euc.ble.protocols.PasswordChangeRequest
 import io.github.tuxwheel.ble.isActionableContract
 import io.github.tuxwheel.ble.isSupportedCommandInput
 
+private val wheelSettingsCommandIds = setOf(
+    "LIGHT_ON",
+    "LIGHT_OFF",
+    "SET_LIGHT_MODE",
+    "LIGHT_BRIGHTNESS",
+    "SPEAKER_VOLUME",
+    "SET_PEDALS_MODE",
+    "SET_ALARM_SPEED",
+    "SET_LED_MODE",
+    "POWER_OFF",
+    "CALIBRATE",
+    "RESET_TRIP",
+)
+
 internal data class CommandControlModel(
     val id: String,
     val name: String,
@@ -27,6 +41,15 @@ internal fun CommandDescriptor.toControlModel() = CommandControlModel(
     conditional = encoding == CommandEncoding.CONDITIONAL,
     actionable = isActionableContract() && input.isSupportedCommandInput(),
 )
+
+internal fun wheelSettingsCommands(
+    descriptors: List<CommandDescriptor>,
+): List<CommandControlModel> = descriptors
+    .asSequence()
+    .filter { it.id in wheelSettingsCommandIds }
+    .map { it.toControlModel() }
+    .filter { it.actionable }
+    .toList()
 
 internal fun commandValueFromInputs(
     input: CommandInput,

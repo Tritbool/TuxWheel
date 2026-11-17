@@ -10,6 +10,35 @@ import org.junit.Test
 
 class CommandContractMappingTest {
     @Test
+    fun `wheel settings expose only actionable user-facing commands`() {
+        val commands = wheelSettingsCommands(
+            listOf(
+                commandDescriptor("SET_LIGHT_MODE"),
+                commandDescriptor("RESET_TRIP"),
+                commandDescriptor("PING"),
+                commandDescriptor("REQUEST_FIRMWARE"),
+                commandDescriptor("LOCK"),
+                commandDescriptor("SET_PASSWORD"),
+                commandDescriptor("REQUEST_DIAGNOSTIC_LOG"),
+                commandDescriptor("SET_PEDALS_MODE", encoding = CommandEncoding.UNAVAILABLE),
+                commandDescriptor("SET_LED_MODE", input = CommandInput.Unsupported("Unknown input")),
+            ),
+        )
+
+        assertThat(commands.map { it.id }).containsExactly("SET_LIGHT_MODE", "RESET_TRIP")
+    }
+
+    @Test
+    fun `wheel settings retain conditional commands`() {
+        val commands = wheelSettingsCommands(
+            listOf(commandDescriptor("SET_LIGHT_MODE", encoding = CommandEncoding.CONDITIONAL)),
+        )
+
+        assertThat(commands.map { it.id }).containsExactly("SET_LIGHT_MODE")
+        assertThat(commands.single().conditional).isTrue()
+    }
+
+    @Test
     fun `descriptor mapping preserves metadata and permits conditional commands`() {
         val range = CommandInput.Range(5, 65, 5, "km/h", scale = 0.1)
         val descriptor = commandDescriptor(

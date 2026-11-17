@@ -27,31 +27,16 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import io.github.tritbool.euc.ble.protocols.CommandInput
-import io.github.tritbool.euc.ble.protocols.CommandEncoding
 import io.github.tritbool.euc.ble.protocols.CommandValue
 import io.github.tuxwheel.R
 import io.github.tuxwheel.ble.BleSessionViewModel
-
-private val dedicatedCommandIds = setOf(
-    "AUTHENTICATE",
-    "LOCK",
-    "UNLOCK",
-    "REQUEST_LOCK_STATE",
-    "SET_PASSWORD",
-    "CHANGE_PASSWORD",
-    "REMOVE_PASSWORD",
-    "REQUEST_DIAGNOSTIC_LOG",
-    "CANCEL_DIAGNOSTIC_LOG",
-)
 
 @Composable
 @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
 internal fun commandContractSettings(viewModel: BleSessionViewModel) {
     val state by viewModel.sessionState.collectAsState()
     val commands = remember(state.commandDescriptors, state.commandContextRevision) {
-        state.commandDescriptors
-            .filterNot { it.id in dedicatedCommandIds }
-            .map { it.toControlModel() }
+        wheelSettingsCommands(state.commandDescriptors)
     }
     if (commands.isEmpty()) return
 
