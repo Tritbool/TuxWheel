@@ -26,6 +26,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import io.github.tritbool.euc.ble.protocols.CommandEncoding
 import io.github.tritbool.euc.ble.protocols.CommandInput
 import io.github.tritbool.euc.ble.protocols.CommandValue
 import io.github.tuxwheel.R
@@ -115,7 +116,7 @@ private fun commandReportedValueLabel(input: CommandInput, value: CommandValue):
         is CommandInput.Range -> (value as? CommandValue.Integer)?.let {
             "${it.value} ${input.unit}".trim()
         }
-        is CommandInput.Tuple -> (value as? CommandValue.Integers)?.values?.joinToString()
+        is CommandInput.Tuple -> (value as? CommandValue.Integers)?.copyValues()?.joinToString()
         else -> null
     }
 
