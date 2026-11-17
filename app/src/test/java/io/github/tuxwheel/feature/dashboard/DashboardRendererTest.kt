@@ -14,12 +14,14 @@ import androidx.lifecycle.LifecycleRegistry
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.preference.PreferenceManager
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.core.app.ApplicationProvider
 import io.github.tuxwheel.*
 import io.github.tuxwheel.ble.BleSessionState
 import io.github.tuxwheel.ble.BleSessionViewModel
 import io.github.tuxwheel.data.TripDao
+import io.github.tuxwheel.utils.SomeUtil
 import io.github.tuxwheel.utils.ThemeEnum
 import com.google.common.truth.Truth.assertThat
 import io.github.tritbool.euc.ble.protocols.CommandType
@@ -74,7 +76,9 @@ class DashboardRendererTest {
         startKoin { modules(module {
             single { config }; single { session }; single { mockk<TripDao>(relaxed = true) }
         }) }
-        val recycler = RecyclerView(context)
+        val recycler = RecyclerView(context).apply {
+            layoutManager = LinearLayoutManager(context)
+        }
         val adapter = MainPageAdapter(mutableListOf(R.layout.main_view_main), activity)
         try {
             val holder = adapter.createViewHolder(recycler, R.layout.main_view_main)
@@ -307,23 +311,23 @@ class DashboardRendererTest {
         val config = AppConfig(context)
         val session = session()
         val actions = DashboardActions(context, session, config)
-        mockkObject(io.github.tuxwheel.utils.SomeUtil)
+        mockkStatic(SomeUtil::class)
         try {
-            every { io.github.tuxwheel.utils.SomeUtil.playBeep() } just Runs
+            every { SomeUtil.playBeep() } just Runs
             actions.singleTap()
-            verify(exactly = 0) { io.github.tuxwheel.utils.SomeUtil.playBeep() }
+            verify(exactly = 0) { SomeUtil.playBeep() }
             config.swapSpeedPwm = true
             config.useBeepOnSingleTap = true
             actions.singleTap()
-            verify(exactly = 1) { io.github.tuxwheel.utils.SomeUtil.playBeep() }
+            verify(exactly = 1) { SomeUtil.playBeep() }
             assertThat(AppConfig(context).swapSpeedPwm).isTrue()
             actions.dispose()
             actions.singleTap()
-            verify(exactly = 1) { io.github.tuxwheel.utils.SomeUtil.playBeep() }
+            verify(exactly = 1) { SomeUtil.playBeep() }
             verify(exactly = 0) { session.sendCommand(any<String>()) }
         } finally {
             actions.dispose()
-            unmockkObject(io.github.tuxwheel.utils.SomeUtil)
+            unmockkStatic(SomeUtil::class)
         }
     }
 }
