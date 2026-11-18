@@ -68,7 +68,7 @@ class SmartBmsScreenTest {
         compose.setContent {
             CompositionLocalProvider(LocalDensity provides Density(LocalDensity.current.density, fontScale)) {
                 Box(Modifier.requiredSize(width, 600.dp)) {
-                    SmartBmsScreen(presentation(3), R.style.OriginalTheme, scroll)
+                    SmartBmsScreen(presentation(3), scroll)
                 }
             }
         }
@@ -113,7 +113,7 @@ class SmartBmsScreenTest {
                                     setViewCompositionStrategy(
                                         ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
                                     setContent {
-                                        SmartBmsScreen(presentation(5, 30), R.style.OriginalTheme, scroll)
+                                        SmartBmsScreen(presentation(5, 30), scroll)
                                     }
                                 }
                             }

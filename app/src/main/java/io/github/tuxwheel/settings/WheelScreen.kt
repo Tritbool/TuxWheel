@@ -29,7 +29,6 @@ import androidx.compose.ui.window.DialogProperties
 import io.github.tuxwheel.AppConfig
 import io.github.tuxwheel.R
 import io.github.tuxwheel.ble.BleSessionViewModel
-import io.github.tuxwheel.utils.Constants
 import io.github.tritbool.euc.ble.protocols.CommandType
 import io.github.tritbool.euc.ble.models.PasswordOperation
 import io.github.tritbool.euc.ble.models.PasswordOperationStatus
@@ -65,8 +64,7 @@ fun wheelScreen(
         lockSetting(appConfig, viewModel)
         passwordManagementSetting(viewModel)
         connectBeepSetting(appConfig, viewModel)
-        commandContractSettings(viewModel)
-        gotwayCorrectionSettings(appConfig, viewModel)
+        commandContractSettings(viewModel, appConfig)
         forAllWheel(appConfig)
     }
 }
@@ -431,61 +429,8 @@ internal fun diagnosticLogSetting(viewModel: BleSessionViewModel) {
     }
 }
 
-/**
- * Gotway/Begode's reverse-engineered protocol has known quirks that are corrected on the
- * app side rather than by asking the wheel to change anything (see
- * [BleSessionViewModel]'s telemetry pipeline for where these are applied). Only shown for
- * Gotway/Begode/ExtremeBull-family wheels.
- */
-@Composable
-private fun gotwayCorrectionSettings(appConfig: AppConfig, viewModel: BleSessionViewModel) {
-    if (viewModel.wheelType != Constants.WHEEL_TYPE.GOTWAY) return
-
-    switchPref(
-        name = stringResource(R.string.is_gotway_mcm_title),
-        desc = stringResource(R.string.is_gotway_mcm_description),
-        default = appConfig.gotwayMcm,
-    ) {
-        appConfig.gotwayMcm = it
-    }
-    list(
-        name = stringResource(R.string.gotway_negative_title),
-        desc = stringResource(R.string.gotway_negative_description),
-        entries = mapOf(
-            "-1" to stringResource(R.string.straight),
-            "0" to stringResource(R.string.absolute),
-            "1" to stringResource(R.string.reverse),
-        ),
-        defaultKey = appConfig.gotwayNegative,
-    ) {
-        appConfig.gotwayNegative = it.first
-    }
-}
-
 @Composable
 private fun forAllWheel(appConfig: AppConfig = koinInject()) {
-    sliderPref(
-        name = stringResource(R.string.battery_capacity_title),
-        desc = stringResource(R.string.battery_capacity_description),
-        position = appConfig.batteryCapacity.toFloat(),
-        min = 0f,
-        max = 9999f,
-        unit = R.string.wh,
-    ) {
-        appConfig.batteryCapacity = it.toInt()
-    }
-    sliderPref(
-        name = stringResource(R.string.charging_power_title),
-        desc = stringResource(R.string.charging_power_description),
-        position = appConfig.chargingPower.toFloat() / 10f,
-        min = 0f,
-        max = 100.0f,
-        unit = R.string.amp,
-        format = "%.1f",
-    ) {
-        appConfig.chargingPower = it.toInt() * 10
-    }
-
     var showProfileDialog by remember { mutableStateOf(false) }
     var profileText by remember { mutableStateOf(appConfig.profileName) }
     clickablePref(

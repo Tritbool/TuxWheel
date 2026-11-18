@@ -170,19 +170,6 @@
     <string name="use_eng_alert_title">"재시작 필요"</string>
     <string name="use_eng_alert_description">"앱에 언어 변경 사항을 적용하려면 재시작을 해 주세요"</string>
 
-    <!-- Fuzzy -->
-    <string name="use_better_percents_title">"향상된 배터리 잔량 계산"</string>
-
-    <!-- Fuzzy -->
-    <string name="use_better_percents_description">"배터리 잔량 계산 시 휠 공급사의 공식을 사용하지 않고 더 나은 식을 사용합니다"</string>
-
-    <!-- Fuzzy -->
-    <string name="custom_percents_title">맞춤 퍼센트</string>
-
-    <!-- Fuzzy -->
-    <string name="custom_percents_description">사용자 정의 공식을 사용하고 휠의 셀에 대한 최저 전압을 구성하는 것을 잊지 마십시오.</string>
-    <string name="cell_voltage_tiltback_title"></string>
-    <string name="cell_voltage_tiltback_description"></string>
     <string name="use_pip_mode_title">"화면 속 화면 모드 활성화"</string>
     <string name="use_pip_mode_description">"백그라운드가 아니라 화면 속 화면 모드로 돌아가도록 합니다"</string>
     <string name="connection_sound_title">"연결음"</string>
@@ -191,14 +178,10 @@
     <string name="no_connection_sound_description">알림 기간,0-비활성화</string>
     <string name="use_stop_music_title">"자동 음소거"</string>
     <string name="use_stop_music_description">"속도가 3.5 km/h 미만이면 자동으로 음소거합니다"</string>
-    <string name="battery_capacity_title">"배터리 용량"</string>
-    <string name="battery_capacity_description">"Wh로 나타낸 배터리 용량"</string>
 
     <!-- Fuzzy -->
-    <string name="charging_power_title">"충전 전류"</string>
 
     <!-- Fuzzy -->
-    <string name="charging_power_description">"A로 나타낸 충전 전류"</string>
     <string name="connect_beep_title">"연결 소리"</string>
     <string name="connect_beep_description">"휠 연결 시 발생될 소리"</string>
     <string name="enable_alarms_title">"경고 활성화"</string>
@@ -254,21 +237,14 @@
     <string name="on_off_strobe">"끔/켬/점멸"</string>
     <string name="soft_medium_hard">"부드러움/보통/딱딱함"</string>
     <string name="alarm_mode_title">"경고 모드"</string>
-    <string name="is_gotway_mcm_title">"휠을 Gotway MCM로 설정"</string>
-    <string name="is_gotway_mcm_description">"당신의 휠이 Gotway MCM이며, 속도와 거리를 비롯한 여러 값이 잘못 표기될 경우, 올바르게 표기되도록 합니다."</string>
     <string name="ks18l_scaler_title"></string>
     <string name="ks18l_scaler_description"></string>
     <string name="battery_voltage_title">"배터리 전압"</string>
     <string name="battery_voltage_description">"67V/84V/100V"</string>
-    <string name="gotway_negative_title">"음의 전류 및 속도 모드"</string>
-    <string name="gotway_negative_description">"일직선으로 라이딩할 때 속도와 전류가 음수가 된다면 - 반대가 되도록 설정하시거나 절대값으로 설정하세요"</string>
-    <string name="absolute">"절대값 (양수만)"</string>
 
     <!-- Fuzzy -->
-    <string name="reverse">"역방향"</string>
 
     <!-- Fuzzy -->
-    <string name="straight">"정방향"</string>
     <string name="off_level_1_alarm"></string>
     <string name="off_level_2_alarm"></string>
     <string name="on_level_alarm"></string>

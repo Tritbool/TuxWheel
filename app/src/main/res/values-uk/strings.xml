@@ -97,8 +97,6 @@
     <string name="on_off_strobe">Вимк./Увімк./Строб</string>
     <string name="soft_medium_hard">Плавні/Середні/Жорсткі</string>
     <string name="alarm_mode_title">Режим попередження</string>
-    <string name="is_gotway_mcm_title">У мене Gotway MCM</string>
-    <string name="is_gotway_mcm_description">Фікс для Gotway MCM</string>
     <string name="battery_voltage_title">Напруга батареї</string>
     <string name="battery_voltage_description">67В/84В/100В</string>
     <string name="off_level_1_alarm">35 (45) км/г + 80% PWM</string>
@@ -145,8 +143,6 @@
     <string name="start_data_service">Логування заборонено</string>
     <string name="stop_data_service">Зупинити логування</string>
     <string name="unknown_device">Невідомий пристрій</string>
-    <string name="use_better_percents_description">Використовувати поліпшену формулу розрахунку % замість формули виробника колеса</string>
-    <string name="use_better_percents_title">Покращені відсотки</string>
     <string name="use_eng_alert_description">Будь ласка, зробіть перезавантаження пристрою для зміни мови</string>
     <string name="use_eng_alert_title">Потрібне перезавантаження</string>
     <string name="use_pip_mode_description">Переходити у режим картинка-в-картинці замість згортання</string>
@@ -186,16 +182,8 @@
     <string name="charging">Зарядка</string>
     <string name="discharging">Розрядка</string>
     <string name="profile_name_title">Змінити назву профілю</string>
-    <string name="custom_percents_title">Спеціальні відсотки</string>
-    <string name="custom_percents_description">Використовуйте спеціальну формулу, не забудьте налаштувати найнижчу напругу для елемента для вашого колеса</string>
-    <string name="cell_voltage_tiltback_title">Напруга підняття педалей</string>
-    <string name="cell_voltage_tiltback_description">Напруга 1 банки для підняття</string>
     <string name="use_stop_music_title">Авто-вимкнення</string>
     <string name="use_stop_music_description">Вимикає музику на швидкості менше 3.5 км/г</string>
-    <string name="battery_capacity_title">Ємність батареї</string>
-    <string name="battery_capacity_description">Ємність батареї у Вт/г</string>
-    <string name="charging_power_title">Струм заряду</string>
-    <string name="charging_power_description">Струм заряду в А</string>
     <string name="connect_beep_title">Звук підключення</string>
     <string name="connect_beep_description">Звук при підключенні до колеса</string>
     <string name="warning_pwm_title">Попереднє попередження PWM</string>
@@ -206,11 +194,6 @@
     <string name="warning_speed_period_description">Як часто попереджувати, 0 - вимкнено</string>
     <string name="ks18l_scaler_title">Корегування одометру 18L</string>
     <string name="ks18l_scaler_description">Якщо Ваш 18L неправильно відображає дистанцію - виберіть даний пункт</string>
-    <string name="gotway_negative_title">Дзеркальний режим сили струму та напруги</string>
-    <string name="gotway_negative_description">Якщо заначення напруги та сили струму відображається навапаки - спробуйте даний параметр</string>
-    <string name="absolute">Абсолютне значення</string>
-    <string name="reverse">Реверс</string>
-    <string name="straight">Нормальний режим</string>
     <string name="use_reconnect_title">Автореконект</string>
     <string name="use_reconnect_description">Можна використовувати, якщо параметри не змінюються або додаток зависає</string>
     <string name="dynamic_speed_limit">Ліміт швидкості</string>
@@ -259,8 +242,6 @@
     <string name="day_night_theme_day">Світла тема</string>
     <string name="day_night_theme_as_system">Використати налаштування телефона</string>
     <string name="day_night_theme_title">Нічний режим</string>
-    <string name="app_theme_description">Тема TuxWheel</string>
-    <string name="app_theme_title">Тема</string>
     <string name="lock_mode_description">Заблокувати колесо</string>
     <string name="lock_mode_title">Режим блокування</string>
     <string name="transport_mode_title">Режим транспортування</string>
@@ -292,7 +273,6 @@
     <string name="custom_beep_title">Вибрати аудіо</string>
     <string name="bug_report">Сповістити про помилку</string>
     <string name="notification_buttons_description">Налаштування кнопок в панелі сповіщення</string>
-    <string name="notification_text_ajdm_theme">%1$.1f км/г | %2$d%% | %3$d°C | %4$.1f км</string>
     <string name="icon_light">Піктобрама ліхтарика</string>
     <string name="alarm_text_pwm">PWM аларм</string>
     <string name="newton">Н*м</string>

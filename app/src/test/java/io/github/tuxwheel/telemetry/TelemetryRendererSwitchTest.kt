@@ -9,7 +9,6 @@ import androidx.lifecycle.LifecycleRegistry
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.core.app.ApplicationProvider
 import androidx.preference.PreferenceManager
-import androidx.compose.runtime.State
 import io.github.tuxwheel.AppConfig
 import io.github.tuxwheel.MainActivity
 import io.github.tuxwheel.MainPageAdapter
@@ -54,10 +53,6 @@ class TelemetryRendererSwitchTest {
             val compose = page.findViewById<ComposeView>(R.id.paramsComposeView)
             assertThat(compose.visibility).isEqualTo(View.VISIBLE)
             assertThat((page as android.view.ViewGroup).childCount).isEqualTo(1)
-            @Suppress("UNCHECKED_CAST")
-            val theme = MainPageAdapter::class.java.getDeclaredField("telemetryTheme").apply {
-                isAccessible = true
-            }.get(adapter) as State<Int>
 
             adapter.onAttachedToRecyclerView(recycler)
             lifecycle.currentState = Lifecycle.State.STARTED
@@ -71,23 +66,16 @@ class TelemetryRendererSwitchTest {
             lifecycle.currentState = Lifecycle.State.CREATED
             shadowOf(Looper.getMainLooper()).idle()
             config.setValue("use_compose_telemetry", false)
-            config.appThemeInt = io.github.tuxwheel.utils.ThemeEnum.AJDM.value
             shadowOf(Looper.getMainLooper()).idle()
             assertThat(compose.visibility).isEqualTo(View.VISIBLE)
-            assertThat(theme.value).isEqualTo(R.style.OriginalTheme)
             lifecycle.currentState = Lifecycle.State.STARTED
             shadowOf(Looper.getMainLooper()).idle()
             assertThat(compose.visibility).isEqualTo(View.VISIBLE)
-            assertThat(theme.value).isEqualTo(R.style.AJDMTheme)
 
             adapter.onDetachedFromRecyclerView(recycler)
             shadowOf(Looper.getMainLooper()).idle()
-            config.appThemeInt = io.github.tuxwheel.utils.ThemeEnum.Original.value
-            shadowOf(Looper.getMainLooper()).idle()
-            assertThat(theme.value).isEqualTo(R.style.AJDMTheme)
             adapter.onAttachedToRecyclerView(recycler)
             shadowOf(Looper.getMainLooper()).idle()
-            assertThat(theme.value).isEqualTo(R.style.OriginalTheme)
             adapter.onViewRecycled(holder)
             assertThat(compose.hasComposition).isFalse()
         } finally {

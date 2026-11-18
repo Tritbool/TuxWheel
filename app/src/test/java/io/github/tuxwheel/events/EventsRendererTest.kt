@@ -45,18 +45,16 @@ class EventsRendererTest {
         }.get(renderer) as State<String>).value
 
     @Test
-    fun `renderer preserves Compose text and scroll through theme changes`() {
+    fun `renderer preserves Compose text and scroll across rebinds`() {
         context.setTheme(R.style.OriginalTheme)
         val page = LayoutInflater.from(context).inflate(R.layout.main_view_events, null)
         val state = EventsState()
         state.append((1..100).joinToString("\n", postfix = "\n") { "event-$it" })
         val scroll = ScrollState(27)
-        val renderer = EventsPageRenderer(page, state, scroll, R.style.OriginalTheme)
+        val renderer = EventsPageRenderer(page, state, scroll)
         try {
             assertThat(text(renderer)).isEqualTo(state.text.value)
             assertThat((page as android.view.ViewGroup).childCount).isEqualTo(1)
-            renderer.preferences(R.style.AJDMTheme)
-            renderer.preferences(R.style.OriginalTheme)
             assertThat(page.findViewById<ComposeView>(R.id.eventsComposeView).visibility).isEqualTo(View.VISIBLE)
             assertThat(scroll.value).isEqualTo(27)
         } finally {
@@ -73,7 +71,7 @@ class EventsRendererTest {
         val lifecycle = LifecycleRegistry(owner)
         every { owner.lifecycle } returns lifecycle
         lifecycle.currentState = Lifecycle.State.CREATED
-        val renderer = EventsPageRenderer(page, state, ScrollState(0), R.style.OriginalTheme)
+        val renderer = EventsPageRenderer(page, state, ScrollState(0))
         try {
             renderer.start(owner)
             lifecycle.currentState = Lifecycle.State.STARTED

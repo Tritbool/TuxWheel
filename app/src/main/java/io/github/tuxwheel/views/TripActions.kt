@@ -35,11 +35,11 @@ object TripActions {
             .setNegativeButton(android.R.string.cancel) { _, _ -> }
             .show().also { it.setBlackIcon() }
 
-    fun menu(anchor: View, trip: TripItemState, delete: (TripItemState) -> Unit, appTheme: Int = ThemeManager.theme) {
+    fun menu(anchor: View, trip: TripItemState, delete: (TripItemState) -> Unit) {
         val context = anchor.context
         PopupMenu(ContextThemeWrapper(context, R.style.OriginalTheme_PopupMenuStyle), anchor).apply {
-            menu.add(0, 2, 2, R.string.trip_menu_share).setIcon(ThemeManager.getId(ThemeIconEnum.TripsShare, appTheme))
-            menu.add(0, 3, 3, R.string.trip_menu_delete_file).setIcon(ThemeManager.getId(ThemeIconEnum.TripsDelete, appTheme))
+            menu.add(0, 2, 2, R.string.trip_menu_share).setIcon(ThemeManager.getId(ThemeIconEnum.TripsShare))
+            menu.add(0, 3, 3, R.string.trip_menu_delete_file).setIcon(ThemeManager.getId(ThemeIconEnum.TripsDelete))
             setOnMenuItemClickListener {
                 when (it.itemId) {
                     2 -> {

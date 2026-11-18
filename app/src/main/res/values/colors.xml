@@ -1,34 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <color name="primary">#1f3a5a</color>
-    <color name="primary_dark">#222222</color>
-    // цвета внизу, для алертов
-    <color name="accent">#FF5722</color>
-    <color name="primary_text">#212121</color>
-    <color name="divider">#B6B6B6</color>
-    <color name="background">#284a73</color>
-    <color name="wheelview_text">#AAFFFFFF</color>
-    <color name="wheelview_textblocks">#FFFFFF</color>
+    <!-- Day palette: repaired soft light theme, mirrors md_theme_light_* in Color.kt. -->
+    <color name="primary">#16607F</color>
+    <color name="primary_dark">#0B3B52</color>
+    <!-- couleurs en bas, pour les alertes -->
+    <color name="accent">#C75B12</color>
+    <color name="primary_text">#181C20</color>
+    <color name="divider">#C1C9CF</color>
+    <color name="background">#F4F7F9</color>
+    <color name="wheelview_text">#41484F</color>
+    <color name="wheelview_textblocks">#181C20</color>
     <color name="wheelview_versiontext">#32000000</color>
-    <color name="wheelview_speed_text">#FFFFFF</color>
-    <color name="wheelview_main_positive_dial">#FF5722</color>
-    <color name="wheelview_main_negative_dial">#00cc00</color>
-    <color name="wheelview_battery_dial">#00cc00</color>
-    <color name="wheelview_battery_low_dial">#cccc00</color>
-    <color name="wheelview_temperature_dial">#33ccff</color>
-    <color name="wheelview_arc_dim">#30000000</color>
+    <color name="wheelview_speed_text">#181C20</color>
+    <color name="wheelview_main_positive_dial">#D9480F</color>
+    <color name="wheelview_main_negative_dial">#2E7D32</color>
+    <color name="wheelview_battery_dial">#0E8A4F</color>
+    <color name="wheelview_battery_low_dial">#B8860B</color>
+    <color name="wheelview_temperature_dial">#1C8C9E</color>
+    <color name="wheelview_arc_dim">#22000000</color>
     <color name="alert_bg">#F2F2F2</color>
     <color name="alert_button_text">#FFFFFF</color>
     <color name="alert_button_bg">#747A7A7A</color>
-    <color name="settings_bg">#222222</color>
-    <color name="splash_status_bar">#FFFFFF</color>
+    <color name="settings_bg">#F4F7F9</color>
+    <color name="splash_status_bar">#F4F7F9</color>
 
-    <color name="stats_speed">#00E676</color>
-    <color name="stats_battery">#0D47A1</color>
-    <color name="stats_temp">#F50057</color>
-    <color name="stats_voltage">#1DE9B6</color>
-    <color name="stats_current">#EC407A</color>
-    <color name="stats_power">#FFEA00</color>
-    <color name="stats_pwm">#8F8F8F</color>
+    <!-- Stats/BMS list and chart ink. These used to be hardcoded white in the Stats styles,
+         which vanished on the light background. Night keeps the original white alphas. -->
+    <color name="stats_text">#A641484F</color>
+    <color name="stats_title">#CC181C20</color>
+    <color name="chart_text">#41484F</color>
 </resources>

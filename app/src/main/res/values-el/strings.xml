@@ -129,8 +129,6 @@
 	<string name="on_off_strobe">Ενεργό/Ανενεργό/Ενάλλαξη</string>
 	<string name="soft_medium_hard">Μαλακό / Μεσαίο / Σκληρό</string>
     <string name="alarm_mode_title">Λειτουργία Συναγερμού</string>
-    <string name="is_gotway_mcm_title">Ο Ρόδα μου είναι MCM Gotway</string>
-	<string name="is_gotway_mcm_description">Εάν η ρόδα σας είναι Gotway MCM και εμφανίζει λάθος ταχύτητα, απόσταση και άλλες παραμέτρους, αυτή η επιλογή θα τα φέρει στα κανονικά</string>
 	<string name="battery_voltage_title">Τάση μπαταρίας</string>
 	<string name="battery_voltage_description">67V/84V/100V</string>
 	<string name="off_level_1_alarm">Απενεργοίηση level 1 συναγερμού</string>

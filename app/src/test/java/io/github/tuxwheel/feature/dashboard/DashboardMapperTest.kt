@@ -330,13 +330,11 @@ class DashboardMapperTest {
         every { data.phaseCurrent } returns -10.0
         val current = DashboardMapper.map(connectedState(data), null, appConfig)
         assertThat(current.mainDialFraction).isEqualTo(-.5f)
-        assertThat(current.secondaryDialFraction).isEqualTo(.4f)
         every { appConfig.valueOnDial } returns "3"
         every { appConfig.swapSpeedPwm } returns true
         every { appConfig.useMph } returns true
         val phase = DashboardMapper.map(connectedState(data), null, appConfig)
         assertThat(phase.mainDialFraction).isEqualTo(-.2f)
-        assertThat(phase.secondaryDialFraction).isEqualTo(.4f)
         assertThat(phase.displayMode).isEqualTo(DisplayMode.PWM)
     }
 

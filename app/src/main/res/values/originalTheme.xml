@@ -84,11 +84,11 @@
 
     <style name="Stats" parent="@android:style/TextAppearance.Medium">
         <item name="android:gravity">left</item>
-        <item name="android:textColor">#AAFFFFFF</item>
+        <item name="android:textColor">@color/stats_text</item>
     </style>
 
     <style name="Stats.Title" parent="@style/Stats">
-        <item name="android:textColor">#CCFFFFFF</item>
+        <item name="android:textColor">@color/stats_title</item>
         <item name="android:paddingTop">10dp</item>
         <item name="android:paddingRight">20dp</item>
         <item name="android:gravity">right</item>
@@ -97,12 +97,12 @@
 
     <style name="StatsBMS" parent="@android:style/TextAppearance.Medium">
         <item name="android:gravity">left</item>
-        <item name="android:textColor">#AAFFFFFF</item>
+        <item name="android:textColor">@color/stats_text</item>
         <item name="android:textSize">10sp</item>
     </style>
 
     <style name="StatsBMS.Title" parent="@style/Stats">
-        <item name="android:textColor">#CCFFFFFF</item>
+        <item name="android:textColor">@color/stats_title</item>
         <item name="android:paddingTop">5dp</item>
         <item name="android:paddingRight">5dp</item>
         <item name="android:gravity">right</item>

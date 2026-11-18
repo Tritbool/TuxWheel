@@ -72,16 +72,22 @@ class CommandContractMappingTest {
     }
 
     @Test
-    fun `wheel settings include known unavailable controls but exclude unsupported and unrelated commands`() {
+    fun `wheel settings keeps every configuration command and drops queries and dedicated screens`() {
         val commands = wheelSettingsCommands(
             listOf(
                 commandDescriptor("SET_LIGHT_MODE"),
                 commandDescriptor("RESET_TRIP"),
-                commandDescriptor("PING"),
-                commandDescriptor("REQUEST_FIRMWARE"),
+                commandDescriptor("SET_SPEED_LIMIT", input = CommandInput.Range(0, 100, 1, "km/h")),
+                commandDescriptor("SET_PASSWORD", input = CommandInput.Text(4, 4, "[0-9]{4}", true)),
                 commandDescriptor("LOCK"),
-                commandDescriptor("SET_PASSWORD"),
-                commandDescriptor("REQUEST_DIAGNOSTIC_LOG"),
+                commandDescriptor("REQUEST_FIRMWARE", operation = "query"),
+                commandDescriptor("REQUEST_SERIAL", operation = "query"),
+                commandDescriptor("REQUEST_DIAGNOSTIC_LOG", operation = "file_transfer"),
+                commandDescriptor(
+                    "CUSTOM",
+                    input = CommandInput.RawPayload("Opaque protocol bytes", setOf("bytes")),
+                    operation = "raw",
+                ),
                 commandDescriptor("SET_PEDALS_MODE", encoding = CommandEncoding.UNAVAILABLE),
                 commandDescriptor("SET_LED_MODE", input = CommandInput.Unsupported("Unknown input")),
                 commandDescriptor("LIGHT_BRIGHTNESS", encoding = CommandEncoding.UNKNOWN),
@@ -94,13 +100,149 @@ class CommandContractMappingTest {
         )
 
         assertThat(commands.map { it.id })
-            .containsExactly("SET_LIGHT_MODE", "RESET_TRIP", "SET_PEDALS_MODE")
+            .containsExactly("SET_LIGHT_MODE", "RESET_TRIP", "SET_SPEED_LIMIT", "SET_PEDALS_MODE")
         assertThat(commands.single { it.id == "SET_PEDALS_MODE" }.editor)
             .isEqualTo(WheelCommandEditor.UNAVAILABLE)
     }
 
     @Test
-    fun `simple options allow direct selection but alarm and numeric edits use a form`() {
+    fun `the wheel max speed belongs to the wheel settings screen, not to the speed limiter`() {
+        val commands = wheelSettingsCommands(
+            listOf(commandDescriptor("SET_SPEED_LIMIT", input = CommandInput.Range(0, 99, 1, "km/h"))),
+        )
+
+        assertThat(commands.map { it.id }).containsExactly("SET_SPEED_LIMIT")
+        assertThat(commands.single().editor).isEqualTo(WheelCommandEditor.FORM)
+        assertThat(wheelCommandSectionFor("SET_SPEED_LIMIT"))
+            .isEqualTo(WheelCommandSection.RIDING)
+    }
+
+    @Test
+    fun `a command the app never listed still reaches the settings screen`() {
+        val commands = wheelSettingsCommands(
+            listOf(commandDescriptor("SET_TILT_BACK_ANGLE", input = CommandInput.Range(0, 30, 1, "deg"))),
+        )
+
+        assertThat(commands.map { it.id }).containsExactly("SET_TILT_BACK_ANGLE")
+        assertThat(wheelCommandSectionFor("SET_TILT_BACK_ANGLE")).isEqualTo(WheelCommandSection.OTHER)
+    }
+
+    @Test
+    fun `sections order commands and collect the unlisted ones last`() {
+        val commands = wheelSettingsCommands(
+            listOf(
+                commandDescriptor("POWER_OFF"),
+                commandDescriptor("SET_PEDALS_MODE"),
+                commandDescriptor("SET_LIGHT_MODE"),
+                commandDescriptor("SET_MYSTERY_SETTING"),
+            ),
+        )
+
+        assertThat(wheelCommandSections(commands).map { it.section }).containsExactly(
+            WheelCommandSection.PEDALS,
+            WheelCommandSection.LIGHTING,
+            WheelCommandSection.ACTIONS,
+            WheelCommandSection.OTHER,
+        ).inOrder()
+        assertThat(wheelCommandSections(commands).last().commands.map { it.id })
+            .containsExactly("SET_MYSTERY_SETTING")
+    }
+
+    @Test
+    fun `empty sections are not rendered`() {
+        val commands = wheelSettingsCommands(listOf(commandDescriptor("SET_PEDALS_MODE")))
+
+        assertThat(wheelCommandSections(commands).map { it.section })
+            .containsExactly(WheelCommandSection.PEDALS)
+    }
+
+    @Test
+    fun `a written command holds its value until the wheel confirms or overrules it`() {
+        val requested = CommandValue.Integer(2)
+        val pending = CommandPending(requested, reportedBefore = CommandValue.Integer(0))
+
+        assertThat(commandWriteStatus(null, requested)).isEqualTo(CommandWriteStatus.NONE)
+        // A wheel that never reports the setting back proves nothing, so nothing is claimed.
+        assertThat(commandWriteStatus(CommandPending(requested), null))
+            .isEqualTo(CommandWriteStatus.NONE)
+        // A report that has not moved since the write only means the wheel has not re-reported yet.
+        assertThat(commandWriteStatus(pending, CommandValue.Integer(0)))
+            .isEqualTo(CommandWriteStatus.NONE)
+        assertThat(commandWriteStatus(pending, requested))
+            .isEqualTo(CommandWriteStatus.APPLIED)
+        assertThat(commandWriteStatus(pending, CommandValue.Integer(1)))
+            .isEqualTo(CommandWriteStatus.REJECTED)
+    }
+
+    @Test
+    fun `placeholder option ids are readable while catalogued ones keep their own label`() {
+        assertThat(commandOptionLabelResource("free")).isEqualTo(R.string.free)
+        assertThat(humanizeCommandOptionId("mode_0")).isEqualTo("Mode 0")
+        assertThat(humanizeCommandOptionId("ride_mode")).isEqualTo("Ride mode")
+        assertThat(humanizeCommandOptionId("standby-delay")).isEqualTo("Standby delay")
+        assertThat(humanizeCommandOptionId("__")).isEqualTo("__")
+    }
+
+    @Test
+    fun `kingsong pedal mode codes carry the labels that brand gave them`() {
+        assertThat(commandOptionLabelResource("mode_0", "KingSong", "SET_PEDALS_MODE"))
+            .isEqualTo(R.string.soft)
+        assertThat(commandOptionLabelResource("mode_1", "KingSong", "SET_PEDALS_MODE"))
+            .isEqualTo(R.string.medium)
+        assertThat(commandOptionLabelResource("mode_2", "KingSong", "SET_PEDALS_MODE"))
+            .isEqualTo(R.string.hard)
+    }
+
+    @Test
+    fun `a pedal mode label never crosses over to another brand or command`() {
+        assertThat(commandOptionLabelResource("mode_0", "Gotway", "SET_PEDALS_MODE")).isNull()
+        assertThat(commandOptionLabelResource("mode_0", "KingSong", "SET_LIGHT_MODE")).isNull()
+        assertThat(commandOptionLabelResource("mode_0", "Unknown", "SET_PEDALS_MODE")).isNull()
+        assertThat(commandOptionLabelResource("mode_0")).isNull()
+    }
+
+    @Test
+    fun `descriptive option ids read as words and initialisms keep their shape`() {
+        assertThat(commandOptionLabelResource("strobe", "Gotway", "SET_LIGHT_MODE"))
+            .isEqualTo(R.string.strobe)
+        assertThat(humanizeCommandOptionId("pwm_tiltback_only")).isEqualTo("PWM tiltback only")
+        assertThat(humanizeCommandOptionId("dynamic_pwm_tiltback")).isEqualTo("Dynamic PWM tiltback")
+        assertThat(humanizeCommandOptionId("two_speed_alarms_and_pwm_tiltback"))
+            .isEqualTo("Two speed alarms and PWM tiltback")
+    }
+
+    @Test
+    fun `a written value keeps the raw form the wheel would have reported`() {
+        assertThat(commandValueToReportedInt(CommandValue.Integer(2))).isEqualTo(2)
+        assertThat(commandValueToReportedInt(CommandValue.Toggle(true))).isEqualTo(1)
+        assertThat(commandValueToReportedInt(CommandValue.Toggle(false))).isEqualTo(0)
+        assertThat(commandValueToReportedInt(CommandValue.Text("abc"))).isNull()
+        assertThat(commandValueToReportedInt(CommandValue.None)).isNull()
+    }
+
+    @Test
+    fun `kingsong pedal mode codes map through the catalogue and stay absent when unreported`() {
+        val kingsong = commandDescriptor(
+            "SET_PEDALS_MODE",
+            input = CommandInput.Choice(
+                listOf(
+                    CommandInput.Option("mode_0", 0),
+                    CommandInput.Option("mode_1", 1),
+                    CommandInput.Option("mode_2", 2),
+                ),
+            ),
+        )
+
+        assertThat(commandValueFromReportedValues(kingsong.input, listOf(1)))
+            .isEqualTo(CommandValue.Integer(1))
+        assertThat(commandInputDefaults(kingsong.input, CommandValue.Integer(1)))
+            .containsExactly("value", "mode_1")
+        // Kingsong has no read command for its pedal mode, so there is nothing to show.
+        assertThat(commandValueFromReportedValues(kingsong.input, emptyList())).isNull()
+    }
+
+    @Test
+    fun `simple options allow direct selection and numeric edits use a form`() {
         val choice = CommandInput.Choice(listOf(CommandInput.Option("soft", 1)))
         val commands = wheelSettingsCommands(
             listOf(
@@ -111,7 +253,7 @@ class CommandContractMappingTest {
         )
 
         assertThat(commands.map { it.editor })
-            .containsExactly(WheelCommandEditor.PICK, WheelCommandEditor.FORM, WheelCommandEditor.FORM)
+            .containsExactly(WheelCommandEditor.PICK, WheelCommandEditor.PICK, WheelCommandEditor.FORM)
             .inOrder()
     }
 

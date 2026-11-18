@@ -21,15 +21,13 @@ import androidx.compose.ui.text.style.TextAlign
 import io.github.tuxwheel.R
 
 @Composable
-fun ParamsListScreen(items: List<Pair<Int, String>>, appTheme: Int, scrollState: ScrollState) {
+fun ParamsListScreen(items: List<Pair<Int, String>>, scrollState: ScrollState) {
     val context = LocalContext.current
     val density = LocalDensity.current
     // Resolve the same XML appearances using the host's resource theme, not Material's palette.
-    val title = remember(context, appTheme) { TextView(context, null, 0, R.style.Stats_Title) }
-    val value = remember(context, appTheme) { TextView(context, null, 0, R.style.Stats) }
-    val font = remember(appTheme) {
-        FontFamily(Font(if (appTheme == R.style.AJDMTheme) R.font.ajdm else R.font.prime))
-    }
+    val title = remember(context) { TextView(context, null, 0, R.style.Stats_Title) }
+    val value = remember(context) { TextView(context, null, 0, R.style.Stats) }
+    val font = FontFamily(Font(R.font.prime))
     val titleStyle = TextStyle(
         color = Color(title.currentTextColor),
         fontSize = with(density) { title.textSize.toSp() },

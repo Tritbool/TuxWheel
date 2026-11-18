@@ -69,7 +69,7 @@ class TripsRendererTest {
             lifecycle.currentState = Lifecycle.State.STARTED
             idle()
             coVerify(exactly = 3) { repository.loadItems(any(), false, any()) }
-            renderer.preferences(R.style.AJDMTheme, true, true)
+            renderer.preferences(true, true)
             idle()
             coVerify(exactly = 1) { repository.loadItems(any(), true, any()) }
             renderer.stop()
@@ -112,10 +112,10 @@ class TripsRendererTest {
             }.get(adapter) as TripsScroll
             TripsScroll::class.java.getDeclaredField("compose").apply { isAccessible = true }
                 .set(scroll, androidx.compose.foundation.lazy.LazyListState(4, 17))
-            holder.tripsRenderer!!.preferences(config.appTheme, false, false)
+            holder.tripsRenderer!!.preferences(false, false)
             assertThat(compose.visibility).isEqualTo(View.VISIBLE)
             config.setValue("use_compose_trips", false)
-            holder.tripsRenderer!!.preferences(R.style.AJDMTheme, false, false)
+            holder.tripsRenderer!!.preferences(false, false)
             assertThat(scroll.compose.firstVisibleItemIndex).isEqualTo(4)
             assertThat(scroll.compose.firstVisibleItemScrollOffset).isEqualTo(17)
             assertThat(holder.itemView).isSameInstanceAs(page)

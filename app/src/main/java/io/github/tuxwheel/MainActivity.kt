@@ -501,7 +501,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         AppCompatDelegate.setDefaultNightMode(appConfig.dayNightThemeMode)
-        setTheme(appConfig.appTheme)
         super.onCreate(savedInstanceState)
         volumeControlStream = AudioManager.STREAM_MUSIC
 
@@ -552,7 +551,7 @@ class MainActivity : AppCompatActivity() {
 
         binding.settingsView.apply {
             setContent {
-                AppTheme(useDarkTheme = true) {
+                AppTheme {
                     settingsNavHostController = rememberNavController()
                     mainScreen(navController = settingsNavHostController!!)
                 }
@@ -704,11 +703,6 @@ class MainActivity : AppCompatActivity() {
             miLogging = findItem(R.id.miLogging)
         }
 
-        if (appConfig.appTheme == R.style.AJDMTheme) {
-            val miSettings = mMenu!!.findItem(R.id.miSettings)
-            miSettings.setIcon(ThemeManager.getId(ThemeIconEnum.MenuSettings))
-            miSearch!!.setIcon(ThemeManager.getId(ThemeIconEnum.MenuBluetooth))
-        }
         setMenuIconStates()
         return true
     }

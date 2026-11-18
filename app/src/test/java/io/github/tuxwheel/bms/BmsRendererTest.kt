@@ -77,12 +77,10 @@ class BmsRendererTest {
             val compose = page.findViewById<ComposeView>(R.id.bmsComposeView)
             assertThat(compose.visibility).isEqualTo(View.VISIBLE)
             assertThat((page as android.view.ViewGroup).childCount).isEqualTo(1)
-            holder.bmsRenderer!!.preferences(config.appTheme)
             assertThat(compose.visibility).isEqualTo(View.VISIBLE)
             config.setValue("use_compose_bms", false)
             assertThat(presentation(holder.bmsRenderer!!).packNumbers.size > 1).isTrue()
             assertThat(presentation(holder.bmsRenderer!!).rows).hasSize(58)
-            holder.bmsRenderer!!.preferences(R.style.AJDMTheme)
             assertThat(holder.itemView).isSameInstanceAs(page)
             adapter.position = 2
             verify { model.bmsView = true }
@@ -105,10 +103,7 @@ class BmsRendererTest {
         }
     }
 
-    @Test fun `lifecycle collection updates values stops on detach and releases preference listeners`() {
-        val preferences = spyk(PreferenceManager.getDefaultSharedPreferences(context))
-        mockkStatic(PreferenceManager::class)
-        every { PreferenceManager.getDefaultSharedPreferences(context) } returns preferences
+    @Test fun `lifecycle collection updates values and stops on detach`() {
         val config = AppConfig(context)
         val model = mockk<BleSessionViewModel>()
         val state = MutableStateFlow(snapshot())
@@ -144,13 +139,11 @@ class BmsRendererTest {
             state.value = snapshot(voltage = 102.0)
             idle()
             assertThat(voltage()).isEqualTo("101.00 V")
-            verify(exactly = 1) { preferences.unregisterOnSharedPreferenceChangeListener(any()) }
             renderer.start()
             idle()
             assertThat(voltage()).isEqualTo("102.00 V")
             renderer.dispose()
             idle()
-            verify(exactly = 2) { preferences.unregisterOnSharedPreferenceChangeListener(any()) }
             state.value = snapshot(voltage = 103.0)
             renderer.refresh()
             assertThat(voltage()).isEqualTo("102.00 V")
@@ -158,7 +151,6 @@ class BmsRendererTest {
             renderer.dispose()
             lifecycle.currentState = Lifecycle.State.DESTROYED
             idle()
-            unmockkStatic(PreferenceManager::class)
         }
     }
 

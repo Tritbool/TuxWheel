@@ -5,24 +5,14 @@ import android.graphics.Typeface
 import android.os.Build
 import androidx.annotation.DrawableRes
 import androidx.core.content.res.ResourcesCompat
-import io.github.tuxwheel.AppConfig
 import io.github.tuxwheel.R
-import org.koin.core.component.KoinComponent
-import org.koin.core.component.inject
 
-object ThemeManager: KoinComponent {
+object ThemeManager {
 
-    private val appConfig: AppConfig by inject()
     private val original = HashMap<ThemeIconEnum, Int>()
-    private val ajdm = HashMap<ThemeIconEnum, Int>()
-
-    var theme = appConfig.appTheme
 
     fun getTypeface(context: Context): Typeface {
-        val fontResId = when(theme) {
-            R.style.AJDMTheme -> R.font.ajdm
-            else -> R.font.prime
-        }
+        val fontResId = R.font.prime
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
             context.resources.getFont(fontResId)
         else
@@ -39,14 +29,6 @@ object ThemeManager: KoinComponent {
         original[ThemeIconEnum.NotificationLogOff] = R.drawable.ic_action_logging_grey
         original[ThemeIconEnum.NotificationHorn] = R.drawable.ic_horn_32_gray
         original[ThemeIconEnum.NotificationLight] = R.drawable.ic_sun_32_gray
-        ajdm[ThemeIconEnum.NotificationIcon] = R.drawable.ic_stat_tuxwheel
-        ajdm[ThemeIconEnum.NotificationConnecting] = R.drawable.ajdm_wheel_new_g
-        ajdm[ThemeIconEnum.NotificationConnected] = R.drawable.ajdm_wheel_new
-        ajdm[ThemeIconEnum.NotificationDisconnected] = R.drawable.ajdm_wheel_new_b
-        ajdm[ThemeIconEnum.NotificationLogOn] = R.drawable.ajdm_log_new
-        ajdm[ThemeIconEnum.NotificationLogOff] = R.drawable.ajdm_log_new_b
-        ajdm[ThemeIconEnum.NotificationHorn] = R.drawable.horn_ajdm_b
-        ajdm[ThemeIconEnum.NotificationLight] = R.drawable.light_ajdm_b
         // menu
         original[ThemeIconEnum.MenuLogOn] = R.drawable.ic_action_logging_orange
         original[ThemeIconEnum.MenuLogOff] = R.drawable.ic_action_logging_white
@@ -55,13 +37,6 @@ object ThemeManager: KoinComponent {
         original[ThemeIconEnum.MenuWheelOff] = R.drawable.ic_action_wheel_white
         original[ThemeIconEnum.MenuSettings] = R.drawable.ic_baseline_settings_24
         original[ThemeIconEnum.MenuBluetooth] = R.drawable.ic_action_bluetooth_searching_white
-        ajdm[ThemeIconEnum.MenuLogOn] = R.drawable.ajdm_log_new_g
-        ajdm[ThemeIconEnum.MenuLogOff] = R.drawable.ajdm_log_new
-        ajdm[ThemeIconEnum.MenuWheelOn] = R.drawable.ajdm_wheel_new_g
-        ajdm[ThemeIconEnum.MenuWheelSearch] = R.drawable.ajdm_anim_wheel_icon
-        ajdm[ThemeIconEnum.MenuWheelOff] = R.drawable.ajdm_wheel_new
-        ajdm[ThemeIconEnum.MenuSettings] = R.drawable.ajdm_sett3_new
-        ajdm[ThemeIconEnum.MenuBluetooth] = R.drawable.ajdm_bt_new
         // settings page
         original[ThemeIconEnum.SettingsSpeedometer] = R.drawable.ic_speedometer_white_24dp
         original[ThemeIconEnum.SettingsSpeedLimiter] = R.drawable.ic_speed_limit
@@ -82,30 +57,13 @@ object ThemeManager: KoinComponent {
         original[ThemeIconEnum.SettingsPageTrips] = R.drawable.ic_baseline_road_with_two_placeholders_24
         original[ThemeIconEnum.SettingsConnectionSound] = R.drawable.ic_baseline_music_note_24
         original[ThemeIconEnum.SettingsAutoMute] = R.drawable.ic_baseline_volume_off_24
-        ajdm[ThemeIconEnum.SettingsSpeedometer] = R.drawable.ajdm_sett5_new
-        ajdm[ThemeIconEnum.SettingsSpeedLimiter] = R.drawable.ic_speed_limit
-        ajdm[ThemeIconEnum.SettingsLog] = R.drawable.ajdm_log_new_set
-        ajdm[ThemeIconEnum.SettingsBug] = R.drawable.ajdm_flow
-        ajdm[ThemeIconEnum.SettingsAbout] = R.drawable.ajdm_info
-        ajdm[ThemeIconEnum.SettingsVibration] = R.drawable.ajdm_alarm
-        ajdm[ThemeIconEnum.SettingsWheel] = R.drawable.ajdm_wheel_set
-        ajdm[ThemeIconEnum.SettingsTrips] = R.drawable.ajdm_trip
         // trip page
         original[ThemeIconEnum.TripsPopupButton] = R.drawable.ic_baseline_settings_24
         original[ThemeIconEnum.TripsShare] = R.drawable.ic_baseline_share_24
         original[ThemeIconEnum.TripsDelete] = R.drawable.ic_baseline_delete_24
-        ajdm[ThemeIconEnum.TripsShare] = R.drawable.ajdm_share
     }
 
     @DrawableRes
-    fun getId(icon: ThemeIconEnum): Int = getId(icon, theme)
-
-    @DrawableRes
-    fun getId(icon: ThemeIconEnum, appTheme: Int): Int {
-        return when(appTheme) {
-            R.style.AJDMTheme -> ajdm[icon]
-            else -> original[icon]
-        } ?: R.drawable.transparent
-    }
+    fun getId(icon: ThemeIconEnum): Int = original[icon] ?: R.drawable.transparent
 
 }

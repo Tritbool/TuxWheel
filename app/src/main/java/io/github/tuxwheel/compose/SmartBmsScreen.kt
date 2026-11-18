@@ -24,14 +24,12 @@ import io.github.tuxwheel.R
 import io.github.tuxwheel.bms.BmsPresentation
 
 @Composable
-fun SmartBmsScreen(presentation: BmsPresentation, appTheme: Int, scroll: ScrollState) {
+fun SmartBmsScreen(presentation: BmsPresentation, scroll: ScrollState) {
     val context = LocalContext.current
     val density = LocalDensity.current
-    val title = remember(context, appTheme) { TextView(context, null, 0, R.style.StatsBMS_Title) }
-    val value = remember(context, appTheme) { TextView(context, null, 0, R.style.StatsBMS) }
-    val font = remember(appTheme) {
-        FontFamily(Font(if (appTheme == R.style.AJDMTheme) R.font.ajdm else R.font.prime))
-    }
+    val title = remember(context) { TextView(context, null, 0, R.style.StatsBMS_Title) }
+    val value = remember(context) { TextView(context, null, 0, R.style.StatsBMS) }
+    val font = FontFamily(Font(R.font.prime))
     val titleStyle = TextStyle(
         color = Color(title.currentTextColor), fontSize = with(density) { title.textSize.toSp() },
         fontFamily = font, fontWeight = FontWeight.Bold, textAlign = TextAlign.Right,

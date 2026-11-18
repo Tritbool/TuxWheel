@@ -74,7 +74,7 @@ are not deleted by this cleanup.
 
 ## Features
 
-- Customizable dashboard blocks and gauges, with Original and AJDM themes.
+- Customizable dashboard blocks and gauges.
 - Speed, battery, temperature, current, PWM, and other available telemetry.
 - Configurable alarms and charts; optional trips and events pages.
 - Smart BMS presentation with per-pack measurements and cell details when available.
@@ -126,7 +126,7 @@ arrive; unavailable values are left blank.
 - **Long-press a dashboard block** to choose its replacement.
 - **Single tap** triggers the horn only when that gesture is enabled.
 - **Double tap** toggles lights only when the wheel supports the command.
-- Choose Original/AJDM styling and units in settings.
+- Choose units and day/night appearance in settings.
 
 Wheel settings and actions are capability-dependent. Verify changes while
 stationary; app alarms do not replace the wheel's own safety protections.
@@ -366,16 +366,11 @@ freely licensed binaries from trusted repositories including JitPack.
   fonts/theme artwork come from GPL-3.0 WheelLog Android. Its
   [GPL license](https://github.com/Wheellog/Wheellog.Android/blob/f44e39e5388e500a5d2f315d1dcf32f167607bf8/LICENSE)
   covers the project except components with their own license.
-  Both bundled fonts match
+  The bundled font matches
   [WheelLog's font files](https://github.com/Wheellog/Wheellog.Android/tree/f44e39e5388e500a5d2f315d1dcf32f167607bf8/app/src/main/res/font)
   byte-for-byte (Git blob IDs are recorded in the packaged notice).
   `prime_regular.otf` is the inherited Wheellog font, not an identified
   proprietary dependency.
-- **Source Sans Pro:** `ajdm.otf` also matches Adobe's
-  [Source Sans Pro Regular 2.020](https://github.com/adobe-fonts/source-sans/blob/2.020R-ro/1.075R-it/OTF/SourceSansPro-Regular.otf)
-  byte-for-byte. It remains under **SIL OFL 1.1**, not GPL.
-  The original copyright notice and full OFL text are bundled at
-  `app/src/main/assets/licenses/SourceSansPro-OFL.txt`.
 - **EUC_BLE_LIBRARY 0.1.0:** the maintainer's own open-source library, with a
   [GPL-3.0 license at the pinned tag](https://github.com/Tritbool/euc_ble_library/blob/0.1.0/LICENSE).
   Its [publication configuration](https://github.com/Tritbool/euc_ble_library/blob/0.1.0/euc-ble-core/build.gradle.kts)
@@ -455,7 +450,7 @@ Use the equivalent `fr-FR/images/phoneScreenshots/` directory for French capture
 No screenshots have been fabricated or copied from EUC SoH.
 Suggested captures:
 
-- `DASHBOARD`: customized blocks and gauge; capture Original and AJDM themes.
+- `DASHBOARD`: customized blocks and gauge on the Original theme.
 - `SCAN`: discovery dialog showing devices and manual MAC entry.
 - `PROTOCOL_PICKER`: long-press device menu with Automatic and protocol choices.
 - `SMART_BMS`: supported wheel with per-pack measurements and cell details.

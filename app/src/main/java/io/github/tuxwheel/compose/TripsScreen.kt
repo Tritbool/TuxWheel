@@ -38,24 +38,21 @@ import io.github.tuxwheel.views.TripActions
 @Composable
 fun TripsScreen(
     trips: List<TripItemState>,
-    appTheme: Int,
     scrollState: LazyListState = rememberLazyListState(),
     delete: (TripItemState) -> Unit
 ) {
     LazyColumn(modifier = Modifier.fillMaxSize(), state = scrollState) {
-        items(trips, key = { it.key }) { TripItem(it, appTheme, delete) }
+        items(trips, key = { it.key }) { TripItem(it, delete) }
     }
 }
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun TripItem(trip: TripItemState, appTheme: Int, delete: (TripItemState) -> Unit) {
+private fun TripItem(trip: TripItemState, delete: (TripItemState) -> Unit) {
     val context = LocalContext.current
     val density = LocalDensity.current
-    val appearance = remember(context, appTheme) { TextView(context) }
-    val font = remember(appTheme) {
-        FontFamily(Font(if (appTheme == R.style.AJDMTheme) R.font.ajdm else R.font.prime))
-    }
+    val appearance = remember(context) { TextView(context) }
+    val font = FontFamily(Font(R.font.prime))
     val style = TextStyle(
         fontFamily = font, color = Color(appearance.currentTextColor),
         fontSize = with(density) { appearance.textSize.toSp() },
@@ -67,7 +64,7 @@ private fun TripItem(trip: TripItemState, appTheme: Int, delete: (TripItemState)
         colors = CardDefaults.cardColors(containerColor = colorResource(R.color.primary)),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).combinedClickable(
-            onClick = {}, onLongClick = { anchor?.let { TripActions.menu(it, trip, delete, appTheme) } }
+            onClick = {}, onLongClick = { anchor?.let { TripActions.menu(it, trip, delete) } }
         )
     ) {
         Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -92,8 +89,8 @@ private fun TripItem(trip: TripItemState, appTheme: Int, delete: (TripItemState)
                     }
                 },
                 update = { button ->
-                    button.setImageResource(ThemeManager.getId(ThemeIconEnum.TripsPopupButton, appTheme))
-                    button.setOnClickListener { TripActions.menu(button, trip, delete, appTheme) }
+                    button.setImageResource(ThemeManager.getId(ThemeIconEnum.TripsPopupButton))
+                    button.setOnClickListener { TripActions.menu(button, trip, delete) }
                 }
             )
         }

@@ -117,8 +117,6 @@
     <string name="soft_medium_hard">Мягкие/Средние/Жесткие</string>
     <string name="mode1_2_3_4">Режим1/Режим2/Режим3/Режим4</string>
     <string name="alarm_mode_title">Режим предупреждения</string>
-    <string name="is_gotway_mcm_title">У меня Gotway MCM</string>
-    <string name="is_gotway_mcm_description">Если у вас Gotway MCM, а скорость растояние и другие параметры отображаются некорректно, тогда попробуйте установить тут галочку.</string>
     <string name="extreme_mode_title">Экстремальный режим</string>
     <string name="extreme_mode_description">Только для трюков! Не подходит для обычной езды!</string>
     <string name="trick_2">Сальто назад (back-flip)</string>
@@ -152,11 +150,6 @@
     <string name="integral_d_current_factor_decsription">Интегральный коэффициент тока D двигателя.</string>
     <string name="battery_voltage_title">Напряжение батареи</string>
     <string name="battery_voltage_description">67В/84В/100В</string>
-    <string name="gotway_negative_title">Отрицательный ток и скорость</string>
-    <string name="gotway_negative_description">Когда вы едете прямо, если скорость и ток отрицательные - попробуйте изменить настройку на противоположную или выберите абсолютное значение</string>
-    <string name="absolute">Абсолютный (всегда положительный)</string>
-    <string name="reverse">Обратный</string>
-    <string name="straight">Прямой</string>
     <string name="off_level_1_alarm">35 (45) км/ч + 80% PWM</string>
     <string name="off_level_2_alarm">Только 80% PWM</string>
     <string name="on_level_alarm">30 + 35 (45) км/ч + 80% PWM</string>
@@ -206,12 +199,6 @@
     <string name="start_data_service">Логирование запущено</string>
     <string name="stop_data_service">Остановить логгирование</string>
     <string name="unknown_device">Неизвестное устройство</string>
-    <string name="use_better_percents_description">Использовать улучшенную формулу рассчета % вместо формулы производителя колеса</string>
-    <string name="use_better_percents_title">Улучшенные проценты</string>
-    <string name="custom_percents_title">Пользовательские проценты</string>
-    <string name="custom_percents_description">Используйте пользовательскую формулу, не забудьте настроить минимальное напряжение для ячейки для вашего колеса.</string>
-    <string name="cell_voltage_tiltback_title">Напряжение подъёма педалей</string>
-    <string name="cell_voltage_tiltback_description">Напряжение на 1 ячейку, при котором колесо поднимает педали</string>
     <string name="use_eng_alert_description">Пожалуйста перезапустите устройство чтобы эта настройка применилась</string>
     <string name="pip_block_title">PIP параметр</string>
     <string name="use_eng_alert_title">Необходим перезапуск</string>
@@ -221,10 +208,6 @@
     <string name="max_speed_dial_description">Максимальное значение внешней шкалы (скорость или ток)</string>
     <string name="connection_sound_description">Проигрывать звуки подключения и отключения колеса</string>
     <string name="connection_sound_title">Звуки подключения колеса</string>
-    <string name="battery_capacity_title">Ёмкость батареи</string>
-    <string name="battery_capacity_description">Ёмкость батареи в Wh</string>
-    <string name="charging_power_title">Мощность зарядки</string>
-    <string name="charging_power_description">Мощность зарядки</string>
     <string name="connect_beep_title">Звук подключения</string>
     <string name="connect_beep_description">Звук подключения к колесу</string>
     <string name="whkm">Втч/км</string>
@@ -315,8 +298,6 @@
     <string name="lock_mode_title">Заблокировать колесо</string>
     <string name="lock_mode_description">Колесо будет заблокировано</string>
     <string name="standby_delay_description">Задержка перед отключением при бездействии</string>
-    <string name="app_theme_title">Тема</string>
-    <string name="app_theme_description">Интерфейс и всё такое.</string>
     <string name="day_night_theme_title">Темная тема</string>
     <string name="day_night_theme_as_system">Как в телефоне</string>
     <string name="day_night_theme_day">Дневная тема</string>
@@ -342,7 +323,6 @@
     <string name="max_pwm">Макс. PWM</string>
     <string name="torque">Крутящий момент</string>
     <string name="imu_temp">Температура IMU</string>
-    <string name="notification_text_ajdm_theme">%1$.1f км/ч | %2$d%% | %3$d°C | %4$.1f км</string>
     <string name="charging">Заряжается</string>
     <string name="discharging">Разряжается</string>
     <string name="ks18l_scaler_title">Исправление одометра 18L</string>

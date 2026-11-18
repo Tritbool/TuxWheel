@@ -104,10 +104,7 @@ class DashboardViewModel(
             },
             speedLimiterAvailable = SpeedLimiter.isAvailable(bleViewModel, session),
             speedLimiterEnabled = appConfig.speedLimiterEnabled,
-            speedLimiterSpeed = appConfig.speedLimiterSpeed,
-            batteryCalculation = if (appConfig.useBetterPercents || appConfig.customPercents) {
-                if (appConfig.customPercents && !bleViewModel.isVoltageTiltbackUnsupported) "custom" else "true"
-            } else ""
+            speedLimiterSpeed = appConfig.speedLimiterSpeed
         )
     }
 }

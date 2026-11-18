@@ -1,24 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <color name="primary">#000000</color>
+    <color name="primary">#0A121C</color>
     <color name="primary_dark">#FF222222</color>
-    <color name="accent">#FF5722</color>
+    <color name="accent">#F7941D</color>
     <color name="primary_text">#000000</color>
-    <color name="divider">#000000</color>
-    <color name="background">#272E3F</color>
+    <color name="divider">#5C6B76</color>
+    <color name="background">#0A121C</color>
     <color name="wheelview_text">#BDBDBD</color>
     <color name="wheelview_textblocks">#FFFFFF</color>
     <color name="wheelview_versiontext">#32CCCCCC</color>
     <color name="wheelview_speed_text">#FFFFFF</color>
-    <color name="wheelview_main_positive_dial">#A80909</color>
-    <color name="wheelview_main_negative_dial">#209100</color>
+    <color name="wheelview_main_positive_dial">#F7941D</color>
+    <color name="wheelview_main_negative_dial">#2BA0B4</color>
     <color name="wheelview_battery_dial">#01BF50</color>
     <color name="wheelview_battery_low_dial">#ffcc00</color>
-    <color name="wheelview_temperature_dial">#00ffff</color>
-    <color name="wheelview_arc_dim">#070A10</color>
+    <color name="wheelview_temperature_dial">#4DD0E1</color>
+    <color name="wheelview_arc_dim">#1E2A38</color>
     <color name="alert_bg">#F2F2F2</color>
-    <color name="settings_bg">#272E3F</color>
-    <color name="splash_status_bar">#000000</color>
+    <color name="settings_bg">#0A121C</color>
+    <color name="splash_status_bar">#0A121C</color>
+
+    <!-- Original white ink of the Stats styles, kept as-is for the dark theme. -->
+    <color name="stats_text">#AAFFFFFF</color>
+    <color name="stats_title">#CCFFFFFF</color>
+    <color name="chart_text">#FFFFFF</color>
 
 </resources>

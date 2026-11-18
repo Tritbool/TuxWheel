@@ -129,8 +129,6 @@
 	<string name="on_off_strobe">An/Aus/Stroboskop</string>
 	<string name="soft_medium_hard">Sanft/Mittel/Hard</string>
     <string name="alarm_mode_title">Alarmmodus</string>
-    <string name="is_gotway_mcm_title">Mein Rad ist ein Gotway MCM</string>
-	<string name="is_gotway_mcm_description">Sollter Ihr Gotway MCM falsche Geschwindigkeit, Distanz etc. angeben, benutzen Sie diese Option</string>
 	<string name="battery_voltage_title">Batteriespannung</string>
 	<string name="battery_voltage_description">67V/84V/100V</string>
 	<string name="off_level_1_alarm">Level 1 Alarm aus</string>

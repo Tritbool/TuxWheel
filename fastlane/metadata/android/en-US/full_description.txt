@@ -2,7 +2,7 @@
 
 <p><b>Features</b></p>
 <ul>
-<li>Customizable dashboard blocks and gauges, with Original and AJDM themes.</li>
+<li>Customizable dashboard blocks and gauges.</li>
 <li>Speed, battery, temperature, current, PWM and other available telemetry.</li>
 <li>Wheel settings and commands, depending on the connected model and firmware.</li>
 <li>Configurable alarms and charts, plus optional trips and events pages.</li>

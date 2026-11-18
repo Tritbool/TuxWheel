@@ -24,7 +24,7 @@ data class DashboardGeometry(
     fun blockAt(x: Float, y: Float) = blocks.indexOfFirst { it.contains(x, y) }
 
     companion object {
-        fun calculate(w: Float, h: Float, density: Float, ajdm: Boolean, count: Int): DashboardGeometry {
+        fun calculate(w: Float, h: Float, density: Float, count: Int): DashboardGeometry {
             val pad = 10 * density
             val landscape = w > h
             val ww = (min(w, h) - 2 * pad).coerceAtLeast(1f)
@@ -39,8 +39,7 @@ data class DashboardGeometry(
             }
             val outer = circle(diameter)
             val middle = circle(diameter - outerStroke - 20 * density)
-            val inner = circle(if (ajdm) middle.width - 10 * density - innerStroke - 10 * density
-                else diameter - outerStroke - innerStroke - 10 * density)
+            val inner = circle(diameter - outerStroke - innerStroke - 10 * density)
             val speedSize = (sqrt(2.0) * (inner.width - innerStroke).roundToInt() / 2)
                 .roundToInt().coerceAtLeast(1).toFloat()
             val speed = DashboardRect(cx - speedSize / 2, cy - speedSize / 2, cx + speedSize / 2, cy + speedSize / 2)

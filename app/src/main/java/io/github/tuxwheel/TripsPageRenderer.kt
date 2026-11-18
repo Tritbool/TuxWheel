@@ -33,7 +33,6 @@ internal class TripsPageRenderer(
     private val context = page.context
     private val compose = page.findViewById<ComposeView>(R.id.tripsComposeView)
     private val items = mutableStateOf<List<TripItemState>>(emptyList())
-    private val theme = mutableStateOf(appConfig.appTheme)
     private var useMph = appConfig.useMph
     private var autoUpload = appConfig.autoUploadEc
     private var collecting: Job? = null
@@ -46,16 +45,15 @@ internal class TripsPageRenderer(
 
     init {
         compose.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
-        compose.setContent { TripsScreen(items.value, theme.value, scroll.compose, ::delete) }
-        preferences(appConfig.appTheme, useMph, autoUpload)
+        compose.setContent { TripsScreen(items.value, scroll.compose, ::delete) }
+        preferences(useMph, autoUpload)
     }
 
-    fun preferences(appTheme: Int, mph: Boolean, upload: Boolean) {
+    fun preferences(mph: Boolean, upload: Boolean) {
         if (disposed) return
         val reload = useMph != mph || autoUpload != upload
         useMph = mph
         autoUpload = upload
-        theme.value = appTheme
         if (reload) refresh()
     }
 

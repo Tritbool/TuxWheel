@@ -31,7 +31,6 @@ class ThirdPartyLicensesTest {
 
         assertThat(readAsset("NOTICE.txt")).contains("upstream metadata discrepancy")
         assertThat(readAsset("GPL-3.0.txt")).contains("GNU GENERAL PUBLIC LICENSE")
-        assertThat(readAsset("SourceSansPro-OFL.txt")).contains("SIL OPEN FONT LICENSE")
     }
 
     @Test fun `license viewer title is available in English and French`() {

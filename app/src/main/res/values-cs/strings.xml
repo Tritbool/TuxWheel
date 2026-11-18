@@ -129,8 +129,6 @@
 	<string name="on_off_strobe">Off/On/Blikání</string>
 	<string name="soft_medium_hard">Měkké/Normální/Tvrdé</string>
     <string name="alarm_mode_title">Mód upozornění</string>
-    <string name="is_gotway_mcm_title">Moje jednokolka je Gotway MCM</string>
-	<string name="is_gotway_mcm_description">Pokud je Vaše jednokolka Gotway ACM a ukazuje špatnou rychlost, vzdálenost a další parametry, tohle by mělo pomoct</string>
 	<string name="battery_voltage_title">Napětí baterie</string>
 	<string name="battery_voltage_description">67V/84V/100V</string>
 	<string name="off_level_1_alarm">Vypnout upozornění 1. úrovně</string>

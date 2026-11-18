@@ -23,11 +23,8 @@ data class DashboardBlock(
  * all display logic lives in the mapper and the ViewModel.
  */
 data class DashboardUiState(
-    val appTheme: Int = io.github.tuxwheel.R.style.OriginalTheme,
-    val nightMode: Int = androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_UNSPECIFIED,
+    val nightMode: Int = androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM,
     val valueOnDial: String = "0",
-    val secondaryDialFraction: Float = 0f,
-    val batteryCalculation: String = "",
     val catalogue: List<DashboardBlock> = emptyList(),
     val speedWarning: Boolean = false,
     // ── Connection ─────────────────────────────────────────────────────────

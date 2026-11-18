@@ -38,7 +38,6 @@ import io.github.tuxwheel.AppConfig
 import io.github.tuxwheel.R
 import io.github.tuxwheel.TuxWheel
 import io.github.tuxwheel.ui.theme.AppTheme
-import io.github.tuxwheel.utils.ThemeEnum
 import io.github.tuxwheel.utils.ThemeIconEnum
 import io.github.tuxwheel.utils.ThemeManager
 import kotlinx.coroutines.CoroutineScope
@@ -366,7 +365,7 @@ fun group(
     Column(modifier = Modifier.padding(vertical = 8.dp)) {
         var contentVisible by remember { mutableStateOf(true) }
         Surface(
-            color = MaterialTheme.colorScheme.secondaryContainer,
+            color = MaterialTheme.colorScheme.surfaceContainer,
             shape = RoundedCornerShape(
                 topStart = 4.dp,
                 topEnd = 4.dp,
@@ -393,7 +392,7 @@ fun group(
         }
         AnimatedVisibility (contentVisible) {
             Surface(
-                color = MaterialTheme.colorScheme.secondaryContainer,
+                color = MaterialTheme.colorScheme.surfaceContainer,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(
                     topStart = 0.dp,
@@ -1181,10 +1180,9 @@ private fun sliderPreview4(appConfig: AppConfig = koinInject()) {
 @Composable
 private fun listPreview(appConfig: AppConfig = koinInject()) {
     list(
-        name = stringResource(R.string.app_theme_title),
-        desc = stringResource(R.string.app_theme_description),
-        entries = ThemeEnum.values().associate { it.value.toString() to it.name },
-        defaultKey = ThemeEnum.Original.value.toString(),
+        name = "List",
+        entries = mapOf("0" to "One", "1" to "Two"),
+        defaultKey = "0",
     )
 }
 

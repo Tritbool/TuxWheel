@@ -55,7 +55,6 @@ class MainPageAdapter(private var pages: MutableList<Int>, val activity: MainAct
     private var bmsRenderer: BmsPageRenderer? = null
     private var telemetryPreferencesJob: Job? = null
     private val telemetryItems = mutableStateOf<List<Pair<Int, String>>>(emptyList())
-    private val telemetryTheme = mutableStateOf(appConfig.appTheme)
     private val telemetryScroll = ScrollState(0)
     private val eventsScroll = ScrollState(0)
     private var eventsRenderer: EventsPageRenderer? = null
@@ -81,16 +80,8 @@ class MainPageAdapter(private var pages: MutableList<Int>, val activity: MainAct
         telemetryPreferencesJob = activity.lifecycleScope.launch {
             activity.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 appConfig.telemetryPreferences().collect { preferences ->
-                    val themeChanged = telemetryTheme.value != preferences.appTheme
-                    telemetryTheme.value = preferences.appTheme
-                    if (themeChanged) createSecondPage()
                     refreshTelemetryValues()
-                    eventsRenderer?.preferences(preferences.appTheme)
-                    tripsRenderer?.preferences(
-                        preferences.appTheme,
-                        preferences.useMph, preferences.autoUploadEc
-                    )
-                    bmsRenderer?.preferences(preferences.appTheme)
+                    tripsRenderer?.preferences(preferences.useMph, preferences.autoUploadEc)
                 }
             }
         }
@@ -174,7 +165,7 @@ class MainPageAdapter(private var pages: MutableList<Int>, val activity: MainAct
                 view.findViewById<ComposeView>(R.id.paramsComposeView).apply {
                     setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
                     setContent {
-                        ParamsListScreen(telemetryItems.value, telemetryTheme.value, telemetryScroll)
+                        ParamsListScreen(telemetryItems.value, telemetryScroll)
                     }
                 }
             }
@@ -186,9 +177,9 @@ class MainPageAdapter(private var pages: MutableList<Int>, val activity: MainAct
                     setHardwareAccelerationEnabled(true)
                     isHighlightPerTapEnabled = false
                     isHighlightPerDragEnabled = false
-                    legend.textColor = getColorEx(android.R.color.white)
+                    legend.textColor = getColorEx(R.color.chart_text)
                     setNoDataText(resources.getString(R.string.no_chart_data))
-                    setNoDataTextColor(getColorEx(android.R.color.white))
+                    setNoDataTextColor(getColorEx(R.color.chart_text))
                 }
 
                 val leftAxis: YAxis = chart1!!.axisLeft
@@ -197,21 +188,20 @@ class MainPageAdapter(private var pages: MutableList<Int>, val activity: MainAct
                 rightAxis.axisMinimum = 0f
                 leftAxis.setDrawGridLines(false)
                 rightAxis.setDrawGridLines(false)
-                leftAxis.textColor = view.getColorEx(android.R.color.white)
-                rightAxis.textColor = view.getColorEx(android.R.color.white)
+                leftAxis.textColor = view.getColorEx(R.color.chart_text)
+                rightAxis.textColor = view.getColorEx(R.color.chart_text)
 
                 val xAxis: XAxis = chart1!!.xAxis
                 xAxis.position = XAxis.XAxisPosition.BOTTOM
-                xAxis.textColor = view.getColorEx(android.R.color.white)
+                xAxis.textColor = view.getColorEx(R.color.chart_text)
                 xAxis.valueFormatter = chartAxisValueFormatter
             }
             R.layout.main_view_events -> {
                 eventsRenderer?.dispose()
                 holder.eventsRenderer = EventsPageRenderer(
-                    view, EventsLoggingTree.events, eventsScroll, appConfig.appTheme
+                    view, EventsLoggingTree.events, eventsScroll
                 )
                 eventsRenderer = holder.eventsRenderer
-                eventsRenderer?.preferences(appConfig.appTheme)
             }
             R.layout.main_view_trips -> {
                 tripsRenderer?.dispose()
@@ -262,7 +252,7 @@ class MainPageAdapter(private var pages: MutableList<Int>, val activity: MainAct
                         dataSetCurrent.axisDependency = YAxis.AxisDependency.RIGHT
                         dataSetSpeed.mode = LineDataSet.Mode.CUBIC_BEZIER
                         dataSetCurrent.mode = LineDataSet.Mode.CUBIC_BEZIER
-                        dataSetSpeed.color = chart1!!.getColorEx(android.R.color.white)
+                        dataSetSpeed.color = chart1!!.getColorEx(R.color.chart_text)
                         dataSetCurrent.color = chart1!!.getColorEx(R.color.accent)
                         dataSetSpeed.setDrawCircles(false)
                         dataSetCurrent.setDrawCircles(false)
@@ -401,15 +391,13 @@ class MainPageAdapter(private var pages: MutableList<Int>, val activity: MainAct
         super.onViewAttachedToWindow(holder)
         holder.dashboardRenderer?.start()
         holder.bmsRenderer?.apply {
-            preferences(appConfig.appTheme)
             start()
         }
         holder.eventsRenderer?.apply {
-            preferences(appConfig.appTheme)
             start(activity)
         }
         holder.tripsRenderer?.apply {
-            preferences(appConfig.appTheme, appConfig.useMph, appConfig.autoUploadEc)
+            preferences(appConfig.useMph, appConfig.autoUploadEc)
             start()
         }
     }

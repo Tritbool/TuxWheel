@@ -2,7 +2,7 @@
 
 <p><b>Fonctionnalités</b></p>
 <ul>
-<li>Tableau de bord personnalisable avec blocs et jauges, thèmes Original et AJDM.</li>
+<li>Tableau de bord personnalisable avec blocs et jauges.</li>
 <li>Vitesse, batterie, température, courant, PWM et autres mesures disponibles.</li>
 <li>Réglages et commandes selon le modèle et le micrologiciel de la roue.</li>
 <li>Alarmes et graphiques configurables, pages facultatives de trajets et d'événements.</li>

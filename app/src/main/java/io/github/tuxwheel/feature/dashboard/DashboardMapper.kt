@@ -84,13 +84,10 @@ object DashboardMapper {
 
         return DashboardUiState(
             isConnected = state.isConnected,
-            appTheme = appConfig.appTheme,
             nightMode = appConfig.dayNightThemeMode,
             speedWarning = !appConfig.pwmBasedAlarms && appConfig.alarm1Speed > 0 &&
                 speedTenths >= appConfig.alarm1Speed * 10,
             valueOnDial = appConfig.valueOnDial,
-            secondaryDialFraction = if (appConfig.valueOnDial == "1" || appConfig.valueOnDial == "3")
-                speedFraction else currentFraction,
             wheelModel = wheelModel,
             speed = speed,
             speedDisplay = speedDisplay,

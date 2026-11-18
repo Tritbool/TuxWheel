@@ -9,18 +9,70 @@ import io.github.tuxwheel.R
 import io.github.tuxwheel.ble.isActionableContract
 import io.github.tuxwheel.ble.isSupportedCommandInput
 
+/**
+ * Display order of the wheel settings screen.
+ *
+ * Sections only order and label commands; they are not a filter. Anything the protocol exposes that
+ * is not listed here lands in [OTHER], so a new library command still reaches the user instead of
+ * disappearing silently.
+ */
 internal enum class WheelCommandSection(val title: Int, val commandIds: List<String>) {
-    PEDALS(R.string.wheel_section_pedals, listOf("SET_PEDALS_MODE")),
+    PEDALS(
+        R.string.wheel_section_pedals,
+        listOf("SET_PEDALS_MODE", "SET_PEDAL_ANGLE", "SET_PEDAL_CUTOFF_ANGLE", "SET_PEDAL_PITCH_TRIM"),
+    ),
+    RIDING(
+        R.string.wheel_section_riding,
+        listOf("SET_RIDE_MODE", "SET_SPEED_LIMIT", "SET_PWM_LIMIT"),
+    ),
     LIGHTING(
         R.string.wheel_section_lighting,
-        listOf("SET_LIGHT_MODE", "LIGHT_BRIGHTNESS", "SET_LED_MODE", "LIGHT_ON", "LIGHT_OFF"),
+        listOf(
+            "SET_LIGHT_MODE", "LIGHT_BRIGHTNESS", "LIGHT_ON", "LIGHT_OFF",
+            "SET_LED_MODE", "SET_LED_STROBE", "SET_HIGH_BEAM",
+        ),
     ),
-    ALARMS(R.string.wheel_section_alarms, listOf("SET_ALARM_SPEED", "SPEAKER_VOLUME")),
+    ALARMS(R.string.wheel_section_alarms, listOf("SET_ALARM_SPEED", "SPEAKER_VOLUME", "BEEP")),
+    POWER_BATTERY(
+        R.string.wheel_section_power_battery,
+        listOf("SET_STANDBY_DELAY", "SET_CHARGE_LIMIT"),
+    ),
     ACTIONS(R.string.wheel_section_actions, listOf("CALIBRATE", "RESET_TRIP", "POWER_OFF")),
+    OTHER(R.string.wheel_section_other, emptyList()),
 }
 
-private val wheelSettingsCommandIds = WheelCommandSection.entries
-    .flatMap { it.commandIds }.toSet()
+/**
+ * Configuration commands that own a dedicated screen, so repeating them here would create two
+ * competing editors for one wheel value.
+ *
+ * `SET_SPEED_LIMIT` is deliberately *not* here even though [io.github.tuxwheel.feature.speedlimiter.SpeedLimiter]
+ * writes it too: the wheel's own max speed is a wheel setting the user expects on this screen, and
+ * hiding it left KingSong, Gotway and InMotion with no way to set it at all. The limiter collision
+ * is handled where the write happens (see `commandContractSettings`).
+ */
+private val wheelSettingsCommandsWithOwnScreen = setOf(
+    "AUTHENTICATE", "SET_PASSWORD", "CHANGE_PASSWORD", "REMOVE_PASSWORD",
+    "LOCK", "UNLOCK",
+)
+
+private val wheelSettingsSectionByCommandId: Map<String, WheelCommandSection> =
+    WheelCommandSection.entries.flatMap { section -> section.commandIds.map { it to section } }.toMap()
+
+internal fun wheelCommandSectionFor(commandId: String): WheelCommandSection =
+    wheelSettingsSectionByCommandId[commandId] ?: WheelCommandSection.OTHER
+
+internal data class WheelCommandSectionCommands(
+    val section: WheelCommandSection,
+    val commands: List<CommandControlModel>,
+)
+
+/** Groups commands in [WheelCommandSection] order, dropping empty sections. */
+internal fun wheelCommandSections(
+    commands: List<CommandControlModel>,
+): List<WheelCommandSectionCommands> = WheelCommandSection.entries.mapNotNull { section ->
+    val inSection = commands.filter { wheelCommandSectionFor(it.id) == section }
+    inSection.takeIf { it.isNotEmpty() }?.let { WheelCommandSectionCommands(section, it) }
+}
 
 internal enum class WheelCommandEditor {
     UNAVAILABLE, ACTION, CONFIRM_ACTION, SWITCH, PICK, FORM,
@@ -42,7 +94,6 @@ internal data class CommandControlModel(
             input == CommandInput.None && (id == "POWER_OFF" || id == "CALIBRATE") ->
                 WheelCommandEditor.CONFIRM_ACTION
             input == CommandInput.None -> WheelCommandEditor.ACTION
-            id == "SET_ALARM_SPEED" -> WheelCommandEditor.FORM
             input == CommandInput.Boolean && reportedValue is CommandValue.Toggle ->
                 WheelCommandEditor.SWITCH
             input == CommandInput.Boolean || input is CommandInput.Choice -> WheelCommandEditor.PICK
@@ -60,12 +111,20 @@ internal fun CommandDescriptor.toControlModel() = CommandControlModel(
     actionable = isActionableContract() && input.isSupportedCommandInput(),
 )
 
+/**
+ * Every command the protocol exposes as user configuration.
+ *
+ * The screen shows what the wheel offers rather than a hand-picked subset: only non-configuration
+ * commands (anything carrying an `operation`, such as firmware or serial queries, raw payloads and
+ * diagnostic file transfers) and commands with their own screen are left out.
+ */
 internal fun wheelSettingsCommands(
     descriptors: List<CommandDescriptor>,
     reportedValues: Map<String, List<Int>> = emptyMap(),
 ): List<CommandControlModel> = descriptors
     .asSequence()
-    .filter { it.id in wheelSettingsCommandIds }
+    .filter { it.operation == null }
+    .filterNot { it.id in wheelSettingsCommandsWithOwnScreen }
     .map { descriptor ->
         descriptor.toControlModel().copy(
             reportedValue = commandValueFromReportedValues(
@@ -99,6 +158,18 @@ internal fun commandValueFromReportedValues(
         else -> null
     } ?: return null
     return value.takeIf { input.validationError(it) == null }
+}
+
+/**
+ * The raw reported-shaped number a written value corresponds to, so it can be remembered.
+ *
+ * Only the inputs the wheel can also report back have a raw form; tuples and free text are left out
+ * because nothing could be read back to compare them against anyway.
+ */
+internal fun commandValueToReportedInt(value: CommandValue): Int? = when (value) {
+    is CommandValue.Integer -> value.value
+    is CommandValue.Toggle -> if (value.value) 1 else 0
+    else -> null
 }
 
 internal fun reportedAlarmCommandValue(
@@ -140,24 +211,78 @@ internal fun commandInputDefaults(
     } as Map<String, String>
 }
 
-internal fun commandOptionLabelResource(id: String): Int? = when (id.lowercase()) {
-    "hard" -> R.string.hard
-    "high" -> R.string.high
-    "low" -> R.string.low
-    "medium" -> R.string.medium
-    "soft" -> R.string.soft
-    "auto", "automatic" -> R.string.auto
-    "on" -> R.string.on
-    "off" -> R.string.off
-    "led_type1" -> R.string.led_type1
-    "led_type2" -> R.string.led_type2
-    "led_type3" -> R.string.led_type3
-    "led_type4" -> R.string.led_type4
-    "led_type5" -> R.string.led_type5
-    "led_type6" -> R.string.led_type6
-    "led_type7" -> R.string.led_type7
-    else -> null
+/**
+ * Option labels the catalogue publishes as bare codes for one manufacturer only.
+ *
+ * A code that means something on one wheel means nothing on another, and the library deliberately
+ * refuses to settle the meaning of a code it has not seen evidence for, so those labels live here
+ * instead of being inferred from a brand that happens to share the number. Each entry is keyed by
+ * manufacturer to keep a label established on one wheel from leaking onto the others: the app once
+ * corrected Gotway's pedal order in a table shared by every brand and silently reversed KingSong's
+ * with it.
+ */
+private val brandOptionLabels: Map<Triple<String, String, String>, Int> = mapOf(
+    // KingSong sends the hardness straight through on 0x87 and echoes it back in the 0xA9 frame,
+    // with 0 = soft and 2 = hard; Gotway decodes to the opposite order, which is why this cannot
+    // be one shared table.
+    Triple("kingsong", "SET_PEDALS_MODE", "mode_0") to R.string.soft,
+    Triple("kingsong", "SET_PEDALS_MODE", "mode_1") to R.string.medium,
+    Triple("kingsong", "SET_PEDALS_MODE", "mode_2") to R.string.hard,
+)
+
+internal fun commandOptionLabelResource(
+    id: String,
+    manufacturer: String? = null,
+    commandId: String? = null,
+): Int? {
+    if (manufacturer != null && commandId != null) {
+        val key = Triple(manufacturer.lowercase(), commandId.uppercase(), id.lowercase())
+        brandOptionLabels[key]?.let { return it }
+    }
+    return when (id.lowercase()) {
+        "hard" -> R.string.hard
+        "high" -> R.string.high
+        "low" -> R.string.low
+        "medium" -> R.string.medium
+        "soft" -> R.string.soft
+        "auto", "automatic" -> R.string.auto
+        "free" -> R.string.free
+        "on" -> R.string.on
+        "off" -> R.string.off
+        "strobe" -> R.string.strobe
+        "led_type1" -> R.string.led_type1
+        "led_type2" -> R.string.led_type2
+        "led_type3" -> R.string.led_type3
+        "led_type4" -> R.string.led_type4
+        "led_type5" -> R.string.led_type5
+        "led_type6" -> R.string.led_type6
+        "led_type7" -> R.string.led_type7
+        else -> null
+    }
 }
+
+/**
+ * Turns a catalogue option id into readable text when the app has no label for it.
+ *
+ * Option ids are machine identifiers, and some protocols publish placeholders instead of words:
+ * KingSong exposes its pedal mode as `mode_0`, `mode_1`, `mode_2` because the library refuses to
+ * guess what those codes mean. Printing the id verbatim reads as a defect, so ids are spaced and
+ * capitalised, and short initialisms are kept upper case so `pwm_tiltback_only` reads as
+ * `PWM tiltback only` rather than `Pwm tiltback only`.
+ */
+internal fun humanizeCommandOptionId(id: String): String {
+    val words = id.split('_', '-').filter { it.isNotBlank() }
+    if (words.isEmpty()) return id
+    return words.mapIndexed { index, word ->
+        when {
+            word.lowercase() in upperCasedWords -> word.uppercase()
+            index == 0 -> word.lowercase().replaceFirstChar { it.titlecase() }
+            else -> word.lowercase()
+        }
+    }.joinToString(" ")
+}
+
+private val upperCasedWords = setOf("pwm", "bms", "led", "rgb", "usb", "ip", "id")
 
 internal fun commandValueFromInputs(
     input: CommandInput,
@@ -206,3 +331,38 @@ internal fun commandValueFromInputs(
 
 private fun valuesForField(values: Map<String, String>, id: String): Map<String, String> =
     values.filterKeys { it == id }.mapKeys { "value" }
+
+/**
+ * A value the app has written to the wheel and not yet seen come back.
+ *
+ * @property reportedBefore the value the wheel reported when the write went out. A report that
+ * differs from both this and the written value is the wheel overruling the request; a report that
+ * has not moved at all only means the wheel has not re-reported yet, which proves nothing.
+ */
+internal data class CommandPending(
+    val value: CommandValue,
+    val reportedBefore: CommandValue? = null,
+)
+
+internal enum class CommandWriteStatus { NONE, APPLIED, REJECTED }
+
+/**
+ * Decides what the settings screen does with the last value it wrote.
+ *
+ * The library only confirms that a payload was queued, and most wheels never echo a setting back:
+ * Kingsong has no read command for its pedal mode at all, and Gotway and ExtremeBull answer a write
+ * with a beep rather than a report. Waiting on an acknowledgement would therefore hang for the
+ * whole timeout on every write and then claim a change failed when it actually landed, so nothing
+ * is ever reported as merely pending. The written value stands as the shown one until the wheel
+ * reports either the value asked for, which retires the pending write, or a different value that
+ * moved after the write, which means the wheel overruled it.
+ */
+internal fun commandWriteStatus(
+    pending: CommandPending?,
+    reportedValue: CommandValue?,
+): CommandWriteStatus = when {
+    pending == null -> CommandWriteStatus.NONE
+    reportedValue == pending.value -> CommandWriteStatus.APPLIED
+    reportedValue != null && reportedValue != pending.reportedBefore -> CommandWriteStatus.REJECTED
+    else -> CommandWriteStatus.NONE
+}

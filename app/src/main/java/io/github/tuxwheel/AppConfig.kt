@@ -3,11 +3,11 @@ package io.github.tuxwheel
 import android.content.Context
 import android.content.SharedPreferences
 import android.net.Uri
+import androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
 import androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_UNSPECIFIED
 import androidx.preference.PreferenceManager
 import io.github.tuxwheel.ble.BleSessionViewModel
 import io.github.tuxwheel.utils.NotificationUtil
-import io.github.tuxwheel.utils.ThemeEnum
 import io.github.tuxwheel.utils.VolumeKeyController
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -47,19 +47,6 @@ class AppConfig(var context: Context) : KoinComponent {
         get() = getValue(R.string.use_eng, false)
         set(value) = setValue(R.string.use_eng, value)
 
-    var appThemeInt: Int
-        get() = getValue(R.string.app_theme, ThemeEnum.Original.value.toString()).toInt()
-        set(value) = setValue(R.string.app_theme, value.toString())
-
-    val appTheme: Int
-        get() {
-            val stringVal = getValue(R.string.app_theme, ThemeEnum.Original.value.toString())
-            return when (ThemeEnum.fromInt(stringVal.toInt())) {
-                ThemeEnum.AJDM -> R.style.AJDMTheme
-                else -> R.style.OriginalTheme
-            }
-        }
-
     /** A listener is owned by the collector and released at STOP/disposal. */
     fun dashboardPreferences(): Flow<Unit> = callbackFlow {
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ -> trySend(Unit) }
@@ -72,7 +59,6 @@ class AppConfig(var context: Context) : KoinComponent {
         val useMph: Boolean,
         val usePsi: Boolean,
         val useFahrenheit: Boolean,
-        val appTheme: Int,
         val nightMode: Int,
         val viewBlocks: List<String>,
         val pageGraph: Boolean,
@@ -83,12 +69,12 @@ class AppConfig(var context: Context) : KoinComponent {
 
     fun telemetryPreferences(): Flow<TelemetryPreferences> = callbackFlow {
         fun snapshot() = TelemetryPreferences(
-            useMph, usePsi, useFahrenheit, appTheme, dayNightThemeMode,
+            useMph, usePsi, useFahrenheit, dayNightThemeMode,
             viewBlocks.toList(), pageGraph, pageEvents, pageTrips, autoUploadEc
         )
         val resources = setOf(
             R.string.use_mph, R.string.use_psi,
-            R.string.use_fahrenheit, R.string.app_theme, R.string.day_night_theme,
+            R.string.use_fahrenheit, R.string.day_night_theme,
             R.string.view_blocks_string, R.string.show_page_graph,
             R.string.show_page_events, R.string.show_page_trips, R.string.auto_upload_ec
         )
@@ -100,21 +86,21 @@ class AppConfig(var context: Context) : KoinComponent {
         awaitClose { sharedPreferences.unregisterOnSharedPreferenceChangeListener(listener) }
     }.conflate().distinctUntilChanged()
 
+    /**
+     * Night mode chosen in the application settings, forwarded verbatim to
+     * [androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode].
+     *
+     * Older builds stored `MODE_NIGHT_UNSPECIFIED` (-100) for "follow the phone", but
+     * `setDefaultNightMode()` only accepts `MODE_NIGHT_FOLLOW_SYSTEM` (-1) and silently drops
+     * anything else, which made that choice a no-op. Any legacy value is mapped back to
+     * [MODE_NIGHT_FOLLOW_SYSTEM] so the stored preference keeps working after an upgrade.
+     */
     var dayNightThemeMode: Int
-        get() = getValue(R.string.day_night_theme, MODE_NIGHT_UNSPECIFIED.toString()).toInt()
+        get() = when (val stored = getValue(R.string.day_night_theme, MODE_NIGHT_FOLLOW_SYSTEM.toString()).toIntOrNull()) {
+            null, MODE_NIGHT_UNSPECIFIED -> MODE_NIGHT_FOLLOW_SYSTEM
+            else -> stored
+        }
         set(value) = setValue(R.string.day_night_theme, value.toString())
-
-    var useBetterPercents: Boolean
-        get() = getValue(R.string.use_better_percents, false)
-        set(value) = setValue(R.string.use_better_percents, value)
-
-    var customPercents: Boolean
-        get() = getValue(R.string.custom_percents, false)
-        set(value) = setValue(R.string.custom_percents, value)
-
-    var cellVoltageTiltback: Int
-        get() = getSpecific(R.string.cell_voltage_tiltback, 330)
-        set(value) = setSpecific(R.string.cell_voltage_tiltback, value)
 
     var useMph: Boolean
         get() = getValue(R.string.use_mph, false)
@@ -376,26 +362,33 @@ class AppConfig(var context: Context) : KoinComponent {
         get() = getValue("connect_beep", true)
         set(value) = setValue("connect_beep", value)
 
-    // Gotway/Begode telemetry correction settings. These correct known quirks of the
-    // reverse-engineered protocol at the app layer since the wheel itself isn't asked
-    // to change anything.
-    var gotwayMcm: Boolean
-        get() = getValue("wheel_gotway_mcm", false)
-        set(value) = setValue("wheel_gotway_mcm", value)
+    /**
+     * Last value the app wrote for each command of one wheel, keyed by MAC address and command id.
+     *
+     * Most wheels never report a setting back: KingSong has no read command for its pedal cutoff
+     * angle or pitch trim, and Gotway and ExtremeBull answer a write with a beep instead of a
+     * report. Without remembering the request, the settings screen would fall back to "not
+     * reported" right after the user changed something they could see the wheel accept.
+     */
+    fun wheelCommandValues(address: String): Map<String, Int> {
+        if (address.isBlank()) return emptyMap()
+        val prefix = wheelCommandValuePrefix(address)
+        return sharedPreferences.all
+            .filterKeys { it.startsWith(prefix) }
+            .mapNotNull { (key, value) ->
+                val commandValue = value as? Int ?: return@mapNotNull null
+                key.removePrefix(prefix) to commandValue
+            }
+            .toMap()
+    }
 
-    // ListPreference only works with string parameters. "-1" = straight (no
-    // correction), "0" = absolute value, "1" = reverse sign.
-    var gotwayNegative: String
-        get() = getValue("wheel_gotway_negative", "0")
-        set(value) = setValue("wheel_gotway_negative", value)
+    fun setWheelCommandValue(address: String, commandId: String, value: Int) {
+        if (address.isBlank()) return
+        setValue(wheelCommandValuePrefix(address) + commandId, value)
+    }
 
-    var batteryCapacity: Int
-        get() = getValue("battery_capacity_wh", 0)
-        set(value) = setValue("battery_capacity_wh", value)
-
-    var chargingPower: Int
-        get() = getValue("charging_power_deci_amp", 0)
-        set(value) = setValue("charging_power_deci_amp", value)
+    private fun wheelCommandValuePrefix(address: String) =
+        "wheel_command_value$separator$address$separator"
 
     var profileName: String
         get() = getValue("profile_name", "")

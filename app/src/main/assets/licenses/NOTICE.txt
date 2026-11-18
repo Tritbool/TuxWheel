@@ -6,16 +6,9 @@ Verified upstream revision: f44e39e5388e500a5d2f315d1dcf32f167607bf8
 License: https://github.com/Wheellog/Wheellog.Android/blob/f44e39e5388e500a5d2f315d1dcf32f167607bf8/LICENSE
 GPL text is included in GPL-3.0.txt.
 
-The inherited prime_regular.otf ("Wheellog") and ajdm.otf are unchanged:
-their Git blob IDs match WheelLog's app/src/main/res/font/ files.
+The inherited prime_regular.otf ("Wheellog") is unchanged: its Git blob ID matches
+WheelLog's app/src/main/res/font/ files.
 prime_regular.otf: a820a67fd96dbd060c299ef03b20173ddea4687a
-ajdm.otf: bdcfb27a4fd5374021f41a0af62ea7a9e8a5e3b5
-
-ajdm.otf is Adobe Source Sans Pro Regular 2.020 by Paul D. Hunt.
-It is not relicensed under GPL: it remains under SIL OFL 1.1.
-The copyright notice and full license are in SourceSansPro-OFL.txt.
-Its bytes also match Adobe's original OTF/SourceSansPro-Regular.otf:
-https://github.com/adobe-fonts/source-sans/tree/2.020R-ro/1.075R-it
 
 EUC_BLE_LIBRARY 0.1.0 is distributed under GNU GPL version 3:
 https://github.com/Tritbool/euc_ble_library/tree/0.1.0

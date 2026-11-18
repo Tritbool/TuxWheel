@@ -19,13 +19,11 @@ import androidx.compose.ui.text.style.TextAlign
 import io.github.tuxwheel.R
 
 @Composable
-fun EventsScreen(text: String, appTheme: Int, scrollState: ScrollState) {
+fun EventsScreen(text: String, scrollState: ScrollState) {
     val context = LocalContext.current
     val density = LocalDensity.current
-    val appearance = remember(context, appTheme) { TextView(context) }
-    val font = remember(appTheme) {
-        FontFamily(Font(if (appTheme == R.style.AJDMTheme) R.font.ajdm else R.font.prime))
-    }
+    val appearance = remember(context) { TextView(context) }
+    val font = FontFamily(Font(R.font.prime))
     Text(
         text = text,
         style = TextStyle(

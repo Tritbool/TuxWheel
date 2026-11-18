@@ -129,8 +129,6 @@
 	<string name="on_off_strobe">OOn/Off/Parpadeo</string>
 	<string name="soft_medium_hard">Suave/Normal/Sport</string>
     <string name="alarm_mode_title">Modo de alarma</string>
-    <string name="is_gotway_mcm_title">Mi rueda es Gotway MCM</string>
-	<string name="is_gotway_mcm_description">Si su rueda es un MCM Gotway y la aplicación muestra velocidades, distancias  incorrectas, esto podría solucionar el problema.</string>
 	<string name="battery_voltage_title">Voltaje GOTWAY</string>
 	<string name="battery_voltage_description">67V/84V/100V</string>
 	<string name="off_level_1_alarm">Desactivar primera alarma 1</string>

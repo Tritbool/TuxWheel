@@ -993,17 +993,6 @@
 
     <issue
         id="MissingTranslation"
-        message="&quot;notification_text_ajdm_theme&quot; is not translated in &quot;de&quot; (German), &quot;ko&quot; (Korean), &quot;pt&quot; (Portuguese), &quot;bg&quot; (Bulgarian), &quot;el&quot; (Greek), &quot;it&quot; (Italian), &quot;fr&quot; (French), &quot;es&quot; (Spanish), &quot;zh&quot; (Chinese), &quot;cs&quot; (Czech), &quot;pl&quot; (Polish)"
-        errorLine1="    &lt;string name=&quot;notification_text_ajdm_theme&quot;>%1$.1f km/h | %2$d%% | %3$d°C | %4$.1f km&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings.xml"
-            line="93"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="MissingTranslation"
         message="&quot;icon_beep&quot; is not translated in &quot;de&quot; (German), &quot;pt&quot; (Portuguese), &quot;bg&quot; (Bulgarian), &quot;el&quot; (Greek), &quot;it&quot; (Italian), &quot;fr&quot; (French), &quot;es&quot; (Spanish), &quot;zh&quot; (Chinese), &quot;cs&quot; (Czech), &quot;pl&quot; (Polish)"
         errorLine1="    &lt;string name=&quot;icon_beep&quot;>Horn Icon&lt;/string>"
         errorLine2="            ~~~~~~~~~~~~~~~~">

@@ -56,8 +56,8 @@ class DashboardParityTest {
         assertThat(selected.map { it.slot }).containsExactly(0, 1, 2).inOrder()
     }
 
-    @Test fun `portrait landscape theme density and square layouts use original geometry`() {
-        val portrait = DashboardGeometry.calculate(400f, 800f, 1f, false, 8)
+    @Test fun `portrait landscape density and square layouts use original geometry`() {
+        val portrait = DashboardGeometry.calculate(400f, 800f, 1f, 8)
         assertThat(portrait.outer.cx).isEqualTo(200f)
         assertThat(portrait.outer.cy).isEqualTo(200f)
         assertThat(portrait.outerStroke).isEqualTo(47.5f)
@@ -68,15 +68,15 @@ class DashboardParityTest {
         portrait.blocks.forEachIndexed { index, box ->
             assertThat(portrait.blockAt(box.cx, box.cy)).isEqualTo(index)
         }
-        val landscape = DashboardGeometry.calculate(800f, 400f, 1f, true, 8)
+        val landscape = DashboardGeometry.calculate(800f, 400f, 1f, 8)
         assertThat(landscape.outer.cx).isEqualTo(400f)
         assertThat(landscape.outer.cy).isEqualTo(200f)
-        assertThat(landscape.inner.width).isLessThan(portrait.inner.width)
+        assertThat(landscape.inner.width).isEqualTo(portrait.inner.width)
         assertThat(landscape.blocks.first().cx).isLessThan(landscape.outer.left)
         assertThat(landscape.blocks[1].cx).isGreaterThan(landscape.outer.right)
-        val square = DashboardGeometry.calculate(400f, 400f, 1f, false, 8)
+        val square = DashboardGeometry.calculate(400f, 400f, 1f, 8)
         assertThat(square.blocks).hasSize(8)
-        val moderateLandscape = DashboardGeometry.calculate(500f, 400f, 1f, true, 8)
+        val moderateLandscape = DashboardGeometry.calculate(500f, 400f, 1f, 8)
         assertThat(moderateLandscape.blocks).hasSize(8)
         assertThat(moderateLandscape.blocks[0].cx).isLessThan(moderateLandscape.outer.left)
         assertThat(moderateLandscape.blocks[1].cx).isGreaterThan(moderateLandscape.outer.right)
@@ -90,8 +90,8 @@ class DashboardParityTest {
                 assertThat(geometry.blockAt(box.cx, box.cy)).isEqualTo(index)
             }
         }
-        assertThat(DashboardGeometry.calculate(410f, 400f, 1f, false, 8).blocks).isEmpty()
-        assertThat(DashboardGeometry.calculate(100f, 110f, 4f, true, 27).blocks).isEmpty()
-        assertThat(DashboardGeometry.calculate(400f, 800f, 1f, false, 1).blocks).hasSize(1)
+        assertThat(DashboardGeometry.calculate(410f, 400f, 1f, 8).blocks).isEmpty()
+        assertThat(DashboardGeometry.calculate(100f, 110f, 4f, 27).blocks).isEmpty()
+        assertThat(DashboardGeometry.calculate(400f, 800f, 1f, 1).blocks).hasSize(1)
     }
 }

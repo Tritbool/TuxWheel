@@ -715,8 +715,7 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
     }
 
     @MainThread
-    private fun updateTelemetryData(rawData: EUCData) {
-        val data = applyGotwayCorrections(rawData)
+    private fun updateTelemetryData(data: EUCData) {
         val previousData = _sessionState.value.lastData
         val identityChanged = previousData == null ||
             previousData.manufacturer != data.manufacturer || previousData.model != data.model
@@ -843,6 +842,8 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
 
         val mergedData = carryForwardSettingsFields(data)
 
+        val previousFirmwareVersion = _sessionState.value.firmwareVersion
+
         val nextState = _sessionState.value.copy(
             lastData = mergedData,
             lastDataTimestamp = System.currentTimeMillis(),
@@ -859,55 +860,16 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
         _bmsDisplay.value = captureBmsDisplay(nextState)
         _sessionState.value = nextState
 
+        // Some wheels only advertise which firmware they run after the connection is already up,
+        // and that banner decides which options the command contract offers. Re-read the contract
+        // whenever the identification changes so late-arriving variants are picked up.
+        if (nextState.firmwareVersion != previousFirmwareVersion) {
+            refreshCommandDescriptors(forceContextRefresh = true)
+        }
+
         Timber.d(
             "Telemetry updated: manufacturer=%s, model =%s, speed=%.2f, voltage=%.2f, current=%.2f, pwm=%.2f",
             data.manufacturer, data.model, data.speed, data.voltage, data.current, data.pwm
-        )
-    }
-
-    /**
-     * Gotway/Begode's reverse-engineered protocol has two long-standing quirks corrected on
-     * the app side (the wheel itself is never asked to change anything):
-     *  - Some MCM boards report speed/distance ~12.5% too high, corrected via [AppConfig.gotwayMcm].
-     *  - Depending on firmware/mounting, reported speed/phase current/PWM can be negative while
-     *    riding forward; [AppConfig.gotwayNegative] lets the user force them positive ("absolute"),
-     *    flip their sign ("straight"), or leave them untouched ("reverse").
-     */
-    private fun applyGotwayCorrections(data: EUCData): EUCData {
-        if (wheel_type_from_string(data.manufacturer) != Constants.WHEEL_TYPE.GOTWAY) return data
-
-        var speed = data.speed
-        var phaseCurrent = data.phaseCurrent
-        var pwm = data.pwm
-        var distance = data.distance
-        var wheelDistance = data.wheelDistance
-        var totalDistance = data.totalDistance
-
-        val gotwayNegative = appConfig.gotwayNegative.toIntOrNull() ?: 0
-        if (gotwayNegative == 0) {
-            speed = abs(speed)
-            phaseCurrent = phaseCurrent?.let { abs(it) }
-            pwm = pwm?.let { abs(it) }
-        } else {
-            speed *= gotwayNegative
-            phaseCurrent = phaseCurrent?.times(gotwayNegative)
-            pwm = pwm?.times(gotwayNegative)
-        }
-
-        if (appConfig.gotwayMcm) {
-            speed *= GOTWAY_MCM_RATIO
-            distance *= GOTWAY_MCM_RATIO
-            wheelDistance = wheelDistance?.times(GOTWAY_MCM_RATIO)
-            totalDistance = totalDistance?.times(GOTWAY_MCM_RATIO)
-        }
-
-        return data.copy(
-            speed = speed,
-            phaseCurrent = phaseCurrent,
-            pwm = pwm,
-            distance = distance,
-            wheelDistance = wheelDistance,
-            totalDistance = totalDistance,
         )
     }
 
@@ -1674,9 +1636,6 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
             else -> 0.0
         }
 
-    // Feature flags
-    val isVoltageTiltbackUnsupported: Boolean get() = false
-
     // Legacy adapter placeholder (flashlight etc.)
     val adapter: Any? get() = null
 
@@ -1733,8 +1692,5 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
 
     companion object {
         private const val TAG = "BleSessionViewModel"
-
-        // Correction factor for Gotway/Begode MCM boards that over-report speed/distance.
-        private const val GOTWAY_MCM_RATIO = 0.875
     }
 }

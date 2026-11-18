@@ -22,7 +22,6 @@ import io.github.tuxwheel.ble.BleSessionState
 import io.github.tuxwheel.ble.BleSessionViewModel
 import io.github.tuxwheel.data.TripDao
 import io.github.tuxwheel.utils.SomeUtil
-import io.github.tuxwheel.utils.ThemeEnum
 import com.google.common.truth.Truth.assertThat
 import io.github.tritbool.euc.ble.protocols.CommandType
 import io.github.tritbool.euc.ble.protocols.CommandValue
@@ -136,7 +135,6 @@ class DashboardRendererTest {
             config.useMph = true
             config.useFahrenheit = true
             config.maxSpeed = 75
-            config.appThemeInt = ThemeEnum.AJDM.value
             config.viewBlocks = arrayOf(context.getString(R.string.temperature), context.getString(R.string.temperature))
             idle()
             val vm = androidx.lifecycle.ViewModelProvider(activity)[DashboardViewModel::class.java]
@@ -145,7 +143,6 @@ class DashboardRendererTest {
             assertThat(state.useMph).isTrue()
             assertThat(state.temperatureDisplay).isEqualTo("32℉")
             assertThat(state.maxSpeed).isEqualTo(75)
-            assertThat(state.appTheme).isEqualTo(R.style.AJDMTheme)
             assertThat(state.infoBlocks.map { it.slot }).containsExactly(0, 1).inOrder()
             renderer.stop()
             idle()
@@ -178,7 +175,7 @@ class DashboardRendererTest {
         every { session.isCommandValueSupported(CommandType.LIGHT_OFF.name, CommandValue.None) } returns true
         val actions = DashboardActions(context, session, config)
         val state = DashboardUiState.EMPTY
-        val geometry = DashboardGeometry.calculate(400f, 800f, 1f, false, 0)
+        val geometry = DashboardGeometry.calculate(400f, 800f, 1f, 0)
         val gestures = DashboardGestures(context, { state }, { geometry }, actions::singleTap,
             actions::doubleTap, actions::replaceBlock)
         fun tap(time: Long, x: Float, y: Float) {
@@ -219,19 +216,17 @@ class DashboardRendererTest {
 
     @Test
     @GraphicsMode(GraphicsMode.Mode.NATIVE)
-    fun `both themes draw retained disconnected blocks with native pixel sizing`() {
+    fun `theme draws retained disconnected blocks with native pixel sizing`() {
         val data = DashboardViewModel(context, session(), AppConfig(context)).uiState.value
         assertThat(data.isConnected).isFalse()
         assertThat(data.infoBlocks).hasSize(8)
         val renderer = DashboardCanvasRenderer(context)
-        listOf(R.style.OriginalTheme, R.style.AJDMTheme).forEach { theme ->
-            listOf(400 to 800, 800 to 400, 400 to 400, 500 to 400).forEach { (w, h) ->
-                val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-                renderer.draw(Canvas(bitmap), w.toFloat(), h.toFloat(), data.copy(appTheme = theme))
-                assertThat(bitmap.getPixel(w / 2, 10)).isNotEqualTo(0)
-                assertThat(renderer.geometry(w.toFloat(), h.toFloat(), data).blocks).hasSize(8)
-                bitmap.recycle()
-            }
+        listOf(400 to 800, 800 to 400, 400 to 400, 500 to 400).forEach { (w, h) ->
+            val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+            renderer.draw(Canvas(bitmap), w.toFloat(), h.toFloat(), data)
+            assertThat(bitmap.getPixel(w / 2, 10)).isNotEqualTo(0)
+            assertThat(renderer.geometry(w.toFloat(), h.toFloat(), data).blocks).hasSize(8)
+            bitmap.recycle()
         }
     }
 
@@ -247,7 +242,7 @@ class DashboardRendererTest {
         val catalogue = listOf(DashboardBlock(battery, "80 %"), DashboardBlock(voltage, "67.20 V"))
         val state = DashboardUiState(catalogue = catalogue,
             infoBlocks = DashboardCatalogue.select(config.viewBlocks.toList(), catalogue))
-        val geometry = DashboardGeometry.calculate(400f, 800f, 1f, false, 2)
+        val geometry = DashboardGeometry.calculate(400f, 800f, 1f, 2)
         val session = session()
         val actions = DashboardActions(activity, session, config)
         val gestures = DashboardGestures(activity, { state }, { geometry }, actions::singleTap,

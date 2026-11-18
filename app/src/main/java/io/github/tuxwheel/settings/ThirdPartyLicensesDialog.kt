@@ -61,7 +61,6 @@ fun ThirdPartyLicensesDialog(onDismissRequest: () -> Unit) {
                 "third_party_licenses.md",
                 "NOTICE.txt",
                 "GPL-3.0.txt",
-                "SourceSansPro-OFL.txt",
             ).associateWith { name ->
                 context.assets.open("licenses/$name").bufferedReader().use { it.readText() }
             }

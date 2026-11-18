@@ -89,7 +89,6 @@ class DashboardViewModelTest {
             every { viewBlocks } returns arrayOf("Battery", "Temp")
             every { dashboardPreferences() } returns flowOf(Unit)
             every { valueOnDial } returns "0"
-            every { appTheme } returns R.style.OriginalTheme
         }
         var swapped = false
         every { appConfig.swapSpeedPwm } answers { swapped }

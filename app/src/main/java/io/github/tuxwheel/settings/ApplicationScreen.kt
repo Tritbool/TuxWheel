@@ -14,7 +14,6 @@ import io.github.tuxwheel.R
 import io.github.tuxwheel.feature.dashboard.DashboardCatalogue
 import io.github.tuxwheel.feature.dashboard.DashboardBlock
 import io.github.tuxwheel.utils.NotificationUtil
-import io.github.tuxwheel.utils.ThemeEnum
 import io.github.tuxwheel.utils.ThemeIconEnum
 import org.koin.compose.koinInject
 
@@ -52,26 +51,20 @@ fun applicationScreen(
             }
 
             list(
-                name = stringResource(R.string.app_theme_title),
-                desc = stringResource(R.string.app_theme_description),
-                entries = ThemeEnum.values().associate { it.value.toString() to it.name },
-                defaultKey = appConfig.appThemeInt.toString()
-            ) {
-                restartRequiredAlert = true
-                appConfig.appThemeInt = it.first.toInt()
-            }
-
-            list(
                 name = stringResource(R.string.day_night_theme_title),
                 entries = mapOf(
-                    AppCompatDelegate.MODE_NIGHT_UNSPECIFIED.toString() to stringResource(R.string.day_night_theme_as_system),
+                    AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM.toString() to stringResource(R.string.day_night_theme_as_system),
                     AppCompatDelegate.MODE_NIGHT_NO.toString() to stringResource(R.string.day_night_theme_day),
                     AppCompatDelegate.MODE_NIGHT_YES.toString() to stringResource(R.string.day_night_theme_night),
                 ),
                 defaultKey = appConfig.dayNightThemeMode.toString(),
                 showDiv = false,
             ) {
-                appConfig.dayNightThemeMode = it.first.toInt()
+                val mode = it.first.toInt()
+                appConfig.dayNightThemeMode = mode
+                // Apply live: AppCompat recreates activities with the new night
+                // mode, so Compose screens and the dashboard update immediately.
+                AppCompatDelegate.setDefaultNightMode(mode)
             }
         }
 
@@ -101,39 +94,6 @@ fun applicationScreen(
                 appConfig.useFahrenheit = it
             }
 
-            switchPref(
-                name = stringResource(R.string.use_better_percents_title),
-                desc = stringResource(R.string.use_better_percents_description),
-                default = appConfig.useBetterPercents
-            ) {
-                appConfig.useBetterPercents = it
-            }
-
-            var customPercents by remember { mutableStateOf(appConfig.customPercents) }
-            switchPref(
-                name = stringResource(R.string.custom_percents_title),
-                desc = stringResource(R.string.custom_percents_description),
-                default = appConfig.customPercents,
-                showDiv = customPercents,
-            ) {
-                appConfig.customPercents = it
-                customPercents = it
-            }
-            AnimatedVisibility(visible = customPercents) {
-                sliderPref(
-                    name = stringResource(R.string.cell_voltage_tiltback_title),
-                    desc = stringResource(R.string.cell_voltage_tiltback_description),
-                    position = appConfig.cellVoltageTiltback / 100f,
-                    min = 2.5f,
-                    max = 4f,
-                    unit = R.string.volt,
-                    format = "%.2f",
-                    showDiv = false,
-                ) {
-                    appConfig.cellVoltageTiltback = (it * 100).toInt()
-                    // currentRecomposeScope.invalidate()
-                }
-            }
         }
 
         group(name = stringResource(R.string.main_view_category)) {

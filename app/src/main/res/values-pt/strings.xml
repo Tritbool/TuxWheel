@@ -129,8 +129,6 @@
 	<string name="on_off_strobe">On/Off/Estrobo</string>
 	<string name="soft_medium_hard">Leve/Médio/Duro</string>
     <string name="alarm_mode_title">Modo do Alarme</string>
-    <string name="is_gotway_mcm_title">Meu monociclo é um Gotway MCM</string>
-	<string name="is_gotway_mcm_description">Se seu monociclo é um Gotway MCM, e ele mostra velocidade, distância ou outros parâmetros errados, isto deve resolver</string>
 	<string name="battery_voltage_title">Voltagem da Bateria</string>
 	<string name="battery_voltage_description">67V/84V/100V</string>
 	<string name="off_level_1_alarm">Desligar alarme nível 1</string>

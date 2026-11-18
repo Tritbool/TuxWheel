@@ -6,7 +6,6 @@ import android.os.Looper
 import androidx.preference.PreferenceManager
 import androidx.test.core.app.ApplicationProvider
 import io.github.tuxwheel.AppConfig
-import io.github.tuxwheel.utils.ThemeEnum
 import com.google.common.truth.Truth.assertThat
 import io.mockk.every
 import io.mockk.mockkStatic
@@ -71,7 +70,6 @@ class TelemetryPreferencesTest {
             config.useMph = true
             config.usePsi = true
             config.useFahrenheit = true
-            config.appThemeInt = ThemeEnum.AJDM.value
             config.viewBlocks = arrayOf("Voltage", "Distance")
             config.pageGraph = false
             config.pageEvents = true
@@ -83,7 +81,6 @@ class TelemetryPreferencesTest {
             assertThat(latest.useMph).isTrue()
             assertThat(latest.usePsi).isTrue()
             assertThat(latest.useFahrenheit).isTrue()
-            assertThat(latest.appTheme).isEqualTo(config.appTheme)
             assertThat(latest.viewBlocks).containsExactly("Voltage", "Distance").inOrder()
             assertThat(latest.pageGraph).isFalse()
             assertThat(latest.pageEvents).isTrue()

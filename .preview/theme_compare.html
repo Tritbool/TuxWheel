@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>WheelLog theme comparison</title>
+<style>
+  :root { font-family: 'Inter', system-ui, sans-serif; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0b0d10; color: #e6e6e6; padding: 28px; }
+  h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .sub { font-size: 12px; color: #9aa0a6; margin-bottom: 22px; }
+  .grid { display: flex; gap: 22px; flex-wrap: wrap; align-items: flex-start; }
+  .col { width: 320px; }
+  .label { font-size: 13px; font-weight: 600; margin-bottom: 8px; display:flex; justify-content:space-between; }
+  .label small { color:#8b9197; font-weight:500; }
+  .phone { width: 320px; height: 600px; border-radius: 26px; overflow: hidden; border: 1px solid #2a2f36; display:flex; flex-direction:column; }
+  .appbar { padding: 14px 16px; display:flex; align-items:center; justify-content:space-between; }
+  .appbar .t { font-size: 16px; font-weight: 700; }
+  .appbar .ic { width: 18px; height: 18px; border-radius: 50%; opacity:.85; }
+  .body { flex:1; padding: 14px; display:flex; flex-direction:column; gap:12px; }
+  .hero { border-radius: 16px; padding: 16px; text-align:center; }
+  .hero .spd { font-size: 46px; font-weight: 800; line-height: 1; }
+  .hero .unit { font-size: 12px; opacity:.75; margin-top: 2px; }
+  .bar { height: 8px; border-radius: 6px; margin-top: 14px; overflow:hidden; }
+  .bar > i { display:block; height:100%; border-radius:6px; }
+  .row { display:flex; gap:10px; }
+  .card { border-radius: 14px; padding: 12px; flex:1; }
+  .card .k { font-size: 10px; text-transform: uppercase; letter-spacing:.06em; opacity:.7; }
+  .card .v { font-size: 20px; font-weight: 700; margin-top: 3px; }
+  .chips { display:flex; gap:8px; flex-wrap:wrap; }
+  .chip { font-size: 11px; font-weight:600; padding: 6px 11px; border-radius: 999px; }
+  .btnrow { display:flex; gap:10px; margin-top:auto; }
+  .btn { flex:1; text-align:center; font-size: 13px; font-weight: 700; padding: 12px; border-radius: 12px; }
+  .btn.outline { background: transparent !important; border: 1.5px solid currentColor; }
+  .nav { display:flex; justify-content: space-around; padding: 10px 0 14px; }
+  .nav .n { display:flex; flex-direction:column; align-items:center; gap:4px; font-size: 9px; font-weight:600; }
+  .nav .dot { width: 20px; height: 20px; border-radius: 6px; }
+  .swatch { display:flex; gap:5px; padding:0 14px 14px; }
+  .sw { width: 26px; height: 18px; border-radius: 4px; border:1px solid #ffffff22; }
+</style>
+</head>
+<body>
+  <h1>WheelLog - proposition de theme (cale sur l'icone)</h1>
+  <div class="sub">Actuel - Option A dark - Option C dark - Light repare (touche EUC SOH, doux)</div>
+  <div class="grid" id="grid"></div>
+<script>
+const themes = {
+  current: { name:"ACTUEL (legacy)", note:"aucun orange",
+    bg:"#272E3F", surface:"#272E3F", onSurf:"#FFFFFF", onSurfVar:"#C3C6CF",
+    primary:"#A2C9FF", onPrimary:"#00315C", primaryC:"#284a73", onPrimaryC:"#D3E4FF",
+    secondary:"#bababa", onSecondary:"#152778", secondaryC:"#252525", onSecondaryC:"#DEE1FF",
+    tertiary:"#A7C8FF", outline:"#8D9199", navSel:"#A2C9FF",
+    swatch:["#272E3F","#A2C9FF","#284a73","#bababa","#D3E4FF"] },
+  optA: { name:"OPTION A - dark", note:"petrole primary + orange accent",
+    bg:"#0E1620", surface:"#16202C", onSurf:"#E1E6EB", onSurfVar:"#9FB0BC",
+    primary:"#7FC4DE", onPrimary:"#00343F", primaryC:"#004C5E", onPrimaryC:"#C5EAF6",
+    secondary:"#F5921E", onSecondary:"#3A1E00", secondaryC:"#5C3200", onSecondaryC:"#FFDCC2",
+    tertiary:"#7FD3DE", outline:"#5C6B76", navSel:"#7FC4DE",
+    swatch:["#0E1620","#7FC4DE","#F5921E","#1C8C9E","#C5EAF6"] },
+  optC: { name:"OPTION C - dark", note:"orange primary, near-black",
+    bg:"#0A121C", surface:"#121C28", onSurf:"#E6EAF0", onSurfVar:"#9FB0BC",
+    primary:"#F7941D", onPrimary:"#2A1500", primaryC:"#5C3200", onPrimaryC:"#FFDCC2",
+    secondary:"#2BA0B4", onSecondary:"#00343F", secondaryC:"#0E3A44", onSecondaryC:"#BFEAF2",
+    tertiary:"#3D85DC", outline:"#5C6B76", navSel:"#F7941D",
+    swatch:["#0A121C","#F7941D","#2BA0B4","#3D85DC","#FFDCC2"] },
+  light: { name:"LIGHT repare", note:"neutres EUC SOH, doux",
+    bg:"#F4F7F9", surface:"#FFFFFF", onSurf:"#181C20", onSurfVar:"#41484F",
+    primary:"#16607F", onPrimary:"#FFFFFF", primaryC:"#C5EAF6", onPrimaryC:"#00202B",
+    secondary:"#C75B12", onSecondary:"#FFFFFF", secondaryC:"#FFDCC2", onSecondaryC:"#3A1E00",
+    tertiary:"#1C8C9E", outline:"#71787F", navSel:"#16607F",
+    swatch:["#F4F7F9","#16607F","#C75B12","#1C8C9E","#C5EAF6"] }
+};
+function phone(t){
+  return '<div class="phone" style="background:'+t.bg+';color:'+t.onSurf+'">'
+   +'<div class="appbar" style="background:'+t.primaryC+';color:'+t.onPrimaryC+'"><div class="t">WheelLog</div><div style="display:flex;gap:10px"><div class="ic" style="background:'+t.onPrimaryC+'"></div><div class="ic" style="background:'+t.onPrimaryC+'"></div></div></div>'
+   +'<div class="body">'
+   +'<div class="hero" style="background:'+t.surface+';color:'+t.onSurf+';box-shadow:0 0 0 1px '+t.outline+'33"><div class="spd" style="color:'+t.primary+'">32.4</div><div class="unit" style="color:'+t.onSurfVar+'">km/h</div><div class="bar" style="background:'+t.outline+'33"><i style="width:64%;background:'+t.secondary+'"></i></div></div>'
+   +'<div class="row"><div class="card" style="background:'+t.surface+';color:'+t.onSurf+';box-shadow:0 0 0 1px '+t.outline+'33"><div class="k" style="color:'+t.onSurfVar+'">Battery</div><div class="v" style="color:'+t.tertiary+'">86%</div></div><div class="card" style="background:'+t.surface+';color:'+t.onSurf+';box-shadow:0 0 0 1px '+t.outline+'33"><div class="k" style="color:'+t.onSurfVar+'">Temp</div><div class="v" style="color:'+t.secondary+'">44C</div></div></div>'
+   +'<div class="chips"><div class="chip" style="background:'+t.primaryC+';color:'+t.onPrimaryC+'">Active</div><div class="chip" style="background:'+t.secondaryC+';color:'+t.onSecondaryC+'">Warn</div><div class="chip" style="border:1.5px solid '+t.outline+';color:'+t.onSurfVar+'">Idle</div></div>'
+   +'<div class="btnrow"><div class="btn" style="background:'+t.primary+';color:'+t.onPrimary+'">Connect</div><div class="btn outline" style="color:'+t.primary+'">Trips</div></div>'
+   +'</div>'
+   +'<div class="nav" style="background:'+t.surface+';box-shadow:0 -1px 0 '+t.outline+'33"><div class="n" style="color:'+t.navSel+'"><div class="dot" style="background:'+t.navSel+'"></div>Home</div><div class="n" style="color:'+t.onSurfVar+'"><div class="dot" style="background:'+t.onSurfVar+'"></div>Log</div><div class="n" style="color:'+t.onSurfVar+'"><div class="dot" style="background:'+t.onSurfVar+'"></div>Map</div><div class="n" style="color:'+t.onSurfVar+'"><div class="dot" style="background:'+t.onSurfVar+'"></div>Set.</div></div>'
+   +'<div class="swatch">'+t.swatch.map(function(c){return '<div class="sw" style="background:'+c+'"></div>';}).join('')+'</div>'
+   +'</div>';
+}
+const grid = document.getElementById('grid');
+["current","optA","optC","light"].forEach(function(k){
+  const t = themes[k];
+  const col = document.createElement('div');
+  col.className = 'col';
+  col.innerHTML = '<div class="label"><span>'+t.name+'</span><small>'+t.note+'</small></div>'+phone(t);
+  grid.appendChild(col);
+});
+</script>
+</body>
+</html>

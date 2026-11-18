@@ -1,5 +1,6 @@
 package io.github.tuxwheel.ui.theme
 
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.lightColorScheme
@@ -37,13 +38,13 @@ private val LightColors = lightColorScheme(
     surfaceTint = md_theme_light_surfaceTint,
     outlineVariant = md_theme_light_outlineVariant,
     scrim = md_theme_light_scrim,
-    surfaceDim = md_theme_light_surface,
-    surfaceBright = md_theme_light_surface,
-    surfaceContainerLowest = md_theme_light_surface,
-    surfaceContainerLow = md_theme_light_surface,
-    surfaceContainer = md_theme_light_surface,
-    surfaceContainerHigh = md_theme_light_surface,
-    surfaceContainerHighest = md_theme_light_surface,
+    surfaceDim = md_theme_light_surfaceDim,
+    surfaceBright = md_theme_light_surfaceBright,
+    surfaceContainerLowest = md_theme_light_surfaceContainerLowest,
+    surfaceContainerLow = md_theme_light_surfaceContainerLow,
+    surfaceContainer = md_theme_light_surfaceContainer,
+    surfaceContainerHigh = md_theme_light_surfaceContainerHigh,
+    surfaceContainerHighest = md_theme_light_surfaceContainerHighest,
 )
 
 
@@ -77,18 +78,36 @@ private val DarkColors = darkColorScheme(
     surfaceTint = md_theme_dark_surfaceTint,
     outlineVariant = md_theme_dark_outlineVariant,
     scrim = md_theme_dark_scrim,
-    surfaceDim = md_theme_dark_surface,
-    surfaceBright = md_theme_dark_surface,
-    surfaceContainerLowest = md_theme_dark_surface,
-    surfaceContainerLow = md_theme_dark_surface,
-    surfaceContainer = md_theme_dark_surface,
-    surfaceContainerHigh = md_theme_dark_surface,
-    surfaceContainerHighest = md_theme_dark_surface,
+    surfaceDim = md_theme_dark_surfaceDim,
+    surfaceBright = md_theme_dark_surfaceBright,
+    surfaceContainerLowest = md_theme_dark_surfaceContainerLowest,
+    surfaceContainerLow = md_theme_dark_surfaceContainerLow,
+    surfaceContainer = md_theme_dark_surfaceContainer,
+    surfaceContainerHigh = md_theme_dark_surfaceContainerHigh,
+    surfaceContainerHighest = md_theme_dark_surfaceContainerHighest,
 )
+
+/**
+ * Resolves the effective dark-theme flag from the app-wide night mode
+ * ([AppCompatDelegate.getDefaultNightMode]). When the user picked "Use phone
+ * settings" ([AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM]) it falls back to the system
+ * dark mode. Legacy [AppCompatDelegate.MODE_NIGHT_UNSPECIFIED] values are normalised to
+ * follow-system by [io.github.tuxwheel.AppConfig.dayNightThemeMode], so the `else` branch
+ * below only ever sees a genuine follow-system request.
+ * Mirrors the resolution used by the dashboard canvas renderer so every
+ * surface (Compose screens and the native dashboard) agrees on day/night.
+ */
+@Composable
+fun rememberAppDarkTheme(): Boolean =
+    when (AppCompatDelegate.getDefaultNightMode()) {
+        AppCompatDelegate.MODE_NIGHT_YES -> true
+        AppCompatDelegate.MODE_NIGHT_NO -> false
+        else -> isSystemInDarkTheme()
+    }
 
 @Composable
 fun AppTheme(
-  useDarkTheme: Boolean = isSystemInDarkTheme(),
+  useDarkTheme: Boolean = rememberAppDarkTheme(),
   content: @Composable() () -> Unit
 ) {
   val colors = if (!useDarkTheme) {

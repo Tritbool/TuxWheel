@@ -30,9 +30,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,13 +52,17 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import io.github.tritbool.euc.ble.protocols.CommandInput
 import io.github.tritbool.euc.ble.protocols.CommandValue
+import io.github.tuxwheel.AppConfig
 import io.github.tuxwheel.R
 import io.github.tuxwheel.ble.BleSessionState
 import io.github.tuxwheel.ble.BleSessionViewModel
 
 @Composable
 @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
-internal fun commandContractSettings(viewModel: BleSessionViewModel) {
+internal fun commandContractSettings(
+    viewModel: BleSessionViewModel,
+    appConfig: AppConfig,
+) {
     val state by viewModel.sessionState.collectAsState()
     if (!state.isConnected) return
 
@@ -68,12 +74,47 @@ internal fun commandContractSettings(viewModel: BleSessionViewModel) {
         state.alarmMode,
         state.alarm1Speed,
     )
+    // The speed limiter writes this very same wheel register. While it is on the wheel holds the
+    // limiter speed and the user's own max speed is parked for the restore, so the max-speed row
+    // edits that parked value instead of overwriting the limiter behind its back.
+    var limiterSavedMaxSpeed by remember(state.deviceAddress) {
+        mutableIntStateOf(appConfig.speedLimiterSavedMaxSpeed)
+    }
+    val speedLimiterHoldsTheWheel = appConfig.speedLimiterEnabled
     val reportedValues = mapOf(
         "SET_PEDALS_MODE" to listOfNotNull(state.pedalsMode),
         "SET_ALARM_SPEED" to listOfNotNull(alarmCommandValue),
         "SET_LED_MODE" to listOfNotNull(state.ledMode),
         "SET_LIGHT_MODE" to listOfNotNull(state.lightMode),
+        // KingSong answers its configured max speed in the settings frame, Gotway in the tiltback
+        // field; wheels that answer nothing fall back to the last value written below.
+        "SET_SPEED_LIMIT" to listOfNotNull(
+            if (speedLimiterHoldsTheWheel) limiterSavedMaxSpeed
+            else state.wheelMaxSpeed ?: state.tiltBackSpeed
+        ),
     )
+    // Wheels that never report a setting back leave the screen with nothing to show, so the last
+    // value written to this wheel is kept and stands in for the missing report.
+    val writtenValues = remember(state.deviceAddress) {
+        mutableStateMapOf<String, Int>().apply { putAll(appConfig.wheelCommandValues(state.deviceAddress)) }
+    }
+    val writeCommand: (String, CommandValue) -> Unit = { commandId, value ->
+        val speedLimit = commandId == "SET_SPEED_LIMIT"
+        val written = (value as? CommandValue.Integer)?.value
+        if (speedLimit && speedLimiterHoldsTheWheel) {
+            if (written != null) {
+                limiterSavedMaxSpeed = written
+                appConfig.speedLimiterSavedMaxSpeed = written
+            }
+        } else {
+            commandValueToReportedInt(value)?.let {
+                writtenValues[commandId] = it
+                appConfig.setWheelCommandValue(state.deviceAddress, commandId, it)
+            }
+            if (speedLimit && written != null) appConfig.wheelMaxSpeed = written
+            viewModel.sendCommand(commandId, value)
+        }
+    }
     val commands = remember(
         state.commandDescriptors,
         state.commandContextRevision,
@@ -83,36 +124,39 @@ internal fun commandContractSettings(viewModel: BleSessionViewModel) {
     }
     val commandsById = commands.associateBy { it.id }
     key(state.deviceAddress, state.commandContextRevision) {
-        WheelCommandSection.entries.forEach { section ->
-            val sectionCommands = section.commandIds.mapNotNull(commandsById::get)
-            if (sectionCommands.isNotEmpty()) {
-                WheelSectionHeading(stringResource(section.title))
-                sectionCommands.forEach { command ->
-                    key(command.id) {
-                        WheelCommandRow(
-                            command,
-                            reportedValues[command.id]?.singleOrNull(),
-                            viewModel::sendCommand,
-                        )
-                    }
+        wheelCommandSections(commands).forEach { (section, sectionCommands) ->
+            WheelSectionHeading(stringResource(section.title))
+            sectionCommands.forEach { command ->
+                key(command.id) {
+                    WheelCommandRow(
+                        command,
+                        reportedValues[command.id]?.singleOrNull(),
+                        writtenValues[command.id],
+                        state.deviceManufacturer,
+                        writeCommand,
+                    )
                 }
             }
         }
         if (commands.any { it.actionable && it.conditional }) {
-            Text(
-                text = stringResource(R.string.wheel_command_conditional_note),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            )
+            WheelSectionNote(stringResource(R.string.wheel_command_conditional_note))
         }
     }
     val visibleValueCommandIds = commandsById.filterValues { it.input != CommandInput.None }.keys
-    wheelReportedSettings(state, visibleValueCommandIds, alarmCommandInput)
+    // Gotway answers its max speed in the tiltback field, so once the editable max-speed row
+    // carries it the read-only tiltback line would just repeat the same number under another name.
+    val speedLimitRowShowsAValue = "SET_SPEED_LIMIT" in visibleValueCommandIds &&
+        reportedValues.getValue("SET_SPEED_LIMIT").isNotEmpty()
+    wheelReportedSettings(
+        state,
+        visibleValueCommandIds,
+        alarmCommandInput,
+        speedLimitRowShowsAValue,
+    )
 }
 
 @Composable
-private fun WheelSectionHeading(title: String) {
+internal fun WheelSectionHeading(title: String) {
     HorizontalDivider(modifier = Modifier.padding(top = 8.dp))
     Text(
         text = title,
@@ -123,12 +167,24 @@ private fun WheelSectionHeading(title: String) {
     )
 }
 
+/** Small muted explanation shown under a [WheelSectionHeading]. */
+@Composable
+internal fun WheelSectionNote(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+    )
+}
+
 @Composable
 private fun WheelSettingRow(
     title: String,
     value: String? = null,
     modifier: Modifier = Modifier,
     availability: String? = null,
+    availabilityIsError: Boolean = false,
     opensEditor: Boolean = false,
     isAction: Boolean = false,
     control: (@Composable () -> Unit)? = null,
@@ -150,7 +206,8 @@ private fun WheelSettingRow(
                 Text(
                     text = availability,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (availabilityIsError) MaterialTheme.colorScheme.error
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -175,14 +232,20 @@ private fun WheelSettingRow(
 }
 
 @Composable
-private fun commandReportedValueLabel(input: CommandInput, value: CommandValue): String? =
+private fun commandReportedValueLabel(
+    input: CommandInput,
+    value: CommandValue,
+    manufacturer: String,
+    commandId: String,
+): String? =
     when (input) {
         CommandInput.Boolean -> (value as? CommandValue.Toggle)?.value?.let {
             stringResource(if (it) R.string.on else R.string.off)
         }
         is CommandInput.Choice -> (value as? CommandValue.Integer)?.value?.let { current ->
             val optionId = input.options.firstOrNull { it.value == current }?.id
-            if (optionId != null) localizedCommandOptionLabel(optionId) else current.toString()
+            if (optionId != null) localizedCommandOptionLabel(optionId, manufacturer, commandId)
+            else current.toString()
         }
         is CommandInput.Range -> (value as? CommandValue.Integer)?.let {
             "${it.value} ${input.unit}".trim()
@@ -196,6 +259,7 @@ private fun wheelReportedSettings(
     state: BleSessionState,
     visibleCommandIds: Set<String>,
     alarmCommandInput: CommandInput?,
+    speedLimitRowShowsAValue: Boolean,
 ) {
     val hasAlarmControl = "SET_ALARM_SPEED" in visibleCommandIds
     val rows = buildList {
@@ -206,14 +270,14 @@ private fun wheelReportedSettings(
         ).forEach { (commandId, title, value) ->
             if (value != null && commandId !in visibleCommandIds) {
                 val input = state.commandDescriptors.firstOrNull { it.id == commandId }?.input
-                add(stringResource(title) to reportedSettingLabel(input, value))
+                add(stringResource(title) to reportedSettingLabel(input, value, state.deviceManufacturer, commandId))
             }
         }
         state.alarmMode?.let { mode ->
             if (!hasAlarmControl || alarmCommandInput !is CommandInput.Choice) {
                 add(
                     stringResource(R.string.alarm_mode_title) to
-                        reportedSettingLabel(alarmCommandInput, mode),
+                        reportedSettingLabel(alarmCommandInput, mode, state.deviceManufacturer, "SET_ALARM_SPEED"),
                 )
             }
         }
@@ -237,7 +301,9 @@ private fun wheelReportedSettings(
             )
         }
         state.tiltBackSpeed?.let { speed ->
-            add(stringResource(R.string.tilt_back_description) to speed.toString())
+            if (!speedLimitRowShowsAValue) {
+                add(stringResource(R.string.tilt_back_description) to speed.toString())
+            }
         }
         state.autoPowerOffMinutes?.let { minutes ->
             add(
@@ -253,29 +319,74 @@ private fun wheelReportedSettings(
 }
 
 @Composable
-private fun reportedSettingLabel(input: CommandInput?, value: Int): String {
+private fun reportedSettingLabel(
+    input: CommandInput?,
+    value: Int,
+    manufacturer: String,
+    commandId: String,
+): String {
     if (input is CommandInput.Choice) {
         val optionId = input.options.firstOrNull { it.value == value }?.id
-        if (optionId != null) return localizedCommandOptionLabel(optionId)
+        if (optionId != null) return localizedCommandOptionLabel(optionId, manufacturer, commandId)
     }
     return value.toString()
 }
 
 @Composable
-private fun localizedCommandOptionLabel(id: String): String =
-    commandOptionLabelResource(id)?.let { stringResource(it) } ?: id
+private fun localizedCommandOptionLabel(
+    id: String,
+    manufacturer: String? = null,
+    commandId: String? = null,
+): String =
+    commandOptionLabelResource(id, manufacturer, commandId)?.let { stringResource(it) }
+        ?: humanizeCommandOptionId(id)
 
 @Composable
 private fun WheelCommandRow(
     command: CommandControlModel,
     rawReportedValue: Int?,
+    lastWrittenValue: Int?,
+    manufacturer: String,
     send: (String, CommandValue) -> Unit,
 ) {
     val title = wheelCommandTitle(command)
     val editor = command.editor
-    val value = if (command.input != CommandInput.None) {
-        command.reportedValue?.let { commandReportedValueLabel(command.input, it) }
-            ?: rawReportedValue?.let { reportedSettingLabel(command.input, it) }
+    // A wheel that never reports this command back leaves the app holding only its own last write,
+    // which is the closest thing to a current value there is.
+    val remembered = lastWrittenValue?.let {
+        commandValueFromReportedValues(command.input, listOf(it))
+    }
+    val known = command.reportedValue ?: remembered
+    var pending by remember(command.id) { mutableStateOf<CommandPending?>(null) }
+    var rejected by remember(command.id) { mutableStateOf(false) }
+    val writeStatus = commandWriteStatus(pending, command.reportedValue)
+
+    // The wheel echoing the written value back is the only acknowledgement the library offers, so
+    // the optimistic value simply stands until it either agrees or reports something it moved to.
+    LaunchedEffect(writeStatus) {
+        when (writeStatus) {
+            CommandWriteStatus.APPLIED -> pending = null
+            CommandWriteStatus.REJECTED -> {
+                pending = null
+                rejected = true
+            }
+            CommandWriteStatus.NONE -> Unit
+        }
+    }
+
+    val feedback = if (rejected) stringResource(R.string.wheel_command_rejected) else null
+    val write: (CommandValue) -> Unit = { written ->
+        rejected = false
+        pending = written.takeIf { it != known }
+            ?.let { CommandPending(it, reportedBefore = command.reportedValue) }
+        send(command.id, written)
+    }
+
+    // Show what the user last asked for rather than what the wheel has admitted to so far.
+    val shown = command.copy(reportedValue = pending?.value ?: known)
+    val value = if (shown.input != CommandInput.None) {
+        shown.reportedValue?.let { commandReportedValueLabel(shown.input, it, manufacturer, command.id) }
+            ?: rawReportedValue?.let { reportedSettingLabel(shown.input, it, manufacturer, command.id) }
             ?: stringResource(R.string.wheel_command_not_reported)
     } else null
     if (editor == WheelCommandEditor.UNAVAILABLE) {
@@ -286,14 +397,16 @@ private fun WheelCommandRow(
         )
         return
     }
-    val toggle = command.reportedValue as? CommandValue.Toggle
+    val toggle = shown.reportedValue as? CommandValue.Toggle
     if (editor == WheelCommandEditor.SWITCH && toggle != null) {
         WheelSettingRow(
             title = title,
+            availability = feedback,
+            availabilityIsError = rejected,
             modifier = Modifier.toggleable(
                 value = toggle.value,
                 role = Role.Switch,
-                onValueChange = { send(command.id, CommandValue.Toggle(it)) },
+                onValueChange = { write(CommandValue.Toggle(it)) },
             ),
             control = { Switch(checked = toggle.value, onCheckedChange = null) },
         )
@@ -304,11 +417,13 @@ private fun WheelCommandRow(
     val dismiss = { open = false }
     val submit: (CommandValue) -> Unit = {
         dismiss()
-        send(command.id, it)
+        write(it)
     }
     WheelSettingRow(
         title = title,
         value = value,
+        availability = feedback,
+        availabilityIsError = rejected,
         opensEditor = editor != WheelCommandEditor.ACTION,
         isAction = command.input == CommandInput.None,
         modifier = Modifier.clickable(role = Role.Button) {
@@ -318,8 +433,8 @@ private fun WheelCommandRow(
     )
     if (open) {
         when (editor) {
-            WheelCommandEditor.PICK -> WheelCommandPicker(command, title, dismiss, submit)
-            WheelCommandEditor.FORM -> WheelCommandForm(command, title, dismiss, submit)
+            WheelCommandEditor.PICK -> WheelCommandPicker(shown, title, manufacturer, dismiss, submit)
+            WheelCommandEditor.FORM -> WheelCommandForm(shown, title, manufacturer, dismiss, submit)
             WheelCommandEditor.CONFIRM_ACTION -> AlertDialog(
                 onDismissRequest = dismiss,
                 title = { Text(title) },
@@ -347,11 +462,14 @@ private fun WheelCommandRow(
 private fun wheelCommandTitle(command: CommandControlModel): String {
     val resource = when (command.id) {
         "SET_PEDALS_MODE" -> R.string.wheel_pedals_firmness
+        "SET_PEDAL_CUTOFF_ANGLE" -> R.string.wheel_pedal_cutoff_angle_title
+        "SET_PEDAL_PITCH_TRIM" -> R.string.wheel_pedal_pitch_trim_title
         "SET_LIGHT_MODE" -> R.string.light_mode_title
         "LIGHT_BRIGHTNESS" -> R.string.light_brightness_title
         "SET_LED_MODE" -> R.string.led_mode_title
         "LIGHT_ON" -> R.string.wheel_command_light_on
         "LIGHT_OFF" -> R.string.wheel_command_light_off
+        "SET_SPEED_LIMIT" -> R.string.max_speed_title
         "SET_ALARM_SPEED" -> if (command.input is CommandInput.Choice) R.string.alarm_mode_title
             else R.string.alert1_title
         "SPEAKER_VOLUME" -> R.string.speaker_volume_title
@@ -368,6 +486,7 @@ private fun wheelCommandTitle(command: CommandControlModel): String {
 private fun WheelCommandPicker(
     command: CommandControlModel,
     title: String,
+    manufacturer: String,
     dismiss: () -> Unit,
     submit: (CommandValue) -> Unit,
 ) {
@@ -375,7 +494,7 @@ private fun WheelCommandPicker(
     val options = when (input) {
         is CommandInput.Choice -> input.options.mapNotNull { option ->
             commandValueFromInputs(input, mapOf("value" to option.id))?.let {
-                localizedCommandOptionLabel(option.id) to it
+                localizedCommandOptionLabel(option.id, manufacturer, command.id) to it
             }
         }
         CommandInput.Boolean -> listOf(
@@ -416,6 +535,7 @@ private fun WheelCommandPicker(
 private fun WheelCommandForm(
     command: CommandControlModel,
     title: String,
+    manufacturer: String,
     dismiss: () -> Unit,
     submit: (CommandValue) -> Unit,
 ) {
@@ -435,7 +555,7 @@ private fun WheelCommandForm(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 if (command.description.isNotBlank()) Text(command.description)
-                CommandValueFields(input, values)
+                CommandValueFields(input, values, manufacturer, command.id)
                 if (input is CommandInput.Range ||
                     (input is CommandInput.Tuple && input.fields.any { it.input is CommandInput.Range })
                 ) {
@@ -478,6 +598,8 @@ private fun CommandOptionRow(label: String, selected: Boolean, onClick: () -> Un
 private fun CommandValueFields(
     input: CommandInput,
     values: MutableMap<String, String>,
+    manufacturer: String,
+    commandId: String,
     path: String = "value",
     label: String = stringResource(R.string.wheel_command_value),
 ) {
@@ -507,7 +629,10 @@ private fun CommandValueFields(
         }
         is CommandInput.Choice -> Column(Modifier.selectableGroup()) {
             input.options.forEach { option ->
-                CommandOptionRow(localizedCommandOptionLabel(option.id), values[path] == option.id) {
+                CommandOptionRow(
+                    localizedCommandOptionLabel(option.id, manufacturer, commandId),
+                    values[path] == option.id,
+                ) {
                     values[path] = option.id
                 }
             }
@@ -523,10 +648,10 @@ private fun CommandValueFields(
             )
         }
         is CommandInput.Tuple -> input.fields.forEach { field ->
-            CommandValueFields(field.input, values, field.id, field.id)
+            CommandValueFields(field.input, values, manufacturer, commandId, field.id, field.id)
         }
         is CommandInput.Record -> input.fields.forEach { field ->
-            CommandValueFields(field.input, values, field.id, field.id)
+            CommandValueFields(field.input, values, manufacturer, commandId, field.id, field.id)
         }
         is CommandInput.RawPayload, is CommandInput.Unsupported -> Unit
         else -> Unit

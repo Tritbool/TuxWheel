@@ -31,7 +31,7 @@ internal class ScanPageRenderer(
         state.value = data
         if (running && !binding.root.hasComposition) {
             binding.root.setContent {
-                AppTheme(useDarkTheme = false) {
+                AppTheme {
                     ScanScreen(state.value, scroll, onSelect, onForceProtocol, onAddressChanged, onManualSelect)
                 }
             }

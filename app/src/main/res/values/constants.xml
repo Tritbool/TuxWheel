@@ -135,18 +135,13 @@
     <string name="use_psi" translatable="false">use_psi</string>
     <string name="use_fahrenheit" translatable="false">use_fahrenheit</string>
     <string name="use_eng" translatable="false">use_eng</string>
-    <string name="app_theme" translatable="false">app_theme</string>
     <string name="day_night_theme" translatable="false">day_night_theme</string>
-    <string name="use_better_percents" translatable="false">use_better_percents</string>
-    <string name="custom_percents" translatable="false">custom_percents</string>
-    <string name="cell_voltage_tiltback" translatable="false">cell_voltage_tiltback</string>
+
     <string name="use_pip_mode" translatable="false">use_pip_mode</string>
     <string name="value_on_dial" translatable="false">value_on_dial</string>
     <string name="connection_sound" translatable="false">connection_sound</string>
     <string name="no_connection_sound" translatable="false">no_connection_sound</string>
     <string name="use_stop_music" translatable="false">use_stop_music</string>
-    <string name="battery_capacity" translatable="false">battery_capacity</string>
-    <string name="charging_power" translatable="false">charging_power</string>
     <string name="connect_beep" translatable="false">connect_beep</string>
     <string name="max_speed" translatable="false">max_speed</string>
     <string name="use_ratio" translatable="false">use_ratio</string>

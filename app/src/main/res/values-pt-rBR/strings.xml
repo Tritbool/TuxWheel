@@ -129,8 +129,6 @@
 	<string name="on_off_strobe">Włączone/Wyłączone/Migające</string>
 	<string name="soft_medium_hard">Miękki/Średni/Twardy</string>
     <string name="alarm_mode_title">Tryb alarmów</string>
-    <string name="is_gotway_mcm_title">Mój monocykl to Gotway MCM</string>
-	<string name="is_gotway_mcm_description">Jeśli Twój monocykl to Gotway MCM i obserwujesz błędne wskazania prędkości, dystansu oraz innych parametrów, ta opcja powinna naprawić wskazania</string>
 	<string name="battery_voltage_title">Napięcie baterii</string>
 	<string name="battery_voltage_description">67V/84V/100V</string>
 	<string name="off_level_1_alarm">Wyłącz alarm pierwszego poziomu</string>

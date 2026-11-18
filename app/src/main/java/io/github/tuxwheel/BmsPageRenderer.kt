@@ -14,7 +14,6 @@ import io.github.tuxwheel.bms.BmsMapper
 import io.github.tuxwheel.compose.SmartBmsScreen
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
 internal class BmsScroll {
@@ -30,17 +29,12 @@ internal class BmsPageRenderer(
 ) {
     private val compose = page.findViewById<ComposeView>(R.id.bmsComposeView)
     private val presentation = mutableStateOf(BmsMapper.present(session.bmsDisplay.value))
-    private val theme = mutableStateOf(config.appTheme)
     private var collecting: Job? = null
     private var disposed = false
 
     init {
         compose.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
-        compose.setContent { SmartBmsScreen(presentation.value, theme.value, scroll.compose) }
-    }
-
-    fun preferences(appTheme: Int) {
-        if (!disposed) theme.value = appTheme
+        compose.setContent { SmartBmsScreen(presentation.value, scroll.compose) }
     }
 
     fun refresh() {
@@ -51,11 +45,9 @@ internal class BmsPageRenderer(
         if (disposed || collecting?.isActive == true) return
         collecting = owner.lifecycleScope.launch {
             owner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                combine(session.bmsDisplay, config.telemetryPreferences()) { snapshot, prefs -> snapshot to prefs }
-                    .collect { (snapshot, prefs) ->
-                        preferences(prefs.appTheme)
-                        presentation.value = BmsMapper.present(snapshot)
-                    }
+                session.bmsDisplay.collect { snapshot ->
+                    presentation.value = BmsMapper.present(snapshot)
+                }
             }
         }
     }

@@ -9,7 +9,6 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import android.graphics.Color
 import android.os.Build
 import android.view.View
 import android.widget.RemoteViews
@@ -111,29 +110,13 @@ class NotificationUtil(private val context: Context) : KoinComponent {
             context.getString(R.string.notifications_actions_text)
         )
         if (connectionState == BLEConstants.ConnectionState.CONNECTED || distance + temperature + batteryLevel + speed > 0) {
-            val template = when (appConfig.appTheme) {
-                R.style.AJDMTheme -> R.string.notification_text_ajdm_theme
-                else -> R.string.notification_text
-            }
             notificationView.setTextViewText(
                 R.id.text_message,
-                context.getString(template, speed, batteryLevel, temperature, distance)
+                context.getString(R.string.notification_text, speed, batteryLevel, temperature, distance)
             )
             notificationView.setTextViewText(R.id.text_title, "$title - $titleRide")
         } else {
             notificationView.setTextViewText(R.id.text_title, title)
-        }
-
-        if (appConfig.appTheme == R.style.AJDMTheme) {
-            notificationView.setInt(
-                R.id.status_bar_latest_event_content,
-                "setBackgroundResource",
-                R.color.ajdm_background
-            )
-            val textColor = Color.BLACK
-            notificationView.setTextColor(R.id.text_title, textColor)
-            notificationView.setTextColor(R.id.text_message, textColor)
-            notificationView.setTextColor(R.id.ib_actions_text, textColor)
         }
         notificationView.setImageViewResource(
             R.id.ib_connection,

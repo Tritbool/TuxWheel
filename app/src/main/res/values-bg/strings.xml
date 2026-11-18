@@ -129,8 +129,6 @@
 	<string name="on_off_strobe">Вкл/Изкл/Строб</string>
 	<string name="soft_medium_hard">Меки/Средни/Твърди</string>
     <string name="alarm_mode_title">Алармен режим</string>
-    <string name="is_gotway_mcm_title">Колелото ми е Gotway MCM</string>
-	<string name="is_gotway_mcm_description">Ако колелото ви е MCM, и показва грешната скорост, дистанция и други параметри, това трябва да ги поправи</string>
 	<string name="battery_voltage_title">Волтаж на Батерията</string>
 	<string name="battery_voltage_description">67V/84V/100V</string>
 	<string name="off_level_1_alarm">Изключи алармата на ниво 1</string>

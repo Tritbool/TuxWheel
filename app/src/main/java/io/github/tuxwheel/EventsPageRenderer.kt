@@ -17,22 +17,16 @@ import kotlinx.coroutines.launch
 internal class EventsPageRenderer(
     page: View,
     private val state: EventsState,
-    scroll: ScrollState,
-    appTheme: Int
+    scroll: ScrollState
 ) {
     private val compose = page.findViewById<ComposeView>(R.id.eventsComposeView)
     private val text = mutableStateOf(state.text.value)
-    private val theme = mutableStateOf(appTheme)
     private var job: Job? = null
     private var disposed = false
 
     init {
         compose.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
-        compose.setContent { EventsScreen(text.value, theme.value, scroll) }
-    }
-
-    fun preferences(appTheme: Int) {
-        if (!disposed) theme.value = appTheme
+        compose.setContent { EventsScreen(text.value, scroll) }
     }
 
     fun start(owner: LifecycleOwner) {
