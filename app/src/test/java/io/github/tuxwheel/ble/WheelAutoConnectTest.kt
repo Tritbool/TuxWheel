@@ -204,13 +204,14 @@ class WheelAutoConnectTest {
         callback.captured.onDisconnected()
         runCurrent()
 
+        verify(exactly = 1) { client.startScan() }
         model.startScan()
         runCurrent()
         callback.captured.onScanStarted()
         runCurrent()
 
         verify(exactly = 1) { client.disconnect() }
-        verify(exactly = 1) { client.startScan() }
+        verify(exactly = 2) { client.startScan() }
         verifyOrder { client.disconnect(); client.startScan() }
         assertThat(model.sessionState.value.isReconnecting).isFalse()
         assertThat(model.sessionState.value.isScanning).isTrue()

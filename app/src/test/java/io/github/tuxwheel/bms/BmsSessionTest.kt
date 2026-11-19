@@ -32,7 +32,6 @@ import org.koin.dsl.module
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
-import kotlin.coroutines.Continuation
 
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class, sdk = [28])
@@ -129,8 +128,8 @@ class BmsSessionTest {
         ))
         assertThat(model.sessionState.value.wheelMaxSpeed).isEqualTo(50)
         assertThat(model.sessionState.value.lastData?.dynamicSpeedLimit).isEqualTo(17.35)
-        model.javaClass.getDeclaredMethod("updateDisconnectedState", Continuation::class.java).apply { isAccessible = true }
-            .invoke(model, mockk<Continuation<Unit>>(relaxed = true))
+        model.javaClass.getDeclaredMethod("updateDisconnectedState").apply { isAccessible = true }
+            .invoke(model)
         publish(4, manufacturer = "Kingsong")
         assertThat(model.sessionState.value.wheelMaxSpeed).isNull()
         assertThat(model.sessionState.value.lastData?.dynamicSpeedLimit).isNull()
@@ -139,8 +138,8 @@ class BmsSessionTest {
     @Test fun `disconnect and reset drop carried packs and next wheel cannot resurrect combined cells`() {
         packs = listOf(pack(0, listOf(4.1, 4.2)), pack(1, listOf(3.7, 3.8)))
         publish()
-        model.javaClass.getDeclaredMethod("updateDisconnectedState", Continuation::class.java).apply { isAccessible = true }
-            .invoke(model, mockk<Continuation<Unit>>(relaxed = true))
+        model.javaClass.getDeclaredMethod("updateDisconnectedState").apply { isAccessible = true }
+            .invoke(model)
         assertThat(model.bmsDisplay.value.hasDetails).isFalse()
         assertThat(model.bmsDisplay.value.voltage).isEqualTo(0.0)
         packs = null
@@ -409,8 +408,8 @@ class BmsSessionTest {
     @Test fun `disconnect reset connection and wheel change invalidate logging replay before next telemetry`() {
         packs = listOf(pack(0, listOf(4.1, 4.2)))
         publish()
-        model.javaClass.getDeclaredMethod("updateDisconnectedState", Continuation::class.java).apply { isAccessible = true }
-            .invoke(model, mockk<Continuation<Unit>>(relaxed = true))
+        model.javaClass.getDeclaredMethod("updateDisconnectedState").apply { isAccessible = true }
+            .invoke(model)
         assertThat(model.bmsSnapshots.replayCache.single()).isEmpty()
         publish(2)
         model.resetBmsData()
