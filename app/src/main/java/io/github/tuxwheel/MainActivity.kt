@@ -1,6 +1,7 @@
 package io.github.tuxwheel
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.app.ActivityManager
@@ -173,6 +174,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private var wasReconnecting = false
+
     private fun setConnectionState(connectionState: BLEConstants.ConnectionState) {
         when (connectionState) {
             BLEConstants.ConnectionState.CONNECTED -> {
@@ -182,6 +185,10 @@ class MainActivity : AppCompatActivity() {
                 val mac = viewModel.getMac
                 if (mac.isNotEmpty()) {
                     appConfig.lastMac = mac
+                    val name = viewModel.sessionState.value.selectedDevice?.name.orEmpty()
+                    if (name.isNotBlank() && !name.equals("Unknown", ignoreCase = true)) {
+                        appConfig.lastName = name
+                    }
                 }
                 if (appConfig.useBeepOnVolumeUp) {
                     volumeKeyController.setActive(true)
@@ -217,6 +224,10 @@ class MainActivity : AppCompatActivity() {
         // (wrong menu icon and an inverted connect/disconnect action after backgrounding).
 
         // Connection state changes
+        if (state.isReconnecting != wasReconnecting) {
+            wasReconnecting = state.isReconnecting
+            setMenuIconStates()
+        }
         if (state.connectionState != mConnectionState) {
             setConnectionState(state.connectionState)
 
@@ -406,7 +417,9 @@ class MainActivity : AppCompatActivity() {
             miLogging!!.setTitle(R.string.start_data_service)
             miLogging!!.setIcon(ThemeManager.getId(ThemeIconEnum.MenuLogOff))
         }
-        when (viewModel.sessionState.value.connectionState) {
+        val state = viewModel.sessionState.value
+        val menuState = if (state.isReconnecting) BLEConstants.ConnectionState.CONNECTING else state.connectionState
+        when (menuState) {
             BLEConstants.ConnectionState.CONNECTED -> {
                 miWheel!!.setIcon(ThemeManager.getId(ThemeIconEnum.MenuWheelOn))
                 miWheel!!.setTitle(R.string.disconnect_from_wheel)
@@ -435,8 +448,9 @@ class MainActivity : AppCompatActivity() {
                 miWheel!!.setIcon(ThemeManager.getId(ThemeIconEnum.MenuWheelSearch))
                 miWheel!!.setTitle(R.string.disconnect_from_wheel)
                 (miWheel!!.icon as? AnimationDrawable)?.start()
-                miSearch!!.isEnabled = false
-                miSearch!!.icon!!.alpha = 64
+                val canScan = state.isScanning || state.isReconnecting
+                miSearch!!.isEnabled = canScan
+                miSearch!!.icon!!.alpha = if (canScan) 255 else 64
             }
         }
     }
@@ -908,24 +922,25 @@ class MainActivity : AppCompatActivity() {
     }
     //endregion
 
-    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    @SuppressLint("MissingPermission") // checkBlePermissions covers scan and connect.
     private fun connectToLastDevice() {
         val lastMac = appConfig.lastMac
         if (checkBlePermissions(this, RESULT_REQUEST_PERMISSIONS_BT) && lastMac.isNotEmpty()) {
-            viewModel.connectByAddress(lastMac, appConfig.lastName)
+            viewModel.connectToRememberedWheel(lastMac, appConfig.lastName)
         } else if (isMaxBleReq) {
             showSnackBar(R.string.bluetooth_required)
         }
     }
 
-    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    @SuppressLint("MissingPermission") // checkBlePermissions covers scan and connect.
     private fun toggleConnectToWheel() {
         // Any non-disconnected state (CONNECTED, but also CONNECTING/DISCONNECTING and the
         // library's automatic reconnection attempts) must be cancellable, otherwise the button
         // just re-issues connect() and the library rejects it with "Already connecting or
         // connected", making the button look dead. disconnect() also clears the library's
         // auto-reconnect loop.
-        if (viewModel.sessionState.value.connectionState != BLEConstants.ConnectionState.DISCONNECTED) {
+        val state = viewModel.sessionState.value
+        if (state.isReconnecting || state.connectionState != BLEConstants.ConnectionState.DISCONNECTED) {
             if (checkBlePermissions(this, RESULT_REQUEST_PERMISSIONS_BT)) {
                 viewModel.disconnect()
             }

@@ -3,8 +3,6 @@ package io.github.tuxwheel.ble
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Application
-import android.bluetooth.BluetoothManager
-import android.content.Context
 import android.os.Build
 import android.net.Uri
 import androidx.annotation.RequiresApi
@@ -65,7 +63,6 @@ import java.util.Timer
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.roundToInt
-import kotlin.time.Duration.Companion.milliseconds
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import io.github.tuxwheel.AppConfig
@@ -86,7 +83,11 @@ import kotlin.time.Duration.Companion.milliseconds
  * 
  * REPLACES: WheelData.java (legacy singleton)
  */
-class BleSessionViewModel(application: Application) : AndroidViewModel(application), KoinComponent {
+class BleSessionViewModel internal constructor(
+    application: Application,
+    clientOverride: EucBleClient?,
+) : AndroidViewModel(application), KoinComponent {
+    constructor(application: Application) : this(application, null)
 
     private val appConfig: AppConfig by inject()
 
@@ -109,9 +110,9 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
     // Renamed to _eucBleClient to avoid JVM clash with public fun getEucBleClient()
     private val _eucBleClient: EucBleClient by lazy {
         val handler = CoroutineExceptionHandler { _, throwable ->
-            viewModelScope.launch { updateError(throwable.message ?: "BLE internal error") }
+            viewModelScope.launch { handleClientError(throwable.message ?: "BLE internal error") }
         }
-        val client = EucBleClient(
+        val client = clientOverride ?: EucBleClient(
             application,
             coroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob() + handler)
         )
@@ -442,6 +443,18 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
     // GATT connection is established, before the user is asked to pick one manually.
     private val protocolDetectionTimeoutMs = 6000L
 
+    private data class WheelLookup(val address: String, val name: String)
+    @Volatile
+    private var wheelLookup: WheelLookup? = null
+    private var wheelLookupTimeout: Job? = null
+    @Volatile
+    private var manualScanRequested = false
+    @Volatile
+    private var ignoredScanCompletions = 0
+    // The client owns retries (including its backoff while reporting DISCONNECTED).
+    @Volatile
+    private var connectionRequested = false
+
     init {
         Timber.i("BleSessionViewModel initialized - REPLACES WheelData")
         startRidingTimerControl()
@@ -451,42 +464,72 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
         client.setConnectionCallback(object : ConnectionCallback() {
             override fun onConnecting() {
                 viewModelScope.launch {
-                    updateConnectionState(BLEConstants.ConnectionState.CONNECTING)
+                    if (connectionRequested) updateConnectionState(BLEConstants.ConnectionState.CONNECTING)
                 }
             }
 
             override fun onConnected() {
                 viewModelScope.launch {
-                    updateConnectedDevice(client.getConnectedDevice())
+                    if (connectionRequested) updateConnectedDevice(client.getConnectedDevice())
                 }
             }
 
             override fun onDisconnected() {
                 viewModelScope.launch {
+                    if (wheelLookup != null) return@launch
+                    // The client retains the target on link loss, but clears it on a
+                    // deliberate disconnect (including some protocol setup failures).
+                    connectionRequested = connectionRequested && client.getConnectedDevice() != null
                     updateDisconnectedState()
                 }
             }
 
             override fun onConnectionFailed(error: BLEException) {
                 viewModelScope.launch {
+                    connectionRequested = false
+                    updateDisconnectedState()
                     updateError(error.message ?: "Connection failed")
                 }
             }
 
             override fun onScanStarted() {
                 viewModelScope.launch {
-                    _sessionState.value = _sessionState.value.copy(isScanning = true)
+                    if (wheelLookup != null || manualScanRequested) {
+                        _sessionState.update { it.copy(isScanning = true) }
+                    } else {
+                        // The library starts the platform scan asynchronously; it may have
+                        // started just as a lookup was cancelled.
+                        stopClientScan()
+                    }
                 }
             }
 
             override fun onDeviceDiscovered(device: EUCDevice) {
+                val lookup = wheelLookup
                 viewModelScope.launch {
-                    addScanResult(device)
+                    if (lookup !== wheelLookup) return@launch
+                    if (lookup != null && lookup.address.equals(device.address, ignoreCase = true)) {
+                        finishWheelLookup(device = device)
+                    } else if (manualScanRequested) {
+                        addScanResult(device)
+                    }
                 }
             }
 
             override fun onScanCompleted(devices: List<EUCDevice>) {
+                if (ignoredScanCompletions > 0) {
+                    ignoredScanCompletions--
+                    return
+                }
+                val lookup = wheelLookup
                 viewModelScope.launch {
+                    // A queued completion from an earlier scan must not end a new lookup.
+                    if (lookup !== wheelLookup) return@launch
+                    if (lookup != null) {
+                        finishWheelLookup(scanAlreadyStopped = true, notFound = true)
+                        return@launch
+                    }
+                    manualScanRequested = false
                     _sessionState.value = _sessionState.value.copy(
                         isScanning = false,
                         // The library keeps its results in a hash map, so this list is in
@@ -569,7 +612,10 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
 
         client.setErrorCallback(object : ErrorCallback {
             override fun onError(error: BLEException) {
-                surfaceBleError(error.message ?: "Unknown BLE error")
+                val lookup = wheelLookup
+                viewModelScope.launch {
+                    if (lookup === wheelLookup) handleClientError(error.message ?: "Unknown BLE error")
+                }
             }
         })
     }
@@ -592,7 +638,7 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
         }
     }
 
-    private suspend fun updateConnectionState(state: BLEConstants.ConnectionState) {
+    private fun updateConnectionState(state: BLEConstants.ConnectionState) {
         _sessionState.value = _sessionState.value.copy(
             connectionState = state,
             lastError = if (state == BLEConstants.ConnectionState.DISCONNECTED) {
@@ -616,6 +662,7 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
 
         _sessionState.value = _sessionState.value.copy(
             connectionState = BLEConstants.ConnectionState.CONNECTED,
+            isReconnecting = false,
             selectedDevice = device ?: _sessionState.value.selectedDevice,
             lastData = null,
             lastDataTimestamp = null,
@@ -638,7 +685,7 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
         startProtocolWatchdog()
     }
 
-    private suspend fun updateDisconnectedState() {
+    private fun updateDisconnectedState() {
         diagnosticLogJob?.cancel()
         diagnosticLogJob = null
         resetPasswordPrompt()
@@ -650,6 +697,7 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
 
         _sessionState.value = _sessionState.value.copy(
             connectionState = BLEConstants.ConnectionState.DISCONNECTED,
+            isReconnecting = connectionRequested,
             selectedDevice = null,
             lastData = null,
             // Telemetry is stale from now on; consumers (logging service, UI) must not
@@ -1011,19 +1059,22 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
         bms.maxCellNum = (bms.cells.indexOf(maxCell) + 1).coerceAtLeast(1)
     }
 
-    private suspend fun updateError(error: String) {
-        val state = _sessionState.value
-        _sessionState.value = state.copy(
-            lastError = error,
-            // A failing scan must not leave the UI stuck in the "scanning" state.
-            isScanning = if (state.isScanning && error.contains("scan", ignoreCase = true)) {
-                false
-            } else {
-                state.isScanning
-            }
-        )
-
+    private fun updateError(error: String) {
+        _sessionState.update { it.copy(lastError = error) }
         Timber.e("BLE error: %s", error)
+    }
+
+    @SuppressLint("MissingPermission") // The scan was started after the activity checked permissions.
+    private fun handleClientError(error: String) {
+        if (wheelLookup != null) {
+            finishWheelLookup(error = error)
+        } else {
+            if (manualScanRequested) {
+                manualScanRequested = false
+                stopClientScan()
+            }
+            updateError(error)
+        }
     }
 
     // ========== PUBLIC API ==========
@@ -1031,6 +1082,22 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
     @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
     fun startScan() {
         viewModelScope.launch {
+            finishWheelLookup()
+            if (manualScanRequested) return@launch
+            if (connectionRequested) {
+                connectionRequested = false
+                _sessionState.update { it.copy(isReconnecting = false) }
+                try {
+                    // A manual scan supersedes both the remembered-wheel lookup and the
+                    // library's reconnect loop before starting its own scan.
+                    _eucBleClient.disconnect()
+                    updateDisconnectedState()
+                } catch (e: Exception) {
+                    updateError(e.message ?: "Failed to cancel wheel reconnection")
+                    return@launch
+                }
+            }
+            manualScanRequested = true
             try {
                 // `isScanning` is only raised once the library reports the platform scan has
                 // actually started (onScanStarted); otherwise a refused scan would leave the
@@ -1042,8 +1109,7 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
                 _eucBleClient.startScan()
                 Timber.i("BLE scan requested")
             } catch (e: Exception) {
-                _sessionState.value = _sessionState.value.copy(isScanning = false)
-                updateError(e.message ?: "Failed to start scan")
+                handleClientError(e.message ?: "Failed to start scan")
             }
         }
     }
@@ -1054,90 +1120,151 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
     @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
     fun stopScan() {
         viewModelScope.launch {
-            try {
-                _eucBleClient.stopScan()
-                Timber.i("BLE scan stopped")
-            } catch (e: Exception) {
-                // Stopping a scan that is not running is not an error worth surfacing.
-                Timber.w(e, "Failed to stop BLE scan")
-            } finally {
-                _sessionState.value = _sessionState.value.copy(
-                    isScanning = false
-                )
-            }
+            if (!manualScanRequested) return@launch
+            manualScanRequested = false
+            stopClientScan()
         }
     }
 
-    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    @SuppressLint("MissingPermission") // Also used for cleanup after a permission or radio error.
+    private fun stopClientScan(ignoreCompletion: Boolean = false): Boolean {
+        if (ignoreCompletion) ignoredScanCompletions++
+        return try {
+            _eucBleClient.stopScan()
+            true
+        } catch (e: Exception) {
+            if (ignoreCompletion) ignoredScanCompletions--
+            Timber.w(e, "Failed to stop BLE scan")
+            false
+        } finally {
+            _sessionState.update { it.copy(isScanning = false) }
+        }
+    }
+
+    @RequiresPermission(allOf = [Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT])
     fun connect(device: EUCDevice) {
         viewModelScope.launch {
-            try {
-                prepareForConnection()
-                rawTrafficAddress = device.address
-                rawTraffic.start()
-                _eucBleClient.connect(device)
-                Timber.i("Connecting to device: %s", device.address)
-            } catch (e: Exception) {
-                updateError(e.message ?: "Failed to connect")
-            }
+            finishWheelLookup()
+            if (!connectionRequested) connectDiscoveredDevice(device)
         }
     }
 
-    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    @RequiresPermission(allOf = [Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT])
     fun disconnect() {
         viewModelScope.launch {
+            if (wheelLookup != null) {
+                finishWheelLookup()
+                return@launch
+            }
+            connectionRequested = false
+            _sessionState.update { it.copy(isReconnecting = false) }
             try {
                 _eucBleClient.disconnect()
                 Timber.i("Disconnecting from device")
             } catch (e: Exception) {
+                updateDisconnectedState()
                 updateError(e.message ?: "Failed to disconnect")
             }
         }
     }
 
-    /**
-     * Connect to a wheel by MAC address and optional device name.
-     * Resolves the BluetoothDevice from the MAC address so the library can
-     * establish the GATT connection without a NullPointerException.
-     *
-     * Unless the protocol selection mode is already FORCED (e.g. the caller has pre-selected
-     * a protocol via [forceProtocol]), this switches to AUTO_WITH_MANUAL_FALLBACK so that the
-     * user is prompted to pick a protocol manually if auto-detection fails.
-     */
-    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    @RequiresPermission(allOf = [Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT])
+    fun connectToRememberedWheel(mac: String, name: String) {
+        viewModelScope.launch {
+            if (!connectionRequested && wheelLookup == null && !manualScanRequested) {
+                startWheelLookup(mac, name)
+            }
+        }
+    }
+
+    @RequiresPermission(allOf = [Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT])
     fun connectByAddress(mac: String, name: String = "") {
         viewModelScope.launch {
-            try {
-                prepareForConnection()
-                if (_eucBleClient.getProtocolSelectionMode() != ProtocolSelectionMode.FORCED) {
-                    _eucBleClient.setProtocolSelectionMode(ProtocolSelectionMode.AUTO_WITH_MANUAL_FALLBACK)
-                }
-                val bluetoothManager = getApplication<Application>()
-                    .getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
-                val bluetoothDevice = bluetoothManager?.adapter?.getRemoteDevice(mac)
-                if (bluetoothDevice == null) {
-                    updateError("Bluetooth not available — cannot connect to $mac")
-                    return@launch
-                }
-                // Protocol auto-detection also relies on the advertised device name
-                // (e.g. to tell an ExtremeBull apart from a plain Gotway/Begode), so fall
-                // back to the name known by the Bluetooth stack when none was supplied.
-                val resolvedName = name.ifBlank {
-                    runCatching { bluetoothDevice.name }.getOrNull().orEmpty()
-                }
-                val device = EUCDevice(
-                    address = mac,
-                    name = resolvedName,
-                    manufacturerId = -1,
-                    rssi = 0
-                )
-                rawTrafficAddress = mac
-                rawTraffic.start()
-                _eucBleClient.connect(device)
-                Timber.i("Connecting to device by address: %s (%s)", mac, resolvedName)
-            } catch (e: Exception) {
-                updateError(e.message ?: "Failed to connect to $mac")
+            if (connectionRequested) return@launch
+            finishWheelLookup()
+            if (manualScanRequested) {
+                manualScanRequested = false
+                stopClientScan()
             }
+            val discovered = _sessionState.value.scanResults.firstOrNull {
+                it.address.equals(mac, ignoreCase = true)
+            }
+            if (discovered != null) connectDiscoveredDevice(discovered, name)
+            else startWheelLookup(mac, name) // A manually entered MAC may not be cached yet.
+        }
+    }
+
+    @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
+    private fun startWheelLookup(mac: String, name: String) {
+        val lookup = WheelLookup(mac, name)
+        wheelLookup = lookup
+        _sessionState.update {
+            it.copy(
+                connectionState = BLEConstants.ConnectionState.CONNECTING,
+                lastError = null,
+                scanResults = emptyList(),
+            )
+        }
+        wheelLookupTimeout = viewModelScope.launch {
+            delay(10_000L)
+            if (wheelLookup === lookup) finishWheelLookup(notFound = true)
+        }
+        try {
+            _eucBleClient.startScan()
+        } catch (e: Exception) {
+            finishWheelLookup(error = e.message ?: "Failed to start scan")
+        }
+    }
+
+    @SuppressLint("MissingPermission") // Permissions were checked before the lookup; failures are handled below.
+    private fun finishWheelLookup(
+        device: EUCDevice? = null,
+        error: String? = null,
+        notFound: Boolean = false,
+        scanAlreadyStopped: Boolean = false,
+    ) {
+        val lookup = wheelLookup ?: return
+        // Consume before stopping: stopScan() can synchronously call onScanCompleted().
+        wheelLookup = null
+        wheelLookupTimeout?.cancel()
+        wheelLookupTimeout = null
+        val stopped = scanAlreadyStopped || stopClientScan(ignoreCompletion = true)
+        if (device != null && stopped) {
+            connectDiscoveredDevice(device, lookup.name)
+        } else {
+            _sessionState.update {
+                it.copy(connectionState = BLEConstants.ConnectionState.DISCONNECTED, isScanning = false)
+            }
+            val message = error ?: when {
+                !stopped && device != null -> "Failed to stop scan"
+                notFound -> getApplication<Application>().getString(R.string.remembered_wheel_not_found, lookup.address)
+                else -> null
+            }
+            if (message != null) updateError(message)
+        }
+    }
+
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    private fun connectDiscoveredDevice(device: EUCDevice, fallbackName: String = "") {
+        try {
+            prepareForConnection()
+            val client = _eucBleClient
+            if (client.getProtocolSelectionMode() != ProtocolSelectionMode.FORCED) {
+                client.setProtocolSelectionMode(ProtocolSelectionMode.AUTO_WITH_MANUAL_FALLBACK)
+            }
+            val target = if (fallbackName.isNotBlank() &&
+                (device.name.isBlank() || device.name.equals("Unknown", ignoreCase = true))
+            ) device.copy(name = fallbackName) else device
+            rawTrafficAddress = target.address
+            rawTraffic.start()
+            connectionRequested = true
+            updateConnectionState(BLEConstants.ConnectionState.CONNECTING)
+            client.connect(target)
+            Timber.i("Connecting to device: %s", target.address)
+        } catch (e: Exception) {
+            connectionRequested = false
+            updateDisconnectedState()
+            updateError(e.message ?: "Failed to connect to ${device.address}")
         }
     }
 
@@ -1676,6 +1803,7 @@ class BleSessionViewModel(application: Application) : AndroidViewModel(applicati
     // ========== CLEANUP ==========
     @androidx.annotation.RequiresPermission(allOf = [android.Manifest.permission.BLUETOOTH_SCAN, android.Manifest.permission.BLUETOOTH_CONNECT])
     override fun onCleared() {
+        finishWheelLookup()
         super.onCleared()
         ridingTimerControl?.cancel()
         ridingTimerControl = null
