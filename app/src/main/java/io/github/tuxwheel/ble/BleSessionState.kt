@@ -22,6 +22,9 @@ data class BleSessionState(
     // Connection state
     val connectionState: BLEConstants.ConnectionState = BLEConstants.ConnectionState.DISCONNECTED,
 
+    // The client may retry an interrupted connection while its transport is disconnected.
+    val isReconnecting: Boolean = false,
+
     // Currently connected device
     val selectedDevice: EUCDevice? = null,
 

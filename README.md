@@ -72,6 +72,11 @@ are not deleted by this cleanup.
 - Smart BMS details are available only for supported wheels/packs.
   A family-specific screen is not a guarantee that every model supports every feature.
 
+On startup, TuxWheel looks for the saved wheel address for up to 10 seconds
+without opening the scan screen. A BLE interruption during use triggers the
+library's automatic retries for the same wheel. Use the wheel button to cancel
+either attempt or to disconnect intentionally without reconnecting.
+
 ## Features
 
 - Customizable dashboard blocks and gauges.
