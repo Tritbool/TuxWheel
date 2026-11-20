@@ -307,8 +307,8 @@
     <string name="warning_pwm_description">Advance PWM warning, 0 - off</string>
     <string name="warning_speed_period_title">Frequency of warnings</string>
     <string name="warning_speed_period_description">Notification period, 0 - off</string>
-    <string name="use_short_pwm_title">Short display of PWM</string>
-    <string name="use_short_pwm_description">Current/Max PWM is displayed at about speed</string>
+    <string name="use_short_pwm_title">Show PWM below the speed</string>
+    <string name="use_short_pwm_description">Shows the current and ride maximum PWM below the speed, in place of its unit. If PWM is the main value, shows the speed below it instead.</string>
     <string name="color_pwm_start_title">Beginning of PWM color coding</string>
     <string name="color_pwm_start_description">Minimum PWM value to be indicated by color</string>
     <string name="color_pwm_end_title">Limit of PWM color coding</string>

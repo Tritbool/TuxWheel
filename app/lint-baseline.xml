@@ -1939,8 +1939,8 @@
 
     <issue
         id="MissingTranslation"
-        message="&quot;use_short_pwm_title&quot; is not translated in &quot;de&quot; (German), &quot;ko&quot; (Korean), &quot;pt&quot; (Portuguese), &quot;bg&quot; (Bulgarian), &quot;el&quot; (Greek), &quot;it&quot; (Italian), &quot;fr&quot; (French), &quot;es&quot; (Spanish), &quot;zh&quot; (Chinese), &quot;cs&quot; (Czech), &quot;pl&quot; (Polish)"
-        errorLine1="    &lt;string name=&quot;use_short_pwm_title&quot;>Short display of PWM&lt;/string>"
+        message="&quot;use_short_pwm_title&quot; is not translated in &quot;de&quot; (German), &quot;ko&quot; (Korean), &quot;pt&quot; (Portuguese), &quot;bg&quot; (Bulgarian), &quot;el&quot; (Greek), &quot;it&quot; (Italian), &quot;es&quot; (Spanish), &quot;zh&quot; (Chinese), &quot;cs&quot; (Czech), &quot;pl&quot; (Polish)"
+        errorLine1="    &lt;string name=&quot;use_short_pwm_title&quot;>Show PWM below the speed&lt;/string>"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"
@@ -1950,8 +1950,8 @@
 
     <issue
         id="MissingTranslation"
-        message="&quot;use_short_pwm_description&quot; is not translated in &quot;de&quot; (German), &quot;ko&quot; (Korean), &quot;pt&quot; (Portuguese), &quot;bg&quot; (Bulgarian), &quot;el&quot; (Greek), &quot;it&quot; (Italian), &quot;fr&quot; (French), &quot;es&quot; (Spanish), &quot;zh&quot; (Chinese), &quot;cs&quot; (Czech), &quot;pl&quot; (Polish)"
-        errorLine1="    &lt;string name=&quot;use_short_pwm_description&quot;>Current/Max PWM is displayed at about speed&lt;/string>"
+        message="&quot;use_short_pwm_description&quot; is not translated in &quot;de&quot; (German), &quot;ko&quot; (Korean), &quot;pt&quot; (Portuguese), &quot;bg&quot; (Bulgarian), &quot;el&quot; (Greek), &quot;it&quot; (Italian), &quot;es&quot; (Spanish), &quot;zh&quot; (Chinese), &quot;cs&quot; (Czech), &quot;pl&quot; (Polish)"
+        errorLine1="    &lt;string name=&quot;use_short_pwm_description&quot;>Shows the current and ride maximum PWM below the speed, in place of its unit. If PWM is the main value, shows the speed below it instead.&lt;/string>"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values/strings.xml"

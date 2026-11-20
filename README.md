@@ -148,6 +148,10 @@ arrive; unavailable values are left blank.
 - **Single tap** triggers the horn only when that gesture is enabled.
 - **Double tap** toggles lights only when the wheel supports the command.
 - Choose units and day/night appearance in settings.
+- When the outer ring is set to PWM, it shows the current PWM at the end of the
+  ring fill. The separate **Show PWM below the speed** option displays the
+  current and ride maximum PWM in place of the speed unit. If PWM is the main
+  value, that option shows the speed below it instead.
 
 Wheel settings and actions are capability-dependent. Verify changes while
 stationary; app alarms do not replace the wheel's own safety protections.
