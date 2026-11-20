@@ -183,6 +183,8 @@
 	<string name="use_mph_description">Affiche la vitesse et la distance en miles plutôt qu\'en kilomètres</string>
 	<string name="value_on_dial_title">Paramètre de l’anneau extérieur</string>
 	<string name="value_on_dial_description">Choisir la valeur représentée par l’anneau extérieur</string>
+	<string name="use_short_pwm_title">Afficher le PWM sous la vitesse</string>
+	<string name="use_short_pwm_description">Affiche le PWM actuel et le maximum du trajet sous la vitesse, à la place de son unité. Si le PWM est la valeur principale, affiche la vitesse en dessous.</string>
 	<string name="swap_speedpwm_title">Valeur principale du tableau de bord</string>
 	<string name="swap_speedpwm_description">Activé : le PWM remplace la vitesse comme grande valeur centrale.</string>
 	<string name="no_connection_sound_description">Répéter un bip du téléphone tant que la roue est déconnectée. Mettre à 0 pour désactiver.</string>

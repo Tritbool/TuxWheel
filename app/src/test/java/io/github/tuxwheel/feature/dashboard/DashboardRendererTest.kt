@@ -214,6 +214,30 @@ class DashboardRendererTest {
         actions.dispose()
     }
 
+    @Test fun `PWM label is drawn on the outer ring and only current temperature is drawn on the inner ring`() {
+        val renderer = DashboardCanvasRenderer(context)
+        val canvas = mockk<Canvas>(relaxed = true)
+        val state = DashboardUiState.EMPTY.copy(
+            isConnected = true, valueOnDial = "2", speedUnit = "km/h",
+            temperatureDisplay = "17°C", maxTemperatureDisplay = "31°C"
+        )
+        val geometry = renderer.geometry(400f, 800f, state)
+
+        renderer.draw(canvas, 400f, 800f, state)
+
+        verifyOrder {
+            canvas.rotate(-31f, geometry.outer.cx, geometry.outer.cy)
+            canvas.drawText("${context.getString(R.string.pwm)} 0%", geometry.outer.left, any(), any())
+            canvas.restore()
+        }
+        verify {
+            canvas.drawText("17°C", geometry.inner.right, geometry.inner.cy, any())
+            canvas.drawText("km/h", geometry.outer.cx, any(), any())
+        }
+        verify(exactly = 0) { canvas.drawText(context.getString(R.string.pwm), any(), any(), any()) }
+        verify(exactly = 0) { canvas.drawText("31°C", any(), any(), any()) }
+    }
+
     @Test
     @GraphicsMode(GraphicsMode.Mode.NATIVE)
     fun `theme draws retained disconnected blocks with native pixel sizing`() {

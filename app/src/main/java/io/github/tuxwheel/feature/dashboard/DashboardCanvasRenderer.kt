@@ -99,12 +99,28 @@ class DashboardCanvasRenderer(private val context: Context) {
         paint.style = Paint.Style.FILL
         paint.color = textColor
         paint.textAlign = Paint.Align.CENTER
-        paint.textSize = fitted(
-            DashboardRect(g.outer.cx - g.outer.width * .28f, g.outer.cy + g.outer.width * .25f,
-                g.outer.cx + g.outer.width * .28f, g.outer.cy + g.outer.width * .48f),
-            dialModeLabel
-        )
-        canvas.drawText(dialModeLabel, g.outer.cx, g.outer.cy + g.outer.width * .42f, paint)
+        fun ringLabel(rect: DashboardRect, text: String, rotation: Float, x: Float, baselineOffset: Float = 0f) {
+            canvas.save()
+            canvas.rotate(rotation, rect.cx, rect.cy)
+            canvas.drawText(text, x, rect.cy + baselineOffset, paint)
+            canvas.restore()
+        }
+        if (state.valueOnDial == "2") {
+            val label = if (state.isConnected) "$dialModeLabel ${state.pwm.roundToInt()}%" else dialModeLabel
+            paint.textSize = fitted(DashboardRect(0f, 0f, g.outerStroke * .9f, g.outerStroke * .4f), label)
+            // Follow the lit segments, leaving room for the label at both ends of the arc.
+            val angle = (144f + dial * 2.25f + 5f).coerceIn(149f, 391f)
+            val onLeft = angle < 270f
+            ringLabel(g.outer, label, angle - if (onLeft) 180f else 360f,
+                if (onLeft) g.outer.left else g.outer.right, -(bounds.top + bounds.bottom) / 2f)
+        } else {
+            paint.textSize = fitted(
+                DashboardRect(g.outer.cx - g.outer.width * .28f, g.outer.cy + g.outer.width * .25f,
+                    g.outer.cx + g.outer.width * .28f, g.outer.cy + g.outer.width * .48f),
+                dialModeLabel
+            )
+            canvas.drawText(dialModeLabel, g.outer.cx, g.outer.cy + g.outer.width * .42f, paint)
+        }
         arc(g.inner, 144f, 90f, g.innerStroke, dim)
         arc(g.inner, 306f, 90f, g.innerStroke, dim)
         val batteryColor = color(R.color.wheelview_battery_dial)
@@ -146,16 +162,9 @@ class DashboardCanvasRenderer(private val context: Context) {
         paint.color = textColor
         val labelRect = DashboardRect(0f, 0f, g.innerStroke, g.innerStroke)
         paint.textSize = fitted(labelRect, "88%")
-        fun rotated(text: String, rotation: Float, x: Float) {
-            canvas.save()
-            canvas.rotate(rotation, g.inner.cx, g.inner.cy)
-            canvas.drawText(text, x, g.inner.cy, paint)
-            canvas.restore()
-        }
         if (state.isConnected) {
-            rotated(state.batteryDisplay, 144 + battery * 2.25f - 180, g.inner.left)
-            rotated(state.temperatureDisplay, 143.5f + temperature * 2.25f, g.inner.right)
-            rotated(state.maxTemperatureDisplay, -50f, g.inner.right)
+            ringLabel(g.inner, state.batteryDisplay, 144 + battery * 2.25f - 180, g.inner.left)
+            ringLabel(g.inner, state.temperatureDisplay, 143.5f + temperature * 2.25f, g.inner.right)
         }
         val modelRect = DashboardRect(g.inner.left + 10 * density, g.inner.top + 10 * density,
             g.inner.right - 10 * density, g.inner.bottom - 10 * density)
