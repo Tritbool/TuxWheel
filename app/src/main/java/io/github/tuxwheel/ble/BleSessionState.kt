@@ -40,6 +40,9 @@ data class BleSessionState(
     // Whether a scan is currently in progress
     val isScanning: Boolean = false,
 
+    // A silent scan is selecting the highest-priority remembered wheel.
+    val isAutoConnecting: Boolean = false,
+
     // Session statistics (derived from EUCData)
     val sessionTopSpeed: Double? = null,
     val sessionMaxPower: Double? = null,

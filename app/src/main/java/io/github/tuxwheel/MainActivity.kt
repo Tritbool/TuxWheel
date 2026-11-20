@@ -175,6 +175,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private var wasReconnecting = false
+    private var wasAutoConnecting = false
+    private var startupLookupHandled = false
 
     private fun setConnectionState(connectionState: BLEConstants.ConnectionState) {
         when (connectionState) {
@@ -224,8 +226,9 @@ class MainActivity : AppCompatActivity() {
         // (wrong menu icon and an inverted connect/disconnect action after backgrounding).
 
         // Connection state changes
-        if (state.isReconnecting != wasReconnecting) {
+        if (state.isReconnecting != wasReconnecting || state.isAutoConnecting != wasAutoConnecting) {
             wasReconnecting = state.isReconnecting
+            wasAutoConnecting = state.isAutoConnecting
             setMenuIconStates()
         }
         if (state.connectionState != mConnectionState) {
@@ -400,13 +403,20 @@ class MainActivity : AppCompatActivity() {
 
     private fun setMenuIconStates() {
         if (mMenu == null) return
-        val lastMac = appConfig.lastMac
-        if (lastMac.isEmpty()) {
-            miWheel!!.isEnabled = false
-            miWheel!!.icon!!.alpha = 64
-        } else {
-            miWheel!!.isEnabled = true
-            miWheel!!.icon!!.alpha = 255
+        val state = viewModel.sessionState.value
+        miWheel!!.setTitle(R.string.my_wheels)
+        miWheel!!.setIcon(ThemeManager.getId(
+            if (state.isConnected) ThemeIconEnum.MenuWheelOn else ThemeIconEnum.MenuWheelOff
+        ))
+        miSearch!!.apply {
+            isEnabled = !state.isConnected
+            setTitle(if (state.isAutoConnecting) R.string.auto_connect_searching else R.string.search_for_wheel)
+            if (state.isAutoConnecting != (icon is AnimationDrawable)) {
+                (icon as? AnimationDrawable)?.stop()
+                setIcon(if (state.isAutoConnecting) R.drawable.bluetooth_lookup_animation
+                    else R.drawable.ic_action_bluetooth_searching_white)
+                (icon as? AnimationDrawable)?.start()
+            }
         }
         mMenu?.findItem(R.id.miReset)?.isVisible = appConfig.mainMenuButtons.contains("reset")
 
@@ -417,23 +427,14 @@ class MainActivity : AppCompatActivity() {
             miLogging!!.setTitle(R.string.start_data_service)
             miLogging!!.setIcon(ThemeManager.getId(ThemeIconEnum.MenuLogOff))
         }
-        val state = viewModel.sessionState.value
         val menuState = if (state.isReconnecting) BLEConstants.ConnectionState.CONNECTING else state.connectionState
         when (menuState) {
             BLEConstants.ConnectionState.CONNECTED -> {
-                miWheel!!.setIcon(ThemeManager.getId(ThemeIconEnum.MenuWheelOn))
-                miWheel!!.setTitle(R.string.disconnect_from_wheel)
-                miSearch!!.isEnabled = false
-                miSearch!!.icon!!.alpha = 64
                 miLogging!!.isEnabled = true
                 miLogging!!.icon!!.alpha = 255
             }
 
             BLEConstants.ConnectionState.DISCONNECTED -> {
-                miWheel!!.setIcon(ThemeManager.getId(ThemeIconEnum.MenuWheelOff))
-                miWheel!!.setTitle(R.string.connect_to_wheel)
-                miSearch!!.isEnabled = true
-                miSearch!!.icon!!.alpha = 255
                 if (LoggingService.isInstanceCreated()) {
                     miLogging!!.isEnabled = true
                     miLogging!!.icon!!.alpha = 255
@@ -443,15 +444,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
 
-            else -> {
-                // Connecting / scanning state - show searching animation
-                miWheel!!.setIcon(ThemeManager.getId(ThemeIconEnum.MenuWheelSearch))
-                miWheel!!.setTitle(R.string.disconnect_from_wheel)
-                (miWheel!!.icon as? AnimationDrawable)?.start()
-                val canScan = state.isScanning || state.isReconnecting
-                miSearch!!.isEnabled = canScan
-                miSearch!!.icon!!.alpha = if (canScan) 255 else 64
-            }
+            else -> Unit
         }
     }
 
@@ -516,6 +509,7 @@ class MainActivity : AppCompatActivity() {
 
         AppCompatDelegate.setDefaultNightMode(appConfig.dayNightThemeMode)
         super.onCreate(savedInstanceState)
+        startupLookupHandled = savedInstanceState?.getBoolean("startupLookupHandled") ?: false
         volumeControlStream = AudioManager.STREAM_MUSIC
 
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -544,7 +538,7 @@ class MainActivity : AppCompatActivity() {
                 enableBleLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
             }
         } else {
-            connectToLastDevice()
+            tryStartupLookup()
         }
 
         // Observe notification button broadcasts from the system notification
@@ -641,6 +635,7 @@ class MainActivity : AppCompatActivity() {
         containerRenderer?.let { outState.putInt("mainSelectedPage", it.pageToSave) }
         super.onSaveInstanceState(outState)
         outState.putInt("connectionState", mConnectionState.ordinal)
+        outState.putBoolean("startupLookupHandled", startupLookupHandled)
     }
 
     override fun onRestoreInstanceState(savedInstanceState: Bundle) {
@@ -731,7 +726,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             R.id.miWheel -> {
-                toggleConnectToWheel()
+                showRememberedWheels()
                 true
             }
 
@@ -923,13 +918,12 @@ class MainActivity : AppCompatActivity() {
     //endregion
 
     @SuppressLint("MissingPermission") // checkBlePermissions covers scan and connect.
-    private fun connectToLastDevice() {
-        val lastMac = appConfig.lastMac
-        if (checkBlePermissions(this, RESULT_REQUEST_PERMISSIONS_BT) && lastMac.isNotEmpty()) {
-            viewModel.connectToRememberedWheel(lastMac, appConfig.lastName)
-        } else if (isMaxBleReq) {
-            showSnackBar(R.string.bluetooth_required)
-        }
+    private fun tryStartupLookup() {
+        if (startupLookupHandled || mBluetoothAdapter?.isEnabled != true) return
+        val wheels = appConfig.rememberedWheels
+        if (!checkBlePermissions(this, RESULT_REQUEST_PERMISSIONS_BT)) return
+        startupLookupHandled = true
+        viewModel.autoConnect(wheels)
     }
 
     @SuppressLint("MissingPermission") // checkBlePermissions covers scan and connect.
@@ -945,15 +939,46 @@ class MainActivity : AppCompatActivity() {
                 viewModel.disconnect()
             }
         } else {
-            connectToLastDevice()
+            startupLookupHandled = true
+            if (checkBlePermissions(this, RESULT_REQUEST_PERMISSIONS_BT)) {
+                viewModel.autoConnect(appConfig.rememberedWheels)
+            }
         }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun showRememberedWheels() {
+        startupLookupHandled = true
+        viewModel.cancelAutoConnect()
+        RememberedWheelsDialog(this, appConfig).show(
+            scope = lifecycleScope,
+            session = viewModel.sessionState,
+            onDisconnect = {
+                if (checkBlePermissions(this, RESULT_REQUEST_PERMISSIONS_BT)) {
+                    viewModel.disconnect()
+                }
+            },
+            onConnect = { wheel ->
+                if (checkBlePermissions(this, RESULT_REQUEST_PERMISSIONS_BT)) {
+                    viewModel.clearForcedProtocol()
+                    viewModel.connectToRememberedWheel(wheel.address, wheel.name)
+                }
+            },
+            onScan = ::startScanActivity,
+        )
     }
 
     @androidx.annotation.RequiresPermission(
         android.Manifest.permission.BLUETOOTH_CONNECT
     )
     private fun startScanActivity() {
-        if (checkBlePermissions(this, RESULT_REQUEST_PERMISSIONS_BT)) {
+        startupLookupHandled = true
+        // Migrate the legacy target before ScanActivity updates it with a new selection.
+        appConfig.migrateRememberedWheels()
+        if (checkBlePermissions(this, RESULT_REQUEST_PERMISSIONS_MANUAL_SCAN)) {
+            if (viewModel.cancelAutoConnect(keepScanning = true)) {
+                Toast.makeText(this, R.string.auto_connect_cancelled, Toast.LENGTH_SHORT).show()
+            }
             scanLauncher.launch(Intent(this@MainActivity, ScanActivity::class.java))
         } else if (isMaxBleReq) {
             showSnackBar(R.string.bluetooth_required)
@@ -966,7 +991,14 @@ class MainActivity : AppCompatActivity() {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (requestCode == RESULT_REQUEST_PERMISSIONS_BT) {
-            connectToLastDevice()
+            if (grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+                if (mBluetoothAdapter?.isEnabled == true) tryStartupLookup()
+                else if (mBluetoothAdapter != null) enableBleLauncher.launch(Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE))
+            }
+        } else if (requestCode == RESULT_REQUEST_PERMISSIONS_MANUAL_SCAN) {
+            if (grantResults.isNotEmpty() && grantResults.all { it == PackageManager.PERMISSION_GRANTED }) {
+                startScanActivity()
+            }
         } else if (requestCode == RESULT_REQUEST_PERMISSIONS_IO) {
             toggleLoggingService()
         }
@@ -1052,7 +1084,7 @@ class MainActivity : AppCompatActivity() {
     private val enableBleLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK && mBluetoothAdapter!!.isEnabled) {
-                connectToLastDevice()
+                tryStartupLookup()
             } else {
                 Toast.makeText(this, R.string.bluetooth_required, Toast.LENGTH_LONG).show()
                 finish()
@@ -1111,6 +1143,7 @@ class MainActivity : AppCompatActivity() {
         lateinit var audioManager: AudioManager
 
         const val RESULT_REQUEST_PERMISSIONS_BT = 40
+        private const val RESULT_REQUEST_PERMISSIONS_MANUAL_SCAN = 41
         const val RESULT_REQUEST_PERMISSIONS_IO = 50
         private var onDestroyProcess = false
 

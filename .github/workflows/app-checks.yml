@@ -47,6 +47,7 @@ jobs:
           :app:testDebugUnitTest
           --tests io.github.tuxwheel.ble.BleCommandDiscoveryTest
           --tests io.github.tuxwheel.ble.WheelAutoConnectTest
+          --tests io.github.tuxwheel.RememberedWheelsTest
           --tests io.github.tuxwheel.settings.CommandContractMappingTest
           --tests io.github.tuxwheel.ble.BmsLabCaptureTest
           --tests io.github.tuxwheel.ble.RawTrafficCaptureTest

@@ -19,6 +19,7 @@ mpandroidchart    = "v3.1.0"
 preference        = "1.2.1"
 constraintlayout  = "2.2.1"
 legacy-support    = "1.0.0"
+recyclerview      = "1.4.0"
 euc-ble           = "1.1.0"
 license-report    = "3.1.2"
 richtext          = "1.0.0-alpha04"
@@ -39,6 +40,7 @@ material                    = { module = "com.google.android.material:material",
 preference-ktx              = { module = "androidx.preference:preference-ktx",            version.ref = "preference" }
 constraintlayout            = { module = "androidx.constraintlayout:constraintlayout",    version.ref = "constraintlayout" }
 legacy-support-v4           = { module = "androidx.legacy:legacy-support-v4",             version.ref = "legacy-support" }
+recyclerview                = { module = "androidx.recyclerview:recyclerview",          version.ref = "recyclerview" }
 # Compose
 compose-foundation          = { module = "androidx.compose.foundation:foundation",        version.ref = "compose" }
 compose-runtime             = { module = "androidx.compose.runtime:runtime",              version.ref = "compose" }

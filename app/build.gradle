@@ -127,6 +127,7 @@ dependencies {
     implementation libs.preference.ktx
     implementation libs.constraintlayout
     implementation libs.legacy.support.v4
+    implementation libs.recyclerview
 
     // Kotlin
     implementation libs.kotlin.stdlib

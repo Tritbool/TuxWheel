@@ -72,10 +72,10 @@ are not deleted by this cleanup.
 - Smart BMS details are available only for supported wheels/packs.
   A family-specific screen is not a guarantee that every model supports every feature.
 
-On startup, TuxWheel looks for the saved wheel address for up to 10 seconds
+On startup, TuxWheel looks for saved wheels for up to 10 seconds
 without opening the scan screen. A BLE interruption during use triggers the
-library's automatic retries for the same wheel. Use the wheel button to cancel
-either attempt or to disconnect intentionally without reconnecting.
+library's automatic retries for the same wheel. Open **My wheels** to stop
+an attempt or disconnect intentionally without reconnecting.
 
 ## Features
 
@@ -102,6 +102,22 @@ either attempt or to disconnect intentionally without reconnecting.
 5. Long-press a discovered device to open the protocol picker.
    Select a specific protocol to force it only when the wheel requires it;
    **Automatic** leaves detection to the library and is the fallback when unsure.
+
+After a successful manual connection, TuxWheel saves the wheel on your phone.
+Tap **My wheels** (the wheel icon) to manage saved wheels. Drag the handle on
+the left of a row to change its priority. Use its green play button to connect or
+its red stop button to disconnect.
+**Add a wheel** offers a Bluetooth scan or manual MAC entry. Starting a scan
+ends the active wheel connection after confirmation. The manual form inserts
+the colons between the 12 hexadecimal digits. Without a custom name, a manual
+wheel is called `wheel1`, `wheel2`, … until its first connection replaces that
+placeholder with the wheel's Bluetooth name; custom names are never replaced.
+On launch, TuxWheel scans for up to **10 seconds** and connects immediately if
+it finds the top-ranked wheel. When it first finds another saved wheel, it gives
+higher-ranked wheels **1 second** by default, then picks the best one found.
+Change this wait in **My wheels** (0 seconds connects to the first saved wheel
+found). The overall scan limit still applies. Tap the blinking **Bluetooth**
+icon to cancel automatic connection and take over the scan manually.
 
 If connection fails, check permissions, Bluetooth, and whether another app
 already holds the wheel connection. Report the model, firmware, and selected
