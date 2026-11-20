@@ -52,4 +52,13 @@ class RememberedWheelsTest {
         assertThat(AppConfig(application).rememberedWheels.map { it.displayName })
             .containsExactly("16S", "Begode Master", "wheel2", "Sherman").inOrder()
     }
+
+    @Test fun `MAC input groups hexadecimal digits while typing or pasting`() {
+        assertThat(RememberedWheel.formatAddressInput("aAb")).isEqualTo("AA:B")
+        assertThat(RememberedWheel.formatAddressInput("aa-bb-cc-dd-ee-ff")).isEqualTo(first.address)
+        assertThat(RememberedWheel.formatAddressInput("aabbccddeeff")).isEqualTo(first.address)
+        assertThat(RememberedWheel.formatAddressInput("aabbccddeeff0")).isNull()
+        assertThat(RememberedWheel.formatAddressInput("aa:bb:cc:dd:ee:fg")).isNull()
+        assertThat(config.addManualWheel("AA:BB:CC:DD:EE:F", "")).isEqualTo(AppConfig.ManualWheelResult.INVALID_ADDRESS)
+    }
 }

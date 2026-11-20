@@ -55,6 +55,7 @@ class WheelAutoConnectTest {
         Dispatchers.setMain(dispatcher)
         config = mockk<AppConfig>()
         every { config.rawLoggingPreferences() } returns flowOf(false)
+        every { config.wheelPriorityWaitSeconds } returns 1
         every { config.rememberWheel(any(), any(), any()) } returns Unit
         startKoin { modules(module { single { config } }) }
         every { client.setConnectionCallback(capture(callback)) } answers { }
@@ -110,7 +111,7 @@ class WheelAutoConnectTest {
         model.autoConnect(listOf(RememberedWheel(wheel.address, "Favorite"), RememberedWheel(otherWheel.address, "")))
         runCurrent()
         callback.captured.onDeviceDiscovered(otherWheel)
-        advanceTimeBy(9_000)
+        advanceTimeBy(900)
         verify(exactly = 0) { client.connect(any()) }
 
         callback.captured.onDeviceDiscovered(wheel)
@@ -120,13 +121,15 @@ class WheelAutoConnectTest {
         assertThat(model.sessionState.value.isAutoConnecting).isFalse()
     }
 
-    @Test fun `startup picks the highest ranked available wheel at ten seconds`() = runTest(dispatcher) {
+    @Test fun `startup picks the highest ranked wheel when the configured grace period ends`() = runTest(dispatcher) {
+        every { config.wheelPriorityWaitSeconds } returns 2
         val thirdWheel = wheel.copy(address = "AA:BB:CC:DD:EE:FD")
         model.autoConnect(listOf(wheel, otherWheel, thirdWheel).map { RememberedWheel(it.address, "") })
         runCurrent()
         callback.captured.onDeviceDiscovered(thirdWheel)
+        advanceTimeBy(1_500)
         callback.captured.onDeviceDiscovered(otherWheel)
-        advanceTimeBy(9_999)
+        advanceTimeBy(499)
         assertThat(model.sessionState.value.isAutoConnecting).isTrue()
         verify(exactly = 0) { client.connect(any()) }
 
@@ -135,6 +138,26 @@ class WheelAutoConnectTest {
         verify(exactly = 1) { client.startScan() }
         verify(exactly = 1) { client.connect(otherWheel) }
         assertThat(model.sessionState.value.isAutoConnecting).isFalse()
+    }
+
+    @Test fun `zero grace period connects immediately to the first saved wheel found`() = runTest(dispatcher) {
+        every { config.wheelPriorityWaitSeconds } returns 0
+        model.autoConnect(listOf(wheel, otherWheel).map { RememberedWheel(it.address, "") })
+        runCurrent()
+        callback.captured.onDeviceDiscovered(otherWheel)
+        runCurrent()
+        verify(exactly = 1) { client.connect(otherWheel) }
+    }
+
+    @Test fun `priority wait cannot extend the overall scan past ten seconds`() = runTest(dispatcher) {
+        every { config.wheelPriorityWaitSeconds } returns 10
+        model.autoConnect(listOf(wheel, otherWheel).map { RememberedWheel(it.address, "") })
+        runCurrent()
+        advanceTimeBy(9_500)
+        callback.captured.onDeviceDiscovered(otherWheel)
+        advanceTimeBy(500)
+        runCurrent()
+        verify(exactly = 1) { client.connect(otherWheel) }
     }
 
     @Test fun `startup without any saved wheel nearby ends quietly`() = runTest(dispatcher) {
@@ -158,7 +181,7 @@ class WheelAutoConnectTest {
     }
 
     @Test fun `opening manual scan reuses discoveries and prevents auto connection`() = runTest(dispatcher) {
-        model.autoConnect(listOf(RememberedWheel(wheel.address, "")))
+        model.autoConnect(listOf(wheel, otherWheel).map { RememberedWheel(it.address, "") })
         runCurrent()
         callback.captured.onScanStarted()
         callback.captured.onDeviceDiscovered(otherWheel)

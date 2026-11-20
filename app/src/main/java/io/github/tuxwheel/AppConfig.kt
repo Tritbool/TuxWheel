@@ -27,6 +27,8 @@ class AppConfig(var context: Context) : KoinComponent {
         const val BMS_LOG_INTERVAL_MIN_SECONDS = 1
         const val BMS_LOG_INTERVAL_MAX_SECONDS = 60
         const val BMS_LOG_INTERVAL_DEFAULT_SECONDS = 5
+        internal const val AUTO_CONNECT_SCAN_SECONDS = 10
+        internal const val DEFAULT_WHEEL_PRIORITY_WAIT_SECONDS = 1
         private val AUTO_WHEEL_NAME = Regex("wheel(\\d+)", RegexOption.IGNORE_CASE)
     }
 
@@ -401,6 +403,11 @@ class AppConfig(var context: Context) : KoinComponent {
         set(value) = setValue("profile_name", value)
 
     //region connection
+    internal var wheelPriorityWaitSeconds: Int
+        get() = getValue("wheel_priority_wait_seconds", DEFAULT_WHEEL_PRIORITY_WAIT_SECONDS)
+            .coerceIn(0, AUTO_CONNECT_SCAN_SECONDS)
+        set(value) = setValue("wheel_priority_wait_seconds", value.coerceIn(0, AUTO_CONNECT_SCAN_SECONDS))
+
     fun migrateRememberedWheels() {
         if (getValue<String?>("remembered_wheels", null) == null) {
             rememberedWheels = RememberedWheel.normalizeAddress(lastMac)?.let {

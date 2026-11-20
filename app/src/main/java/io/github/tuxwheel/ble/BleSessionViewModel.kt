@@ -452,6 +452,7 @@ class BleSessionViewModel internal constructor(
     private var wheelLookup: WheelLookup? = null
     private var handedOffLookup: WheelLookup? = null
     private var wheelLookupTimeout: Job? = null
+    private var wheelPriorityTimeout: Job? = null
     @Volatile
     private var manualScanRequested = false
     @Volatile
@@ -532,6 +533,18 @@ class BleSessionViewModel internal constructor(
                         mergeScanResult(device)
                         if (lookup.wheels.first().address.equals(device.address, ignoreCase = true)) {
                             finishWheelLookup(device = device)
+                        } else if (lookup.automatic && wheelPriorityTimeout == null &&
+                            lookup.wheels.any { it.address.equals(device.address, ignoreCase = true) }
+                        ) {
+                            val waitSeconds = appConfig.wheelPriorityWaitSeconds
+                            if (waitSeconds == 0) {
+                                completeWheelLookup(lookup)
+                            } else {
+                                wheelPriorityTimeout = viewModelScope.launch {
+                                    delay(waitSeconds * 1_000L)
+                                    if (wheelLookup === lookup) completeWheelLookup(lookup)
+                                }
+                            }
                         }
                     } else if (manualScanRequested && (lookup == null || lookup === handedOffLookup)) {
                         mergeScanResult(device)
@@ -1226,8 +1239,7 @@ class BleSessionViewModel internal constructor(
             manualScanRequested = true
             handedOffLookup = lookup
             wheelLookup = null
-            wheelLookupTimeout?.cancel()
-            wheelLookupTimeout = null
+            cancelWheelLookupTimeouts()
             _sessionState.update {
                 it.copy(isAutoConnecting = false, connectionState = BLEConstants.ConnectionState.DISCONNECTED)
             }
@@ -1273,7 +1285,7 @@ class BleSessionViewModel internal constructor(
             )
         }
         wheelLookupTimeout = viewModelScope.launch {
-            delay(10_000L)
+            delay(AppConfig.AUTO_CONNECT_SCAN_SECONDS * 1_000L)
             if (wheelLookup === lookup) completeWheelLookup(lookup)
         }
         try {
@@ -1288,6 +1300,13 @@ class BleSessionViewModel internal constructor(
         finishWheelLookup(device, notFound = device == null, scanAlreadyStopped = scanAlreadyStopped)
     }
 
+    private fun cancelWheelLookupTimeouts() {
+        wheelLookupTimeout?.cancel()
+        wheelLookupTimeout = null
+        wheelPriorityTimeout?.cancel()
+        wheelPriorityTimeout = null
+    }
+
     @SuppressLint("MissingPermission") // Permissions were checked before the lookup; failures are handled below.
     private fun finishWheelLookup(
         device: EUCDevice? = null,
@@ -1298,8 +1317,7 @@ class BleSessionViewModel internal constructor(
         val lookup = wheelLookup ?: return
         // Consume before stopping: stopScan() can synchronously call onScanCompleted().
         wheelLookup = null
-        wheelLookupTimeout?.cancel()
-        wheelLookupTimeout = null
+        cancelWheelLookupTimeouts()
         val stopped = scanAlreadyStopped || stopClientScan(ignoreCompletion = true)
         _sessionState.update { it.copy(isAutoConnecting = false, isScanning = false) }
         if (device != null && stopped) {

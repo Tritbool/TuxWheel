@@ -950,18 +950,21 @@ class MainActivity : AppCompatActivity() {
     private fun showRememberedWheels() {
         startupLookupHandled = true
         viewModel.cancelAutoConnect()
-        val state = viewModel.sessionState.value
-        val busy = state.connectionState != BLEConstants.ConnectionState.DISCONNECTED || state.isReconnecting
         RememberedWheelsDialog(this, appConfig).show(
-            connectedAddress = state.deviceAddress,
-            onDisconnect = if (busy) ({ viewModel.disconnect() }) else null,
-            onConnect = if (busy) null else ({ wheel ->
+            scope = lifecycleScope,
+            session = viewModel.sessionState,
+            onDisconnect = {
+                if (checkBlePermissions(this, RESULT_REQUEST_PERMISSIONS_BT)) {
+                    viewModel.disconnect()
+                }
+            },
+            onConnect = { wheel ->
                 if (checkBlePermissions(this, RESULT_REQUEST_PERMISSIONS_BT)) {
                     viewModel.clearForcedProtocol()
                     viewModel.connectToRememberedWheel(wheel.address, wheel.name)
                 }
-            }),
-            onScan = if (busy) null else ::startScanActivity
+            },
+            onScan = ::startScanActivity,
         )
     }
 

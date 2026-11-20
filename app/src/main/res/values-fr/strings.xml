@@ -52,7 +52,13 @@
     <string name="auto_connect_cancelled">Connexion automatique annulée</string>
     <string name="my_wheels">Mes roues</string>
     <string name="wheels_priority_title">Mes roues · Priorité de connexion</string>
-    <string name="wheels_priority_item">%1$d. %2$s</string>
+    <string name="wheels_drag_hint">Appuyez longuement sur une roue, puis faites-la glisser pour changer sa priorité.</string>
+    <string name="wheels_connect_named">Connecter %1$s</string>
+    <string name="wheels_disconnect_named">Déconnecter %1$s</string>
+    <string name="wheels_priority_wait_value">Connexion auto · Délai de priorité : %1$d s</string>
+    <string name="wheels_priority_wait_title">Attendre une roue plus prioritaire</string>
+    <string name="wheels_priority_wait_immediate">0 s — connecter la première roue détectée</string>
+    <string name="wheels_priority_wait_seconds">%1$d s</string>
     <string name="wheels_name_with_address">%1$s (%2$s)</string>
     <string name="wheels_connected_item">%1$s (connectée)</string>
     <string name="wheels_done">Terminé</string>

@@ -14,6 +14,15 @@ data class RememberedWheel(
     }
 
     companion object {
+        private val macInput = Regex("[0-9A-Fa-f:\\-]*")
+
+        internal fun formatAddressInput(input: CharSequence): String? {
+            if (!macInput.matches(input)) return null
+            val digits = input.filter { it != ':' && it != '-' }
+            if (digits.length > 12) return null
+            return digits.toString().uppercase(Locale.ROOT).chunked(2).joinToString(":")
+        }
+
         internal fun normalizeAddress(address: String): String? =
             address.trim().replace('-', ':').uppercase(Locale.ROOT).takeIf(StringUtil::isCorrectMac)
     }
