@@ -443,9 +443,14 @@ class BleSessionViewModel internal constructor(
     // GATT connection is established, before the user is asked to pick one manually.
     private val protocolDetectionTimeoutMs = 6000L
 
-    private data class WheelLookup(val address: String, val name: String)
+    private class WheelLookup(
+        val wheels: List<RememberedWheel>,
+        val automatic: Boolean,
+        val rememberOnConnect: Boolean,
+    )
     @Volatile
     private var wheelLookup: WheelLookup? = null
+    private var handedOffLookup: WheelLookup? = null
     private var wheelLookupTimeout: Job? = null
     @Volatile
     private var manualScanRequested = false
@@ -454,6 +459,7 @@ class BleSessionViewModel internal constructor(
     // The client owns retries (including its backoff while reporting DISCONNECTED).
     @Volatile
     private var connectionRequested = false
+    private var wheelToRemember: EUCDevice? = null
 
     init {
         Timber.i("BleSessionViewModel initialized - REPLACES WheelData")
@@ -470,7 +476,16 @@ class BleSessionViewModel internal constructor(
 
             override fun onConnected() {
                 viewModelScope.launch {
-                    if (connectionRequested) updateConnectedDevice(client.getConnectedDevice())
+                    if (connectionRequested) {
+                        val device = client.getConnectedDevice()
+                        wheelToRemember?.let { target ->
+                            val name = device?.takeIf { it.address.equals(target.address, ignoreCase = true) }
+                                ?.name ?: target.name
+                            appConfig.rememberWheel(target.address, name)
+                        }
+                        wheelToRemember = null
+                        updateConnectedDevice(device)
+                    }
                 }
             }
 
@@ -480,6 +495,7 @@ class BleSessionViewModel internal constructor(
                     // The client retains the target on link loss, but clears it on a
                     // deliberate disconnect (including some protocol setup failures).
                     connectionRequested = connectionRequested && client.getConnectedDevice() != null
+                    if (!connectionRequested) wheelToRemember = null
                     updateDisconnectedState()
                 }
             }
@@ -487,6 +503,7 @@ class BleSessionViewModel internal constructor(
             override fun onConnectionFailed(error: BLEException) {
                 viewModelScope.launch {
                     connectionRequested = false
+                    wheelToRemember = null
                     updateDisconnectedState()
                     updateError(error.message ?: "Connection failed")
                 }
@@ -507,11 +524,13 @@ class BleSessionViewModel internal constructor(
             override fun onDeviceDiscovered(device: EUCDevice) {
                 val lookup = wheelLookup
                 viewModelScope.launch {
-                    if (lookup !== wheelLookup) return@launch
-                    if (lookup != null && lookup.address.equals(device.address, ignoreCase = true)) {
-                        finishWheelLookup(device = device)
-                    } else if (manualScanRequested) {
-                        addScanResult(device)
+                    if (lookup != null && lookup === wheelLookup) {
+                        mergeScanResult(device)
+                        if (lookup.wheels.first().address.equals(device.address, ignoreCase = true)) {
+                            finishWheelLookup(device = device)
+                        }
+                    } else if (manualScanRequested && (lookup == null || lookup === handedOffLookup)) {
+                        mergeScanResult(device)
                     }
                 }
             }
@@ -524,12 +543,16 @@ class BleSessionViewModel internal constructor(
                 val lookup = wheelLookup
                 viewModelScope.launch {
                     // A queued completion from an earlier scan must not end a new lookup.
-                    if (lookup !== wheelLookup) return@launch
-                    if (lookup != null) {
-                        finishWheelLookup(scanAlreadyStopped = true, notFound = true)
+                    if (lookup !== wheelLookup && (!manualScanRequested || lookup !== handedOffLookup)) return@launch
+                    if (lookup != null && lookup === wheelLookup) {
+                        _sessionState.update {
+                            it.copy(scanResults = ScanResultMerger.merge(it.scanResults, devices))
+                        }
+                        completeWheelLookup(lookup, scanAlreadyStopped = true)
                         return@launch
                     }
                     manualScanRequested = false
+                    handedOffLookup = null
                     _sessionState.value = _sessionState.value.copy(
                         isScanning = false,
                         // The library keeps its results in a hash map, so this list is in
@@ -1071,6 +1094,7 @@ class BleSessionViewModel internal constructor(
         } else {
             if (manualScanRequested) {
                 manualScanRequested = false
+                handedOffLookup = null
                 stopClientScan()
             }
             updateError(error)
@@ -1086,6 +1110,7 @@ class BleSessionViewModel internal constructor(
             if (manualScanRequested) return@launch
             if (connectionRequested) {
                 connectionRequested = false
+                wheelToRemember = null
                 _sessionState.update { it.copy(isReconnecting = false) }
                 try {
                     // A manual scan supersedes both the remembered-wheel lookup and the
@@ -1122,6 +1147,7 @@ class BleSessionViewModel internal constructor(
         viewModelScope.launch {
             if (!manualScanRequested) return@launch
             manualScanRequested = false
+            handedOffLookup = null
             stopClientScan()
         }
     }
@@ -1157,6 +1183,7 @@ class BleSessionViewModel internal constructor(
                 return@launch
             }
             connectionRequested = false
+            wheelToRemember = null
             _sessionState.update { it.copy(isReconnecting = false) }
             try {
                 _eucBleClient.disconnect()
@@ -1172,9 +1199,38 @@ class BleSessionViewModel internal constructor(
     fun connectToRememberedWheel(mac: String, name: String) {
         viewModelScope.launch {
             if (!connectionRequested && wheelLookup == null && !manualScanRequested) {
-                startWheelLookup(mac, name)
+                startWheelLookup(listOf(RememberedWheel(mac, name)), automatic = false)
             }
         }
+    }
+
+    @RequiresPermission(allOf = [Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT])
+    fun autoConnect(wheels: List<RememberedWheel>) {
+        if (wheels.isEmpty()) return
+        viewModelScope.launch {
+            if (!connectionRequested && wheelLookup == null && !manualScanRequested) {
+                startWheelLookup(wheels.toList(), automatic = true)
+            }
+        }
+    }
+
+    @MainThread
+    fun cancelAutoConnect(keepScanning: Boolean = false): Boolean {
+        val lookup = wheelLookup?.takeIf { it.automatic } ?: return false
+        if (keepScanning) {
+            // Transfer ownership without stopping the radio or dropping discoveries.
+            manualScanRequested = true
+            handedOffLookup = lookup
+            wheelLookup = null
+            wheelLookupTimeout?.cancel()
+            wheelLookupTimeout = null
+            _sessionState.update {
+                it.copy(isAutoConnecting = false, connectionState = BLEConstants.ConnectionState.DISCONNECTED)
+            }
+        } else {
+            finishWheelLookup()
+        }
+        return true
     }
 
     @RequiresPermission(allOf = [Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT])
@@ -1184,36 +1240,48 @@ class BleSessionViewModel internal constructor(
             finishWheelLookup()
             if (manualScanRequested) {
                 manualScanRequested = false
+                handedOffLookup = null
                 stopClientScan()
             }
+            val address = RememberedWheel.normalizeAddress(mac) ?: mac
             val discovered = _sessionState.value.scanResults.firstOrNull {
-                it.address.equals(mac, ignoreCase = true)
+                it.address.equals(address, ignoreCase = true)
             }
-            if (discovered != null) connectDiscoveredDevice(discovered, name)
-            else startWheelLookup(mac, name) // A manually entered MAC may not be cached yet.
+            if (discovered != null) connectDiscoveredDevice(discovered, name, rememberOnConnect = true)
+            else startWheelLookup(listOf(RememberedWheel(address, name)), automatic = false, rememberOnConnect = true)
         }
     }
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_SCAN)
-    private fun startWheelLookup(mac: String, name: String) {
-        val lookup = WheelLookup(mac, name)
+    private fun startWheelLookup(
+        wheels: List<RememberedWheel>,
+        automatic: Boolean,
+        rememberOnConnect: Boolean = false,
+    ) {
+        val lookup = WheelLookup(wheels, automatic, rememberOnConnect)
         wheelLookup = lookup
         _sessionState.update {
             it.copy(
                 connectionState = BLEConstants.ConnectionState.CONNECTING,
+                isAutoConnecting = automatic,
                 lastError = null,
                 scanResults = emptyList(),
             )
         }
         wheelLookupTimeout = viewModelScope.launch {
             delay(10_000L)
-            if (wheelLookup === lookup) finishWheelLookup(notFound = true)
+            if (wheelLookup === lookup) completeWheelLookup(lookup)
         }
         try {
             _eucBleClient.startScan()
         } catch (e: Exception) {
             finishWheelLookup(error = e.message ?: "Failed to start scan")
         }
+    }
+
+    private fun completeWheelLookup(lookup: WheelLookup, scanAlreadyStopped: Boolean = false) {
+        val device = RememberedWheelMatcher.preferredAvailable(lookup.wheels, _sessionState.value.scanResults)
+        finishWheelLookup(device, notFound = device == null, scanAlreadyStopped = scanAlreadyStopped)
     }
 
     @SuppressLint("MissingPermission") // Permissions were checked before the lookup; failures are handled below.
@@ -1229,15 +1297,21 @@ class BleSessionViewModel internal constructor(
         wheelLookupTimeout?.cancel()
         wheelLookupTimeout = null
         val stopped = scanAlreadyStopped || stopClientScan(ignoreCompletion = true)
+        _sessionState.update { it.copy(isAutoConnecting = false, isScanning = false) }
         if (device != null && stopped) {
-            connectDiscoveredDevice(device, lookup.name)
+            val name = lookup.wheels.first { it.address.equals(device.address, ignoreCase = true) }.name
+            connectDiscoveredDevice(
+                device, name, resetProtocol = lookup.automatic, rememberOnConnect = lookup.rememberOnConnect
+            )
         } else {
             _sessionState.update {
                 it.copy(connectionState = BLEConstants.ConnectionState.DISCONNECTED, isScanning = false)
             }
             val message = error ?: when {
                 !stopped && device != null -> "Failed to stop scan"
-                notFound -> getApplication<Application>().getString(R.string.remembered_wheel_not_found, lookup.address)
+                notFound && !lookup.automatic -> getApplication<Application>().getString(
+                    R.string.remembered_wheel_not_found, lookup.wheels.first().address
+                )
                 else -> null
             }
             if (message != null) updateError(message)
@@ -1245,10 +1319,16 @@ class BleSessionViewModel internal constructor(
     }
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
-    private fun connectDiscoveredDevice(device: EUCDevice, fallbackName: String = "") {
+    private fun connectDiscoveredDevice(
+        device: EUCDevice,
+        fallbackName: String = "",
+        resetProtocol: Boolean = false,
+        rememberOnConnect: Boolean = false,
+    ) {
         try {
             prepareForConnection()
             val client = _eucBleClient
+            if (resetProtocol) client.clearForcedProtocol()
             if (client.getProtocolSelectionMode() != ProtocolSelectionMode.FORCED) {
                 client.setProtocolSelectionMode(ProtocolSelectionMode.AUTO_WITH_MANUAL_FALLBACK)
             }
@@ -1257,12 +1337,14 @@ class BleSessionViewModel internal constructor(
             ) device.copy(name = fallbackName) else device
             rawTrafficAddress = target.address
             rawTraffic.start()
+            wheelToRemember = target.takeIf { rememberOnConnect }
             connectionRequested = true
             updateConnectionState(BLEConstants.ConnectionState.CONNECTING)
             client.connect(target)
             Timber.i("Connecting to device: %s", target.address)
         } catch (e: Exception) {
             connectionRequested = false
+            wheelToRemember = null
             updateDisconnectedState()
             updateError(e.message ?: "Failed to connect to ${device.address}")
         }
@@ -1293,13 +1375,12 @@ class BleSessionViewModel internal constructor(
     }
 
     fun addScanResult(device: EUCDevice) {
-        viewModelScope.launch {
-            _sessionState.value = _sessionState.value.copy(
-                scanResults = ScanResultMerger.merge(
-                    _sessionState.value.scanResults,
-                    listOf(device)
-                )
-            )
+        viewModelScope.launch { mergeScanResult(device) }
+    }
+
+    private fun mergeScanResult(device: EUCDevice) {
+        _sessionState.update {
+            it.copy(scanResults = ScanResultMerger.merge(it.scanResults, listOf(device)))
         }
     }
 

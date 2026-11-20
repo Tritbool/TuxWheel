@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
 import androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_UNSPECIFIED
 import androidx.preference.PreferenceManager
 import io.github.tuxwheel.ble.BleSessionViewModel
+import io.github.tuxwheel.ble.RememberedWheel
 import io.github.tuxwheel.utils.NotificationUtil
 import io.github.tuxwheel.utils.VolumeKeyController
 import org.koin.core.component.KoinComponent
@@ -16,6 +17,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.conflate
 import kotlinx.coroutines.flow.distinctUntilChanged
+import org.json.JSONArray
+import org.json.JSONException
+import org.json.JSONObject
+import timber.log.Timber
 
 class AppConfig(var context: Context) : KoinComponent {
     companion object {
@@ -395,6 +400,62 @@ class AppConfig(var context: Context) : KoinComponent {
         set(value) = setValue("profile_name", value)
 
     //region connection
+    fun migrateRememberedWheels() {
+        if (getValue<String?>("remembered_wheels", null) == null) {
+            rememberedWheels = RememberedWheel.normalizeAddress(lastMac)?.let {
+                listOf(RememberedWheel(it, lastName))
+            }.orEmpty()
+        }
+    }
+
+    var rememberedWheels: List<RememberedWheel>
+        get() {
+            migrateRememberedWheels()
+            val stored = getValue("remembered_wheels", "[]")
+            return try {
+                val wheels = JSONArray(stored)
+                (0 until wheels.length()).mapNotNull { index ->
+                    val wheel = wheels.optJSONObject(index) ?: return@mapNotNull null
+                    val address = RememberedWheel.normalizeAddress(wheel.optString("address"))
+                        ?: return@mapNotNull null
+                    RememberedWheel(address, wheel.optString("name"), wheel.optString("alias"))
+                }.distinctBy { it.address }
+            } catch (e: JSONException) {
+                Timber.e(e, "Failed to read remembered wheels")
+                emptyList()
+            }
+        }
+        set(value) {
+            val wheels = JSONArray()
+            value.mapNotNull { wheel ->
+                RememberedWheel.normalizeAddress(wheel.address)?.let { wheel.copy(address = it) }
+            }.distinctBy { it.address }
+                .forEach { wheel ->
+                    wheels.put(
+                        JSONObject()
+                            .put("address", wheel.address)
+                            .put("name", wheel.name)
+                            .put("alias", wheel.alias)
+                    )
+                }
+            setValue("remembered_wheels", wheels.toString())
+        }
+
+    fun rememberWheel(address: String, name: String) {
+        val key = RememberedWheel.normalizeAddress(address) ?: return
+        val existingWheels = rememberedWheels
+        val wheels = existingWheels.toMutableList()
+        val index = wheels.indexOfFirst { it.address == key }
+        val advertisedName = name.takeUnless { it.isBlank() || it.equals("Unknown", ignoreCase = true) }
+        if (index >= 0) {
+            val existing = wheels[index]
+            wheels[index] = existing.copy(name = advertisedName ?: existing.name)
+        } else {
+            wheels.add(RememberedWheel(key, advertisedName.orEmpty()))
+        }
+        if (wheels != existingWheels) rememberedWheels = wheels
+    }
+
     var lastMac: String
         get() = getValue("last_mac", "")
         set(value) = setValue("last_mac", value)

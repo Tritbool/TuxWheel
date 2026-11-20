@@ -9,7 +9,7 @@
         android:id="@+id/miWheel"
         app:showAsAction="always"
         android:icon="@drawable/ic_wheel_white_24"
-        android:title="@string/connect_to_wheel" />
+        android:title="@string/my_wheels" />
     <item
         android:id="@+id/miLogging"
         app:showAsAction="always"

@@ -49,11 +49,13 @@ class WheelAutoConnectTest {
     private val wheel = EUCDevice("Unknown", "AA:BB:CC:DD:EE:FF", 0, rssi = -42)
     private val otherWheel = wheel.copy(name = "Other wheel", address = "AA:BB:CC:DD:EE:FE")
     private lateinit var model: BleSessionViewModel
+    private lateinit var config: AppConfig
 
     @Before fun setup() {
         Dispatchers.setMain(dispatcher)
-        val config = mockk<AppConfig>()
+        config = mockk<AppConfig>()
         every { config.rawLoggingPreferences() } returns flowOf(false)
+        every { config.rememberWheel(any(), any()) } returns Unit
         startKoin { modules(module { single { config } }) }
         every { client.setConnectionCallback(capture(callback)) } answers { }
         every { client.setErrorCallback(capture(errors)) } answers { }
@@ -102,6 +104,90 @@ class WheelAutoConnectTest {
         runCurrent()
         assertLookupEnded()
         assertThat(model.sessionState.value.lastError).isNotNull()
+    }
+
+    @Test fun `one startup scan waits for the favorite and connects to it immediately on discovery`() = runTest(dispatcher) {
+        model.autoConnect(listOf(RememberedWheel(wheel.address, "Favorite"), RememberedWheel(otherWheel.address, "")))
+        runCurrent()
+        callback.captured.onDeviceDiscovered(otherWheel)
+        advanceTimeBy(9_000)
+        verify(exactly = 0) { client.connect(any()) }
+
+        callback.captured.onDeviceDiscovered(wheel)
+        runCurrent()
+        verify(exactly = 1) { client.startScan() }
+        verify(exactly = 1) { client.connect(match { it.address == wheel.address }) }
+        assertThat(model.sessionState.value.isAutoConnecting).isFalse()
+    }
+
+    @Test fun `startup picks the highest ranked available wheel at ten seconds`() = runTest(dispatcher) {
+        val thirdWheel = wheel.copy(address = "AA:BB:CC:DD:EE:FD")
+        model.autoConnect(listOf(wheel, otherWheel, thirdWheel).map { RememberedWheel(it.address, "") })
+        runCurrent()
+        callback.captured.onDeviceDiscovered(thirdWheel)
+        callback.captured.onDeviceDiscovered(otherWheel)
+        advanceTimeBy(9_999)
+        assertThat(model.sessionState.value.isAutoConnecting).isTrue()
+        verify(exactly = 0) { client.connect(any()) }
+
+        advanceTimeBy(1)
+        runCurrent()
+        verify(exactly = 1) { client.startScan() }
+        verify(exactly = 1) { client.connect(otherWheel) }
+        assertThat(model.sessionState.value.isAutoConnecting).isFalse()
+    }
+
+    @Test fun `startup without any saved wheel nearby ends quietly`() = runTest(dispatcher) {
+        model.autoConnect(listOf(RememberedWheel(wheel.address, "")))
+        runCurrent()
+        callback.captured.onDeviceDiscovered(otherWheel)
+        advanceTimeBy(10_000)
+        runCurrent()
+        assertLookupEnded()
+        assertThat(model.sessionState.value.lastError).isNull()
+    }
+
+    @Test fun `startup considers results reported when the library finishes scanning`() = runTest(dispatcher) {
+        model.autoConnect(listOf(RememberedWheel(wheel.address, ""), RememberedWheel(otherWheel.address, "")))
+        runCurrent()
+        callback.captured.onDeviceDiscovered(otherWheel)
+        callback.captured.onScanCompleted(listOf(wheel, otherWheel))
+        runCurrent()
+        verify(exactly = 0) { client.stopScan() }
+        verify(exactly = 1) { client.connect(wheel) }
+    }
+
+    @Test fun `opening manual scan reuses discoveries and prevents auto connection`() = runTest(dispatcher) {
+        model.autoConnect(listOf(RememberedWheel(wheel.address, "")))
+        runCurrent()
+        callback.captured.onScanStarted()
+        callback.captured.onDeviceDiscovered(otherWheel)
+        runCurrent()
+        assertThat(model.cancelAutoConnect(keepScanning = true)).isTrue()
+        model.startScan()
+        callback.captured.onDeviceDiscovered(wheel)
+        advanceTimeBy(10_000)
+        runCurrent()
+
+        verify(exactly = 1) { client.startScan() }
+        verify(exactly = 0) { client.stopScan(); client.connect(any()) }
+        assertThat(model.sessionState.value.isAutoConnecting).isFalse()
+        assertThat(model.sessionState.value.isScanning).isTrue()
+        assertThat(model.sessionState.value.scanResults).containsExactly(otherWheel, wheel).inOrder()
+    }
+
+    @Test fun `manually selected wheels are remembered only after connection`() = runTest(dispatcher) {
+        model.startScan()
+        runCurrent()
+        callback.captured.onDeviceDiscovered(otherWheel)
+        runCurrent()
+        model.connectByAddress(otherWheel.address)
+        runCurrent()
+        verify(exactly = 0) { config.rememberWheel(any(), any()) }
+        every { client.getConnectedDevice() } returns otherWheel
+        callback.captured.onConnected()
+        runCurrent()
+        verify(exactly = 1) { config.rememberWheel(otherWheel.address, otherWheel.name) }
     }
 
     @Test fun `cancelled lookup ignores a late discovery and releases the scan`() = runTest(dispatcher) {

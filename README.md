@@ -103,6 +103,13 @@ either attempt or to disconnect intentionally without reconnecting.
    Select a specific protocol to force it only when the wheel requires it;
    **Automatic** leaves detection to the library and is the fallback when unsure.
 
+After a successful manual connection, TuxWheel saves the wheel on your phone.
+Tap **My wheels** (the wheel icon) to rename, forget, or reorder saved wheels.
+On launch, TuxWheel checks for them for up to **10 seconds**. It connects as
+soon as the first wheel in the list is found; otherwise it picks the highest
+ranked wheel detected before the scan ends. Tap the blinking **Bluetooth**
+icon to cancel automatic connection and take over the scan manually.
+
 If connection fails, check permissions, Bluetooth, and whether another app
 already holds the wheel connection. Report the model, firmware, and selected
 protocol with any issue; do not assume all devices in a scan are EUCs.
