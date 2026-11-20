@@ -9,18 +9,27 @@ Build against your local `euc_ble_library` checkout instead of a published relea
   -Peuc.androidGradlePluginVersion=9.2.1 :app:assembleDebug
 ```
 
-For the descriptor-based command contract, the checkout must include
-[euc_ble_library PR #101](https://github.com/Tritbool/euc_ble_library/pull/101) (revision
-`1ba8dba9ffef0394f36b6e22afeb1b4a4abf16e7`) until that API is available in a
-published release. The app-check and release workflows use this pinned revision.
+The checkout must provide the descriptor-based command contract used by the app.
+Use the library's `main` branch for development or its latest stable release tag
+for a release build.
 
 Or set `eucBleLibraryDir=/absolute/path/to/euc_ble_library` in your local
 `~/.gradle/gradle.properties`, along with `euc.androidGradlePluginVersion=9.2.1`
 to match this app's Android Gradle plugin version. The composite build substitutes all four BLE modules,
 including the Android connector; no version bump or `publishToMavenLocal` is needed.
 Without that property, the regular dependency coordinates remain unchanged.
-The app-check and release workflows both check out a pinned BLE source revision
-and use this composite build. Keep their library revisions aligned when updating.
+The app-check workflow checks out the latest commit on the library's `main`
+branch. The release workflow resolves GitHub's latest published stable library
+release and prefers its Maven Central artifacts, including the Android connector
+and JVM dependencies. Only an HTTP 404 for a required artifact or its metadata
+triggers a checkout of that release's exact tag and a composite source build.
+Network errors, other HTTP errors and build failures stop the release instead
+of silently falling back. No stable GitHub release also stops the release.
+There is no need to wait for Maven publication.
+
+The release workflow uses `-PeucBleVersion=<version>` to override the BLE version
+in the version catalogue without changing the checked-in default. This ensures
+Maven and source builds both target the same latest stable release.
 
 ## EUC_BLE_LIBRARY integration
 
@@ -102,12 +111,12 @@ cd TuxWheel
 These tasks require working resolution of the configured Gradle plugins and
 dependencies from Google Maven, Maven Central, the Gradle Plugin Portal and
 JitPack (MPAndroidChart). The command assumes a sibling library checkout containing
-the current InMotion APIs, as described above. Local Maven artifacts are
+the required library APIs, as described above. Local Maven artifacts are
 intentionally not used: the composite consumes the library source directly.
-Do not downgrade the pinned library or plugins to bypass resolution failures.
+Do not downgrade the library or plugins to bypass resolution failures.
 
 Pull requests and pushes to `master` run the selected debug regression tests,
-Android lint, and unsigned release assembly against pinned library source on a
+Android lint, and unsigned release assembly against the library's `main` branch on a
 hosted Linux runner. These checks need no emulator or release-signing secrets.
 They do not replace BLE testing on a physical wheel.
 

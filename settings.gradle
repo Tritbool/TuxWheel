@@ -8,6 +8,14 @@ pluginManagement {
 
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    def eucBleVersion = providers.gradleProperty('eucBleVersion')
+    if (eucBleVersion.isPresent()) {
+        versionCatalogs {
+            libs {
+                version('euc-ble', eucBleVersion.get())
+            }
+        }
+    }
     repositories {
         google()
         mavenLocal()
