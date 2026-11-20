@@ -91,10 +91,10 @@
     <string name="auto_connect_cancelled">Automatic connection canceled</string>
     <string name="my_wheels">My wheels</string>
     <string name="wheels_priority_title">My wheels · Connection priority</string>
-    <string name="wheels_drag_hint">Press and hold a wheel, then drag it to change its priority.</string>
+    <string name="wheels_drag_hint">Drag to reorder</string>
     <string name="wheels_connect_named">Connect to %1$s</string>
     <string name="wheels_disconnect_named">Disconnect %1$s</string>
-    <string name="wheels_priority_wait_value">Auto-connect priority wait: %1$d s</string>
+    <string name="wheels_priority_wait_value">Change auto-connect delay (%1$d s)</string>
     <string name="wheels_priority_wait_title">Wait for a higher-priority wheel</string>
     <string name="wheels_priority_wait_immediate">0 s — connect to the first wheel found</string>
     <string name="wheels_priority_wait_seconds">%1$d s</string>
@@ -103,6 +103,7 @@
     <string name="wheels_done">Done</string>
     <string name="wheels_add">Add a wheel</string>
     <string name="wheels_add_scan">Scan with Bluetooth</string>
+    <string name="wheels_add_scan_disconnect">Starting a Bluetooth scan will end the current wheel connection or connection attempt.</string>
     <string name="wheels_add_manual">Enter a MAC address</string>
     <string name="wheels_add_confirm">Add</string>
     <string name="wheels_manual_name_hint">Name (optional)</string>

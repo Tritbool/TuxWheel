@@ -104,14 +104,14 @@ an attempt or disconnect intentionally without reconnecting.
    **Automatic** leaves detection to the library and is the fallback when unsure.
 
 After a successful manual connection, TuxWheel saves the wheel on your phone.
-Tap **My wheels** (the wheel icon) to manage saved wheels. Press and hold a row,
-then drag it to change its priority. Use its green play button to connect or
+Tap **My wheels** (the wheel icon) to manage saved wheels. Drag the handle on
+the left of a row to change its priority. Use its green play button to connect or
 its red stop button to disconnect.
-**Add a wheel** there to scan, or enter its 12 hexadecimal MAC digits directly;
-the form inserts the colons. Without a custom name, a manual wheel is called
-`wheel1`, `wheel2`, … until its first
-connection replaces that placeholder with the wheel's Bluetooth name; custom
-names are never replaced.
+**Add a wheel** offers a Bluetooth scan or manual MAC entry. Starting a scan
+ends the active wheel connection after confirmation. The manual form inserts
+the colons between the 12 hexadecimal digits. Without a custom name, a manual
+wheel is called `wheel1`, `wheel2`, … until its first connection replaces that
+placeholder with the wheel's Bluetooth name; custom names are never replaced.
 On launch, TuxWheel scans for up to **10 seconds** and connects immediately if
 it finds the top-ranked wheel. When it first finds another saved wheel, it gives
 higher-ranked wheels **1 second** by default, then picks the best one found.

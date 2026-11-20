@@ -8,11 +8,13 @@ import android.text.InputFilter
 import android.text.InputType
 import android.util.TypedValue
 import android.view.Gravity
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
@@ -49,7 +51,7 @@ internal class RememberedWheelsDialog(
         val hint = TextView(dialogContext).apply {
             setPadding(dp(24), dp(12), dp(24), dp(8))
         }
-        val priorityWait = Button(dialogContext, null, android.R.attr.borderlessButtonStyle).apply {
+        val priorityWait = Button(dialogContext).apply {
             isAllCaps = false
         }
         fun refreshPriorityWait() {
@@ -75,7 +77,12 @@ internal class RememberedWheelsDialog(
         val list = RecyclerView(dialogContext).apply {
             layoutManager = LinearLayoutManager(dialogContext)
         }
-        content.addView(priorityWait)
+        content.addView(priorityWait, LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+        ).apply {
+            marginStart = dp(20)
+            marginEnd = dp(20)
+        })
         content.addView(hint)
         content.addView(list, LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
@@ -85,8 +92,7 @@ internal class RememberedWheelsDialog(
             .setView(content)
             .setPositiveButton(R.string.wheels_done, null)
             .setNegativeButton(R.string.wheels_add) { _, _ ->
-                if (Connection.from(session.value).busy) showManualAdd(::reopen)
-                else showAddChooser(onScan, ::reopen)
+                showAddChooser({ Connection.from(session.value).busy }, onScan, ::reopen)
             }
             .setNeutralButton(R.string.disconnect_from_wheel, null)
             .create()
@@ -110,7 +116,7 @@ internal class RememberedWheelsDialog(
         }
         adapter.refresh = ::refresh
         var orderChanged = false
-        ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0) {
+        val touchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0) {
             override fun onMove(
                 recyclerView: RecyclerView,
                 viewHolder: RecyclerView.ViewHolder,
@@ -142,7 +148,9 @@ internal class RememberedWheelsDialog(
             }
 
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) = Unit
-        }).attachToRecyclerView(list)
+        })
+        touchHelper.attachToRecyclerView(list)
+        adapter.startDrag = touchHelper::startDrag
         dialog.show()
         dialog.getButton(DialogInterface.BUTTON_NEUTRAL).setOnClickListener {
             if (Connection.from(session.value).busy) onDisconnect()
@@ -175,6 +183,7 @@ internal class RememberedWheelsDialog(
     ) : RecyclerView.Adapter<WheelRow>() {
         val wheels = mutableListOf<RememberedWheel>()
         lateinit var refresh: () -> Unit
+        lateinit var startDrag: (RecyclerView.ViewHolder) -> Unit
         private var nameCounts = emptyMap<String, Int>()
 
         fun reload() {
@@ -191,19 +200,36 @@ internal class RememberedWheelsDialog(
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
                 layoutParams = RecyclerView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
-                setPaddingRelative(dp(24), 0, dp(12), 0)
+                setPaddingRelative(dp(8), 0, dp(12), 0)
                 setBackgroundResource(selectableBackground(context))
             }
             val label = TextView(parent.context).apply {
                 setPaddingRelative(0, dp(12), dp(8), dp(12))
             }
+            val handle = ImageView(parent.context).apply {
+                setImageResource(R.drawable.ic_wheel_drag_handle)
+                scaleType = ImageView.ScaleType.CENTER
+                imageTintList = label.textColors
+                importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
+            }
             val action = ImageButton(parent.context).apply {
                 setBackgroundResource(selectableBackground(context))
-                scaleType = android.widget.ImageView.ScaleType.CENTER
+                scaleType = ImageView.ScaleType.CENTER
             }
+            row.addView(handle, LinearLayout.LayoutParams(dp(48), dp(48)))
             row.addView(label, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
             row.addView(action, LinearLayout.LayoutParams(dp(48), dp(48)))
             return WheelRow(row, label, action).also { holder ->
+                handle.setOnTouchListener { _, event ->
+                    if (event.actionMasked == MotionEvent.ACTION_DOWN && wheels.size > 1 &&
+                        holder.bindingAdapterPosition in wheels.indices
+                    ) {
+                        startDrag(holder)
+                        true
+                    } else {
+                        false
+                    }
+                }
                 row.setOnClickListener {
                     wheels.getOrNull(holder.bindingAdapterPosition)?.let { onOptions(it, refresh) }
                 }
@@ -293,12 +319,23 @@ internal class RememberedWheelsDialog(
             .show()
     }
 
-    private fun showAddChooser(onScan: () -> Unit, refresh: () -> Unit) {
+    private fun showAddChooser(isBusy: () -> Boolean, onScan: () -> Unit, refresh: () -> Unit) {
         AlertDialog.Builder(context)
             .setTitle(R.string.wheels_add)
             .setItems(
                 arrayOf(context.getString(R.string.wheels_add_scan), context.getString(R.string.wheels_add_manual))
-            ) { _, which -> if (which == 0) onScan() else showManualAdd(refresh) }
+            ) { _, which ->
+                when {
+                    which == 1 -> showManualAdd(refresh)
+                    !isBusy() -> onScan()
+                    else -> AlertDialog.Builder(context)
+                        .setMessage(R.string.wheels_add_scan_disconnect)
+                        .setPositiveButton(R.string.wheels_add_scan) { _, _ -> onScan() }
+                        .setNegativeButton(android.R.string.cancel) { _, _ -> refresh() }
+                        .setOnCancelListener { refresh() }
+                        .show()
+                }
+            }
             .setNegativeButton(android.R.string.cancel) { _, _ -> refresh() }
             .setOnCancelListener { refresh() }
             .show()

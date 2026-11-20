@@ -52,10 +52,10 @@
     <string name="auto_connect_cancelled">Connexion automatique annulée</string>
     <string name="my_wheels">Mes roues</string>
     <string name="wheels_priority_title">Mes roues · Priorité de connexion</string>
-    <string name="wheels_drag_hint">Appuyez longuement sur une roue, puis faites-la glisser pour changer sa priorité.</string>
+    <string name="wheels_drag_hint">Glisser pour réordonner</string>
     <string name="wheels_connect_named">Connecter %1$s</string>
     <string name="wheels_disconnect_named">Déconnecter %1$s</string>
-    <string name="wheels_priority_wait_value">Connexion auto · Délai de priorité : %1$d s</string>
+    <string name="wheels_priority_wait_value">Modifier le délai de connexion auto (%1$d s)</string>
     <string name="wheels_priority_wait_title">Attendre une roue plus prioritaire</string>
     <string name="wheels_priority_wait_immediate">0 s — connecter la première roue détectée</string>
     <string name="wheels_priority_wait_seconds">%1$d s</string>
@@ -64,6 +64,7 @@
     <string name="wheels_done">Terminé</string>
     <string name="wheels_add">Ajouter une roue</string>
     <string name="wheels_add_scan">Rechercher en Bluetooth</string>
+    <string name="wheels_add_scan_disconnect">La recherche Bluetooth mettra fin à la connexion ou à la tentative de connexion en cours.</string>
     <string name="wheels_add_manual">Saisir une adresse MAC</string>
     <string name="wheels_add_confirm">Ajouter</string>
     <string name="wheels_manual_name_hint">Nom (optionnel)</string>
