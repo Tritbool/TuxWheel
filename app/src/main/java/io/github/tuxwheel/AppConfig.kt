@@ -27,6 +27,7 @@ class AppConfig(var context: Context) : KoinComponent {
         const val BMS_LOG_INTERVAL_MIN_SECONDS = 1
         const val BMS_LOG_INTERVAL_MAX_SECONDS = 60
         const val BMS_LOG_INTERVAL_DEFAULT_SECONDS = 5
+        private val AUTO_WHEEL_NAME = Regex("wheel(\\d+)", RegexOption.IGNORE_CASE)
     }
 
     private val notifications: NotificationUtil by inject()
@@ -441,7 +442,7 @@ class AppConfig(var context: Context) : KoinComponent {
             setValue("remembered_wheels", wheels.toString())
         }
 
-    fun rememberWheel(address: String, name: String) {
+    fun rememberWheel(address: String, name: String, addIfMissing: Boolean = true) {
         val key = RememberedWheel.normalizeAddress(address) ?: return
         val existingWheels = rememberedWheels
         val wheels = existingWheels.toMutableList()
@@ -450,11 +451,35 @@ class AppConfig(var context: Context) : KoinComponent {
         if (index >= 0) {
             val existing = wheels[index]
             wheels[index] = existing.copy(name = advertisedName ?: existing.name)
-        } else {
+        } else if (addIfMissing) {
             wheels.add(RememberedWheel(key, advertisedName.orEmpty()))
         }
         if (wheels != existingWheels) rememberedWheels = wheels
     }
+
+    /**
+     * Appends a wheel entered by MAC address. A custom name is stored as the alias so it is
+     * never replaced; otherwise a "wheelN" placeholder is stored as the BLE name and is
+     * replaced by the advertised name on the first successful connection.
+     */
+    fun addManualWheel(address: String, customName: String): ManualWheelResult {
+        val key = RememberedWheel.normalizeAddress(address) ?: return ManualWheelResult.INVALID_ADDRESS
+        val wheels = rememberedWheels
+        if (wheels.any { it.address == key }) return ManualWheelResult.ALREADY_SAVED
+        val alias = customName.trim()
+        val wheel = if (alias.isNotEmpty()) {
+            RememberedWheel(key, "", alias)
+        } else {
+            val next = wheels.flatMap { listOf(it.name, it.alias) }
+                .mapNotNull { AUTO_WHEEL_NAME.matchEntire(it)?.groupValues?.get(1)?.toIntOrNull() }
+                .maxOrNull()?.plus(1) ?: 1
+            RememberedWheel(key, "wheel$next")
+        }
+        rememberedWheels = wheels + wheel
+        return ManualWheelResult.ADDED
+    }
+
+    enum class ManualWheelResult { ADDED, INVALID_ADDRESS, ALREADY_SAVED }
 
     var lastMac: String
         get() = getValue("last_mac", "")

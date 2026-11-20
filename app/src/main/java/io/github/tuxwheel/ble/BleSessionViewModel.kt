@@ -478,10 +478,14 @@ class BleSessionViewModel internal constructor(
                 viewModelScope.launch {
                     if (connectionRequested) {
                         val device = client.getConnectedDevice()
-                        wheelToRemember?.let { target ->
+                        val target = wheelToRemember
+                        if (target != null) {
                             val name = device?.takeIf { it.address.equals(target.address, ignoreCase = true) }
                                 ?.name ?: target.name
                             appConfig.rememberWheel(target.address, name)
+                        } else if (device != null) {
+                            // Refresh the BLE name (e.g. a manual "wheelN" placeholder) of saved wheels only.
+                            appConfig.rememberWheel(device.address, device.name, addIfMissing = false)
                         }
                         wheelToRemember = null
                         updateConnectedDevice(device)

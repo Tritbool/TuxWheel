@@ -96,7 +96,13 @@
     <string name="wheels_connected_item">%1$s (connected)</string>
     <string name="wheels_done">Done</string>
     <string name="wheels_add">Add a wheel</string>
-    <string name="wheels_empty">No saved wheels. Add a wheel by connecting to it over Bluetooth.</string>
+    <string name="wheels_add_scan">Scan with Bluetooth</string>
+    <string name="wheels_add_manual">Enter a MAC address</string>
+    <string name="wheels_add_confirm">Add</string>
+    <string name="wheels_manual_name_hint">Name (optional)</string>
+    <string name="wheels_invalid_address">Invalid MAC address (expected AA:BB:CC:DD:EE:FF)</string>
+    <string name="wheels_already_saved">This wheel is already saved</string>
+    <string name="wheels_empty">No saved wheels. Add one with Bluetooth or by MAC address.</string>
     <string name="wheels_move_up">Move up</string>
     <string name="wheels_move_down">Move down</string>
     <string name="wheels_rename">Rename</string>

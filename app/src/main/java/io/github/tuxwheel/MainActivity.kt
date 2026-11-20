@@ -961,7 +961,7 @@ class MainActivity : AppCompatActivity() {
                     viewModel.connectToRememberedWheel(wheel.address, wheel.name)
                 }
             }),
-            onAdd = ::startScanActivity
+            onScan = if (busy) null else ::startScanActivity
         )
     }
 

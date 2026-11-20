@@ -55,7 +55,7 @@ class WheelAutoConnectTest {
         Dispatchers.setMain(dispatcher)
         config = mockk<AppConfig>()
         every { config.rawLoggingPreferences() } returns flowOf(false)
-        every { config.rememberWheel(any(), any()) } returns Unit
+        every { config.rememberWheel(any(), any(), any()) } returns Unit
         startKoin { modules(module { single { config } }) }
         every { client.setConnectionCallback(capture(callback)) } answers { }
         every { client.setErrorCallback(capture(errors)) } answers { }
@@ -183,11 +183,22 @@ class WheelAutoConnectTest {
         runCurrent()
         model.connectByAddress(otherWheel.address)
         runCurrent()
-        verify(exactly = 0) { config.rememberWheel(any(), any()) }
+        verify(exactly = 0) { config.rememberWheel(any(), any(), any()) }
         every { client.getConnectedDevice() } returns otherWheel
         callback.captured.onConnected()
         runCurrent()
-        verify(exactly = 1) { config.rememberWheel(otherWheel.address, otherWheel.name) }
+        verify(exactly = 1) { config.rememberWheel(otherWheel.address, otherWheel.name, true) }
+    }
+
+    @Test fun `auto connection refreshes only an already saved wheel name`() = runTest(dispatcher) {
+        model.autoConnect(listOf(RememberedWheel(otherWheel.address, "wheel1")))
+        runCurrent()
+        callback.captured.onDeviceDiscovered(otherWheel)
+        runCurrent()
+        every { client.getConnectedDevice() } returns otherWheel
+        callback.captured.onConnected()
+        runCurrent()
+        verify(exactly = 1) { config.rememberWheel(otherWheel.address, otherWheel.name, false) }
     }
 
     @Test fun `cancelled lookup ignores a late discovery and releases the scan`() = runTest(dispatcher) {

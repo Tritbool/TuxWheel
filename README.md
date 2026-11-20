@@ -105,6 +105,10 @@ either attempt or to disconnect intentionally without reconnecting.
 
 After a successful manual connection, TuxWheel saves the wheel on your phone.
 Tap **My wheels** (the wheel icon) to rename, forget, or reorder saved wheels.
+**Add a wheel** there to scan, or enter its MAC address directly. Without a
+custom name, a manual wheel is called `wheel1`, `wheel2`, … until its first
+connection replaces that placeholder with the wheel's Bluetooth name; custom
+names are never replaced.
 On launch, TuxWheel checks for them for up to **10 seconds**. It connects as
 soon as the first wheel in the list is found; otherwise it picks the highest
 ranked wheel detected before the scan ends. Tap the blinking **Bluetooth**
