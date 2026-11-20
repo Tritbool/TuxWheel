@@ -1,493 +1,116 @@
 # TuxWheel
-<p align="center">
-  <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" alt="EUC SoH logo" width="256" height="256" />
-</p>
 
+<p align="center">
+  <img src="app/src/main/res/mipmap-xxxhdpi/ic_launcher.png" alt="TuxWheel logo" width="256" height="256" />
+</p>
 
 [![Build](https://github.com/Tritbool/TuxWheel/actions/workflows/gradle.yml/badge.svg)](https://github.com/Tritbool/TuxWheel/actions)
 [![License: GPL-3.0](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 
-TuxWheel is an Android companion for electric unicycles (EUCs). It connects
-over Bluetooth Low Energy (BLE) to display
-telemetry, configure supported wheel settings, and record rides.
+TuxWheel is an Android companion for electric unicycles (EUCs). It connects over
+Bluetooth Low Energy (BLE), through
+[EUC_BLE_LIBRARY](https://github.com/Tritbool/euc_ble_library), to display telemetry,
+configure supported wheel settings, and record rides.
 
-**It does not aim at fully replace your EUC's OEM App.**
->Instead, TuxWheel is designed as a discreet riding app, focusing on dashboard and EUCs data logging.
-N.B: Bluetooth stack relies on retro-engineering so some readings or commands can be fully missing so far**
+It does not aim to fully replace your EUC's OEM app: TuxWheel is a discreet riding app
+focused on the dashboard and on EUC data logging. BLE support relies on reverse
+engineering, so some readings or commands may be missing depending on the wheel model
+and firmware.
 
 [Releases](https://github.com/Tritbool/TuxWheel/releases) ·
 [Builds](https://github.com/Tritbool/TuxWheel/actions) ·
 [Issues](https://github.com/Tritbool/TuxWheel/issues)
 
-## PRIVACY
-**This application works offline. It is designed for DeGoogled Android devices and focuses on providing a dashboard for EUCs without bloatware features, focusing on privacy and effectiveness.**
+## What makes TuxWheel different
 
-- NO GPS data
-- NO Trackers
-- NO ads
-- NO data collection
+- **Fully offline.** No GPS, no trackers, no ads, no data collection. The only network
+  use is an optional check for a newer app release (at most once per 24 h); F-Droid
+  builds ship without it. Details in [docs/privacy.md](docs/privacy.md).
+- **Speed limiter.** Cap the wheel's maximum speed at runtime; your own max speed is
+  restored when the limiter is turned off.
+- **InMotion diagnostic file download.** Download the wheel's binary diagnostic log and
+  save it only after CRC verification — tested on the V9, Leaperkim (LK) pending
+  validation.
+- **Auto-connect over an ordered panel of wheels.** Save several wheels in *My wheels*,
+  drag to set their priority, and TuxWheel connects at startup to the best-ranked wheel
+  it finds.
+- **Lock / unlock** when the wheel supports it (e.g. InMotion V9).
+- **KingSong password management** (set, change or remove the 4-digit wheel password).
 
-Core BLE, dashboard and logging features work offline. Upstream release builds
-use Internet permission to check GitHub's latest stable release at startup, at
-most once per 24 hours (including failed attempts). GitHub receives the network
-request, including your IP address; no ride data is uploaded. Network failures
-are silent. A newer stable version offers **Download** (opens the release APK
-in your browser) or **Later**; TuxWheel does not download or install APKs itself.
-Debug builds do not check for release APKs with a different application ID.
-Source/help links open in your chosen browser; sharing opens your chosen app.
-Automatic Android cloud backup and device-transfer extraction of app data are
-disabled. This does not delete existing backups or protect public Downloads
-files from other apps, device-owner tools, or a user's own backup software.
-Export any data you need before uninstalling: settings will not restore
-automatically.
+On top of that: customizable dashboard blocks and gauges (speed, battery, temperature,
+current, PWM, ...), configurable alarms, charts, trips and events pages, Smart BMS with
+per-pack measurements and cell voltages on supported wheels, CSV ride logging plus
+optional raw BLE diagnostics (files saved under `Downloads/TuxWheel`),
+picture-in-picture, and configurable speed/distance/temperature units.
 
-### Distribution channels and update checks
+## Screenshots
 
-Build with `-PenableGithubUpdates=false` to disable GitHub checks and remove
-Internet permission, including library declarations. The default is `true`.
-**F-Droid and other independently signed distributions must set this property**
-for every build, including APKs that users might sideload. For example:
-`./gradlew :app:assembleRelease -PenableGithubUpdates=false`.
-Use the same property when running tests/lint for that channel.
+<!-- SCREENSHOT: docs/screenshots/01-dashboard.png — customized dashboard blocks and gauge -->
+<!-- SCREENSHOT: docs/screenshots/02-my-wheels.png — saved-wheels panel with drag-to-reorder (auto-connect priority) -->
+<!-- SCREENSHOT: docs/screenshots/03-speed-limiter.png — speed limiter on/off -->
+<!-- SCREENSHOT: docs/screenshots/04-diagnostic-file.png — InMotion diagnostic file download (V9) -->
+<!-- SCREENSHOT: docs/screenshots/05-wheel-settings.png — lock/unlock and KingSong password management -->
+<!-- SCREENSHOT: docs/screenshots/06-trips.png — recorded trip statistics -->
 
-Installer detection additionally suppresses checks for the official F-Droid
-client/privileged installer and several alternative F-Droid clients. It is only
-a fallback: sideloads can have no installer identity, and unknown clients cannot
-be reliably identified. There is no upstream signing-certificate pin; Android
-enforces signing compatibility at installation, but the build flag is essential
-to avoid offering incompatible upstream APKs to independently signed builds.
+<!-- Once the files exist under docs/screenshots/, replace this comment with:
+<p align="center">
+  <img src="docs/screenshots/01-dashboard.png" alt="Dashboard" width="240" />
+  <img src="docs/screenshots/02-my-wheels.png" alt="My wheels" width="240" />
+  <img src="docs/screenshots/03-speed-limiter.png" alt="Speed limiter" width="240" />
+  <img src="docs/screenshots/04-diagnostic-file.png" alt="Diagnostic file download" width="240" />
+  <img src="docs/screenshots/05-wheel-settings.png" alt="Wheel settings" width="240" />
+  <img src="docs/screenshots/06-trips.png" alt="Trips" width="240" />
+</p>
+-->
 
-Debug builds log to logcat, not automatically to public HTML files. Ride CSV
-logging and optional raw BLE diagnostics remain explicit app features; they can
-contain identifying data and should be disabled when not needed. Existing files
-are not deleted by this cleanup.
+## Other platforms
 
-## Requirements and wheel support
+- **Android** — [GitHub releases](https://github.com/Tritbool/TuxWheel/releases) today;
+  an **F-Droid** listing is planned (see [docs/f-droid.md](docs/f-droid.md)).
+- **SailfishOS** — upcoming port, reusing the same
+  [euc_ble_library](https://github.com/Tritbool/euc_ble_library) protocols with
+  platform-specific glue code.
+- **iOS** — upcoming port; may not be published because of the Apple developer
+  program fee.
 
-- Android 6.0 or newer (API 23), with BLE hardware and Bluetooth enabled.
-- Wheel-family presentations: KingSong, Gotway/Begode, Veteran, InMotion
-  (including V2), and Ninebot/Ninebot Z.
-- Actual connectivity, telemetry, settings, and commands depend on
-  EUC_BLE_LIBRARY support, the wheel model, and its firmware.
-- Smart BMS details are available only for supported wheels/packs.
-  A family-specific screen is not a guarantee that every model supports every feature.
+## Roadmap
 
-On startup, TuxWheel looks for saved wheels for up to 10 seconds
-without opening the scan screen. A BLE interruption during use triggers the
-library's automatic retries for the same wheel. Open **My wheels** to stop
-an attempt or disconnect intentionally without reconnecting.
+- Bluetooth remote buttons (single button) to toggle the **speed limiter**, or to
+  control the **headlight**, **horn**, etc.
 
-## Features
+## Usage
 
-- Customizable dashboard blocks and gauges.
-- Speed, battery, temperature, current, PWM, and other available telemetry.
-- Configurable alarms and charts; optional trips and events pages.
-- Smart BMS presentation with per-pack measurements and cell details when available.
-  All packs/groups share one page: they sit side by side when space allows and
-  stack vertically on narrower screens. Scroll vertically for additional packs
-  and cell details; swipe horizontally to reach charts and other pages.
-- CSV ride logging through a foreground service, plus optional raw BLE diagnostics.
-- Picture-in-picture (PiP) on supported Android versions.
-- Configurable speed/distance and temperature units.
+- Android 6.0+ (API 23) with BLE hardware and Bluetooth enabled.
+- Wheel families: KingSong, Gotway/Begode (including Leaperkim), Veteran, InMotion
+  (including V2), Ninebot/Ninebot Z. Available features depend on the wheel model,
+  firmware and EUC_BLE_LIBRARY support.
+- Connect from the scan dialog or from *My wheels*; on startup TuxWheel scans for up
+  to 10 s and auto-connects to the top-priority saved wheel it finds.
+- Ride CSV logs and optional raw BLE diagnostics are saved under `Downloads/TuxWheel`.
 
-## Connect to a wheel
-
-1. Enable Bluetooth and open the scan dialog.
-2. Grant **Nearby devices** permissions on Android 12+.
-   Older Android versions require location permission for BLE scanning;
-   enable system location when required.
-3. Wait for nearby devices. Scanning stops after **10 seconds**;
-   discovered results remain selectable. **Back** cancels the dialog and scan.
-4. Tap a device to connect, or enter its Bluetooth MAC address manually.
-5. Long-press a discovered device to open the protocol picker.
-   Select a specific protocol to force it only when the wheel requires it;
-   **Automatic** leaves detection to the library and is the fallback when unsure.
-
-After a successful manual connection, TuxWheel saves the wheel on your phone.
-Tap **My wheels** (the wheel icon) to manage saved wheels. Drag the handle on
-the left of a row to change its priority. Use its green play button to connect or
-its red stop button to disconnect.
-**Add a wheel** offers a Bluetooth scan or manual MAC entry. Starting a scan
-ends the active wheel connection after confirmation. The manual form inserts
-the colons between the 12 hexadecimal digits. Without a custom name, a manual
-wheel is called `wheel1`, `wheel2`, … until its first connection replaces that
-placeholder with the wheel's Bluetooth name; custom names are never replaced.
-On launch, TuxWheel scans for up to **10 seconds** and connects immediately if
-it finds the top-ranked wheel. When it first finds another saved wheel, it gives
-higher-ranked wheels **1 second** by default, then picks the best one found.
-Change this wait in **My wheels** (0 seconds connects to the first saved wheel
-found). The overall scan limit still applies. Tap the blinking **Bluetooth**
-icon to cancel automatic connection and take over the scan manually.
-
-If connection fails, check permissions, Bluetooth, and whether another app
-already holds the wheel connection. Report the model, firmware, and selected
-protocol with any issue; do not assume all devices in a scan are EUCs.
-
-For KingSong, a password popup appears when the security-capable protocol is
-selected. Enter the four-digit wheel password (including leading zeros), or leave
-it empty if no password is set. Empty input or Cancel sends no authentication
-command. Passwords are not saved or automatically replayed on reconnect.
-Unconfirmed authentication offers retry; it does not necessarily mean a wrong
-password. Authentication does not automatically send the experimental wheel
-lock/unlock command.
-
-KingSong maximum/tilt-back speed and all three alarm thresholds use settings
-reported by the wheel, not saved app defaults. Controls wait for a settings
-reply before allowing changes. The telemetry speed-limit row shows the separate
-runtime ceiling (or “—” until known), which may differ from configured maximum speed.
-
-## Dashboard and pages
-
-Swipe between the dashboard, wheel settings, and enabled optional pages.
-Enable charts, trips, and events in the page settings as needed.
-Smart BMS visibility and detail depend on the connected wheel.
-For Inmotion wheels, reported pack measurements and cell voltages appear as they
-arrive; unavailable values are left blank.
-
-- **Long-press a dashboard block** to choose its replacement.
-- **Single tap** triggers the horn only when that gesture is enabled.
-- **Double tap** toggles lights only when the wheel supports the command.
-- Choose units and day/night appearance in settings.
-- When the outer ring is set to PWM, it shows the current PWM at the end of the
-  ring fill. The separate **Show PWM below the speed** option displays the
-  current and ride maximum PWM in place of the speed unit. If PWM is the main
-  value, that option shows the speed below it instead.
-
-Wheel settings and actions are capability-dependent. Verify changes while
-stationary; app alarms do not replace the wheel's own safety protections.
-
-InMotion V9 lock controls appear after model identification and wait for the wheel's
-automatic token handshake, without asking for a KingSong PIN. Lock-state requests
-and subsequent wheel notifications confirm the state; a BLE write alone does not.
-P6 lock-state querying is not yet verified, so it does not expose this control.
-
-For identified InMotion V9/P6 wheels, **Wheel diagnostic file** downloads the wheel's
-opaque binary log, shows progress, and offers cancellation. **Save verified file**
-opens Android's document picker only after the library verifies the complete file's
-CRC. Failed/cancelled transfers cannot be saved. No storage permission, automatic
-upload, or diagnostic-content decoding is required; choosing a destination and
-sharing the file remain explicit user actions. Live-wheel behavior is unverified.
-
-### Using the latest local BLE library
-
-Build against your local `euc_ble_library` checkout instead of a published release:
-
-```sh
-./gradlew -PeucBleLibraryDir=/absolute/path/to/euc_ble_library \
-  -Peuc.androidGradlePluginVersion=9.2.1 :app:assembleDebug
-```
-
-For the descriptor-based command contract, the checkout must include
-[euc_ble_library PR #101](https://github.com/Tritbool/euc_ble_library/pull/101) (revision
-`1ba8dba9ffef0394f36b6e22afeb1b4a4abf16e7`) until that API is available in a
-published release. The app-check and release workflows use this pinned revision.
-
-Or set `eucBleLibraryDir=/absolute/path/to/euc_ble_library` in your local
-`~/.gradle/gradle.properties`, along with `euc.androidGradlePluginVersion=9.2.1`
-to match this app's Android Gradle plugin version. The composite build substitutes all four BLE modules,
-including the Android connector; no version bump or `publishToMavenLocal` is needed.
-Without that property, the regular dependency coordinates remain unchanged.
-The app-check and release workflows both check out a pinned BLE source revision
-and use this composite build. Keep their library revisions aligned when updating.
-
-## Logging, trips, and diagnostics
-
-The app allows the logging of:
-1. Standard data log (similar to WheelLog)
-2. SMART BMS Data at detailed level (for battery analysis, later added into euc soh analyzer APP)
-3. RAW BLE Frames (similar to WheelLog)
-
-Start CSV logging from the app. The foreground service keeps recording while
-the interface is in the background and exposes logging controls in its notification.
-Grant notification permission on Android versions that request it.
-
-New files are saved under **Downloads/TuxWheel**. Existing CSV logs remain
-available to the trips page.
-Storage access follows the Android version's permission and storage rules.
-
-Enable the trips page to inspect recorded ride statistics, share a CSV through
-Android's share chooser, or delete a trip after confirmation.
-Raw BLE logging is a separate diagnostic option, not a substitute for ride CSVs.
-While the logging service runs, it records received BLE chunks (RX) and outgoing
-writes accepted by Android (TX) to `yyyy_MM_dd_HH_mm_ss.raw.csv` in the wheel's
-Downloads/TuxWheel subfolder. TX does not confirm wheel delivery or execution.
-The raw CSV columns are `timestamp_ms,hex,type,sequence,characteristic_uuid`;
-`type` is `RX` or `TX`. Timestamps and sequence numbers come from the library,
-not file-write time. Use sequence order, since wall-clock timestamps can move
-backwards. Chunk boundaries are preserved; chunks need not be complete frames.
-
-Capture subscribes before connecting, with a bounded 256-event pending buffer
-for recent initialization traffic until the service starts. Capture is best-effort:
-sequence gaps indicate dropped events. Consumed events are not replayed when
-logging restarts. Disabling raw logging or stopping the service clears pending
-events; reconnecting arms capture again if raw logging is enabled. Raw file I/O
-is buffered on a background dispatcher and flushed on close. Only RX records
-should be used as input to a decoder or replay tool; ride and BMS CSVs are unchanged.
-Outgoing KingSong authentication frames are omitted to keep plaintext passwords
-out of raw CSV files; this also produces sequence gaps.
-
-**High-frequency BMS lab capture** is an independent logging setting. While logging
-is active it saves one record per received telemetry callback with an available
-BMS snapshot, including unchanged snapshots, to `*.bms.jsonl.gz` in the wheel's
-Downloads/TuxWheel folder. It does not generate samples between callbacks or change
-the wheel's polling rate. Each UTF-8 JSON Lines record has an app callback time
-`timestamp_ms`, a `sequence`, and a `packs` array containing raw library indices,
-nullable measurements, and cell and temperature arrays. It can be read with
-`pandas.read_json(path, lines=True, compression="gzip")` and converted to Parquet.
-The library returns its latest BMS state, so values may predate the telemetry
-callback; callback rate and BMS freshness depend on the wheel and library. This
-mode cannot guarantee 10–20 Hz or capture frames not delivered by the library.
-The bounded queue warns on overflow; gaps in sequence indicate dropped records.
-Files are finalized when logging stops; an abrupt process termination can leave a
-truncated gzip file. The normal BMS CSV and its recording interval are unaffected.
-
-Before sharing CSVs or diagnostic logs, inspect and sanitize them:
-remove MAC addresses, device names, location/route data, and other identifiers.
-Attach only the relevant, sanitized excerpt to a bug report.
-
-## EUC_BLE_LIBRARY integration
-
-BLE is provided by [EUC_BLE_LIBRARY](https://github.com/Tritbool/euc_ble_library),
-not by wheel protocol decoders embedded in this app.
-The fallback dependency coordinate is pinned in `gradle/libs.versions.toml`.
-Command descriptors and checked command submission come from the library API;
-TuxWheel does not bundle or maintain a command catalogue.
-
-Wheel Settings groups controls by theme. Tap a setting to change it: simple
-modes apply when selected, while numeric settings and alarm edits require
-**Apply**. The displayed value reflects the wheel’s report, not the last
-selection. Settings the wheel reports without a matching control appear under
-**Wheel information**. Power off and calibration require confirmation.
-
-KingSong password set, change, and removal controls appear in Wheel Settings
-when the active protocol supports them. A missing wheel confirmation is reported
-as unconfirmed; it does not prove the password was wrong or unchanged. Raw BLE
-diagnostics omit outgoing KingSong authentication and password-management frames
-because they contain plaintext credentials.
-
-The library owns discovery/scanning, connections, protocol detection/decoding,
-and BLE transport. The app's `BleSessionViewModel` wraps library callbacks
-into `StateFlow<BleSessionState>` for the UI and other consumers.
-It is an **app-wide Koin `single`**, shared by activities, Compose, and services;
-resolve it with `inject()`/`koinInject()`, not an Activity-scoped `koinViewModel()`.
-
-Telemetry comes from `EUCData`; BMS details use `getBMSData()` per pack.
-Commands must respect the active protocol's capabilities.
-The app owns permission prompts, presentation, alarms, storage, and logging.
-
-## UI architecture
-
-Production pages, the pager, and scan content are Compose-only.
-Native headers, dialogs, PiP, and the MPAndroidChart chart still use View
-interoperability; view binding remains necessary for those integrations.
-Compose rendering does not own BLE connections or foreground logging.
-
-Architecture decisions:
-[Compose-first dashboard](docs/adr/001-compose-first-dashboard.md) ·
-[Koin DI](docs/adr/002-koin-di.md)
-
-## Third-party software and licenses
-
-Open **Settings → About TuxWheel → Third-party software and licenses** to
-read the bundled dependency list and existing asset/license notices offline.
-The viewer includes the GPL-3.0 and Source Sans Pro OFL texts.
-
-The dependency license report is generated automatically by
-`com.github.jk1.dependency-license-report` from the resolved release and debug
-runtime classpaths, including transitive dependencies. Build plugins, annotation
-processors and test-only libraries are outside its scope. Compose RichText
-renders the bundled Markdown with Material 3 styling.
-
-Run `./gradlew :app:copyLicenseReportToAssets` to regenerate the report without
-building an APK; normal builds also run it automatically. The report and extracted
-license files are bundled from `app/build/generated/licenseAssets/licenses/`,
-not written into the source tree. Preserve the notices under
-`app/src/main/assets/licenses/` and review the resolved release dependency graph
-before distributing a release: published license metadata can be incorrect
-(see the bundled EUC BLE notice).
+Details: [docs/usage.md](docs/usage.md) (connecting, dashboard) and
+[docs/logging.md](docs/logging.md) (logging formats).
 
 ## Development
 
-Use Android Studio/SDK tooling and the checked-in Gradle wrapper.
-Java/Kotlin compilation targets **JDK 17**; the checked-in
-`gradle/gradle-daemon-jvm.properties` selects **JDK 25** for the Gradle daemon
-and may download it if it is not installed.
-The app currently uses **compileSdk 37** and **targetSdk 36**.
-
-```sh
-git clone https://github.com/Tritbool/TuxWheel.git
-cd TuxWheel
-./gradlew -PeucBleLibraryDir=../euc_ble_library \
-  -Peuc.androidGradlePluginVersion=9.2.1 \
-  :app:assembleDebug :app:assembleRelease :app:testDebugUnitTest :app:lintDebug
-```
-
-These tasks require working resolution of the configured Gradle plugins and
-dependencies from Google Maven, Maven Central, the Gradle Plugin Portal and
-JitPack (MPAndroidChart). The command assumes a sibling library checkout containing
-the current InMotion APIs, as described above. Local Maven artifacts are
-intentionally not used: the composite consumes the library source directly.
-Do not downgrade the pinned library or plugins to bypass resolution failures.
-
-Pull requests and pushes to `master` run the selected debug regression tests,
-Android lint, and unsigned release assembly against pinned library source on a
-hosted Linux runner. These checks need no emulator or release-signing secrets.
-They do not replace BLE testing on a physical wheel.
-
-The application ID and Android namespace are `io.github.tuxwheel`
+Java/Kotlin compilation targets **JDK 17** (the Gradle daemon runs on **JDK 25**),
+`compileSdk 37`, `targetSdk 36`. Application ID `io.github.tuxwheel`
 (`io.github.tuxwheel.debug` for debug builds).
 
-## F-Droid preparation and submission
+```sh
+./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
+```
 
-TuxWheel is being prepared for F-Droid; it is **not yet listed**.
-This follows the English/French Fastlane layout used in
-[EUC SoH](https://github.com/Tritbool/euc_soh_kotlin).
-See the [submission guide](https://f-droid.org/fr/docs/Submitting_to_F-Droid_Quick_Start_Guide/)
-and [metadata reference](https://f-droid.org/docs/Build_Metadata_Reference/).
-
-### Store listing
-
-`fastlane/metadata/android/en-US/` is the fallback listing; `fr-FR/` contains
-the French translation. Each has a title, short description, HTML full
-description and `changelogs/1.txt`, matching the current `versionCode 1`.
-The English listing reuses the existing app icon at `images/icon.png`;
-other locales can fall back to it. Fastlane itself is not needed.
-
-Keep titles within 50 characters, summaries within 80, full descriptions
-within 4,000, and release notes within 500. Add
-`changelogs/<versionCode>.txt` in each locale for every release.
-
-### Build and licensing checks before submission
-
-- Run the development tasks above from a clean checkout with no local Maven
-  artifacts, then test BLE connection and foreground logging on a real device.
-- `:app:assembleRelease` produces
-  `app/build/outputs/apk/release/app-release-unsigned.apk` without signing
-  credentials. F-Droid can build and sign it independently; the GitHub release
-  workflow's signing secrets and the shared debug keystore are not required.
-- Build timestamps have been removed from generated code and version labels.
-  This removes one source of nondeterminism, but does **not** establish
-  byte-for-byte reproducibility. Do not configure upstream binary verification
-  until it has been tested with the same toolchain and build inputs.
-- The unused Samsung Accessory SDK JARs have been removed. Do not reintroduce
-  proprietary SDKs or prebuilt libraries without corresponding freely licensed
-  source. The Gradle wrapper JAR is build tooling, not an app dependency.
-- Review the complete release dependency graph and retain required license
-  notices. The GPL-3.0 project license does not replace third-party licenses.
-  Packaging now merges bundled `META-INF/LICENSE*`, `META-INF/NOTICE*` and
-  `META-INF/ASL2.0` resources instead of discarding them; inspect the release APK
-  and complete the dependency inventory as part of the license review.
-  The verified licenses and asset sources are listed below.
-
-### Verified licenses and F-Droid policy
-
-The [F-Droid inclusion policy](https://f-droid.org/docs/Inclusion_Policy/)
-requires freely licensed source and dependencies, a free build toolchain and
-a working build. It does **not** require removing functional FOSS libraries,
-BLE permissions, storage access or foreground services. It explicitly permits
-freely licensed binaries from trusted repositories including JitPack.
-
-- **Inherited WheelLog assets:** the maintainer confirms that the inherited
-  fonts/theme artwork come from GPL-3.0 WheelLog Android. Its
-  [GPL license](https://github.com/Wheellog/Wheellog.Android/blob/f44e39e5388e500a5d2f315d1dcf32f167607bf8/LICENSE)
-  covers the project except components with their own license.
-  The bundled font matches
-  [WheelLog's font files](https://github.com/Wheellog/Wheellog.Android/tree/f44e39e5388e500a5d2f315d1dcf32f167607bf8/app/src/main/res/font)
-  byte-for-byte (Git blob IDs are recorded in the packaged notice).
-  `prime_regular.otf` is the inherited Wheellog font, not an identified
-  proprietary dependency.
-- **EUC_BLE_LIBRARY 0.1.0:** the maintainer's own open-source library, with a
-  [GPL-3.0 license at the pinned tag](https://github.com/Tritbool/euc_ble_library/blob/0.1.0/LICENSE).
-  Its [publication configuration](https://github.com/Tritbool/euc_ble_library/blob/0.1.0/euc-ble-core/build.gradle.kts)
-  still labels the POM license as MIT. Both licenses are FOSS, but that upstream
-  metadata should be aligned with the intended license; this app retains the
-  tagged GPL notice rather than assuming that the POM relicenses the source.
-- **MPAndroidChart v3.1.0:** the
-  [tagged Apache-2.0 license](https://github.com/PhilJay/MPAndroidChart/blob/v3.1.0/LICENSE)
-  permits its use here. Obtaining it from JitPack is not by itself an
-  F-Droid incompatibility.
-- **AndroidX legacy-support/Media:** FOSS dependencies, not prohibited SDKs.
-  The umbrella dependency currently supplies the Media classes used by
-  hardware-volume-key controls. Keeping it is compliant; replacing it with a
-  direct Media dependency is optional dependency cleanup, not submission work.
-
-Attribution and source references are bundled in
-`app/src/main/assets/licenses/NOTICE.txt`. GPL text is in the repository's
-`LICENSE` and bundled as `app/src/main/assets/licenses/GPL-3.0.txt`.
-No font, chart or BLE replacement is needed on the basis of these licenses.
-
-The location permission is limited to Android 6–11 for BLE discovery, not GPS
-recording. Storage permissions support CSV logging on older Android, and the
-foreground service/notification and battery-optimization option support
-background logging. None is an F-Droid incompatibility; they remain in place.
-
-The earlier cleanup removed unused proprietary Samsung SDK binaries, unrelated
-WheelLog consent, unsolicited debug HTML files and dead feature remnants.
-No runtime analytics SDK, account service or automatic uploader was found.
-Automatic app backup is disabled. F-Droid builds must disable GitHub updates
-and Internet permission with the distribution property above.
-
-The remaining verification is operational: a clean release build and F-Droid's
-dependency/scanner checks on the tagged source. The local AGP resolution failure
-prevents checking the resolved transitive graph and final APK here; it is not
-evidence that the libraries or permissions above are non-free.
-Byte-for-byte matching to an upstream APK is needed if opting into upstream
-binary verification, not a prerequisite for ordinary F-Droid-built/signed APKs.
-
-### Release and external submission
-
-1. Verify the release build and F-Droid scanner checks, and add real screenshots
-   below for the listing. Metadata alone is not F-Droid approval.
-2. Publish a **new** release after these changes are merged. The existing
-   `0.0.1` tag predates this preparation and will not expose this metadata.
-   For every release, increment `versionCode` and `versionName` together, add the
-   matching localized changelogs, and tag that exact commit with `versionName`
-   (an optional `v` prefix is supported). Use numeric stable versions such as
-   `1.2.3` and attach the upstream-signed APK to the GitHub release. Drafts,
-   prereleases and nonnumeric versions are not offered by the updater.
-   Do not move an existing tag.
-3. In a separate fork of [fdroiddata](https://gitlab.com/fdroid/fdroiddata),
-   prepare `metadata/io.github.tuxwheel.yml`: use this repository as `Repo`,
-   `RepoType: git`, the confirmed GPL-3.0 license identifier, `subdir: app`,
-   `gradle: [yes]`, and the new release tag as the build `commit`. Match the
-   release's version name/code and select a build environment supporting the
-   checked-in Gradle/JDK/Android SDK requirements. Configure tag-based update
-   checks to match the project's release-tag convention. Ensure every F-Droid
-   build passes `-PenableGithubUpdates=false`, including sideloadable APKs.
-4. In that fdroiddata checkout, run `fdroid readmeta`, `fdroid rewritemeta
-   io.github.tuxwheel`, `fdroid lint io.github.tuxwheel`, and
-   `fdroid build --verbose io.github.tuxwheel`. Resolve scanner/build findings
-   before opening the metadata merge request. Include the source, issue tracker
-   and changelog links, and explicitly state that you are the upstream author.
-5. Submit the merge request to fdroiddata, or open a
-   [Request for Packaging](https://gitlab.com/fdroid/rfp/-/issues) with the
-   source/release links if you need help with packaging.
-
-F-Droid-signed and upstream-signed APKs are not normally interchangeable
-updates. Users may need to uninstall one before installing the other;
-export any logs/settings they need first.
-
-### Screenshots to provide
-
-Add fresh TuxWheel captures using sanitized/demo data under
-`fastlane/metadata/android/en-US/images/phoneScreenshots/1.png`, `2.png`, etc.
-Use the equivalent `fr-FR/images/phoneScreenshots/` directory for French captures.
-No screenshots have been fabricated or copied from EUC SoH.
-Suggested captures:
-
-- `DASHBOARD`: customized blocks and gauge on the Original theme.
-- `SCAN`: discovery dialog showing devices and manual MAC entry.
-- `PROTOCOL_PICKER`: long-press device menu with Automatic and protocol choices.
-- `SMART_BMS`: supported wheel with per-pack measurements and cell details.
-- `TRIPS`: recorded ride statistics and share/delete actions.
-- `SETTINGS`: wheel-specific controls, page options, themes, and units.
+To build against a local `euc_ble_library` checkout, add
+`-PeucBleLibraryDir=/absolute/path/to/euc_ble_library -Peuc.androidGradlePluginVersion=9.2.1`.
+Full build, library-integration, architecture and license notes:
+[docs/development.md](docs/development.md). F-Droid submission guide:
+[docs/f-droid.md](docs/f-droid.md).
 
 ## Contributing and credits
 
-Report reproducible problems in [Issues](https://github.com/Tritbool/TuxWheel/issues).
-For changes, describe the affected wheel/features and validation performed.
-UI checks and real-wheel testing remain necessary alongside automated tests.
-
-Thanks to [WheelLog](https://github.com/Wheellog/Wheellog.Android), the
-[palachzzz fork](https://github.com/palachzzz/WheelLogAndroid), and their contributors.
+Report reproducible problems in
+[Issues](https://github.com/Tritbool/TuxWheel/issues).
+Thanks to [WheelLog](https://github.com/Wheellog/Wheellog.Android) and the
+[palachzzz fork](https://github.com/palachzzz/WheelLogAndroid).
 TuxWheel is licensed under [GNU GPL v3](LICENSE).
