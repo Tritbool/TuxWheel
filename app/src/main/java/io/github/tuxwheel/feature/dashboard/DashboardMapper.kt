@@ -2,6 +2,7 @@ package io.github.tuxwheel.feature.dashboard
 
 import io.github.tuxwheel.AppConfig
 import io.github.tuxwheel.ble.BleSessionState
+import io.github.tuxwheel.utils.MathsUtil
 import kotlin.math.abs
 
 /**
@@ -51,7 +52,8 @@ object DashboardMapper {
 
         // ── Gauge fractions ───────────────────────────────────────────────────
         // valueOnDial controls the arc independently of the central speed/PWM swap.
-        val speedFraction = DashboardFormatting.fraction(abs(speed), maxSpeedConf)
+        val speedOnDial = if (useMph) MathsUtil.kmToMiles(abs(speed).toDouble()).toFloat() else abs(speed)
+        val speedFraction = DashboardFormatting.fraction(speedOnDial, maxSpeedConf)
         val currentFraction = DashboardFormatting.fraction(state.currentCurrent.toFloat(), maxSpeedConf)
         val mainDialFraction = when (appConfig.valueOnDial) {
             "1" -> currentFraction

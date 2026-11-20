@@ -100,8 +100,8 @@
     <string name="about_app_title">Σχετικά με το TuxWheel</string>
 	<string name="settings_title">Ρυθμίσεις</string>
     <string name="amp">A</string>
-	<string name="max_speed_dial_title">Μέγιστη ταχύτητα</string>
-	<string name="max_speed_dial_description">Η μέγιστη ταχύτητα που εμφανίζεται στον εξωτερικό επιλογέα</string>
+	<string name="max_speed_dial_title">Μέγιστη τιμή εξωτερικού δακτυλίου</string>
+	<string name="max_speed_dial_description">Μέγιστη τιμή που εμφανίζεται στον εξωτερικό δακτύλιο (%1$s)</string>
 	<string name="use_mph_title">Ταχύτητα και απόσταση σε μίλια</string>
 	<string name="use_mph_description">Δείξτε την ταχύτητα και την απόσταση σε μίλια και όχι σε χιλιόμετρα</string>
 	<string name="enable_alarms_title">Ενεργοποίηση συναγερμών</string>

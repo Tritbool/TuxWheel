@@ -68,23 +68,23 @@ class TelemetryPreferencesTest {
             assertThat(emissions).hasSize(1)
             config.autoUploadEc = true
             config.useMph = true
-            config.usePsi = true
             config.useFahrenheit = true
             config.viewBlocks = arrayOf("Voltage", "Distance")
             config.pageGraph = false
             config.pageEvents = true
             config.pageTrips = false
+            config.hideTripSpeeds = true
             shadowOf(Looper.getMainLooper()).idle()
             runCurrent()
             val latest = emissions.last()
             assertThat(latest.autoUploadEc).isTrue()
             assertThat(latest.useMph).isTrue()
-            assertThat(latest.usePsi).isTrue()
             assertThat(latest.useFahrenheit).isTrue()
             assertThat(latest.viewBlocks).containsExactly("Voltage", "Distance").inOrder()
             assertThat(latest.pageGraph).isFalse()
             assertThat(latest.pageEvents).isTrue()
             assertThat(latest.pageTrips).isFalse()
+            assertThat(latest.hideTripSpeeds).isTrue()
             config.viewBlocks = arrayOf("Battery")
             shadowOf(Looper.getMainLooper()).idle()
             runCurrent()

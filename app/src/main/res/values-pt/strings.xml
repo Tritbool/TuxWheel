@@ -100,8 +100,8 @@
     <string name="about_app_title">Sobre TuxWheel</string>
 	<string name="settings_title">Settings</string>
 	<string name="amp">A</string>
-	<string name="max_speed_dial_title">Velocidade Máxima</string>
-	<string name="max_speed_dial_description">Velocidade máxima mostrada no indicador externo</string>
+	<string name="max_speed_dial_title">Máximo do anel externo</string>
+	<string name="max_speed_dial_description">Valor máximo exibido no anel externo (%1$s)</string>
 	<string name="use_mph_title">Velocidade e distância em milhas</string>
 	<string name="use_mph_description">Mostrar velocidade e distância em milhas, em vez de quilômetros</string>
 	<string name="enable_alarms_title">Ativar alarmes</string>

@@ -24,7 +24,7 @@ data class DashboardBlock(
  */
 data class DashboardUiState(
     val nightMode: Int = androidx.appcompat.app.AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM,
-    val valueOnDial: String = "0",
+    val valueOnDial: String = "2",
     val catalogue: List<DashboardBlock> = emptyList(),
     val speedWarning: Boolean = false,
     // ── Connection ─────────────────────────────────────────────────────────
@@ -81,8 +81,8 @@ data class DashboardUiState(
     val colorPwmStart: Int = 60,
     /** PWM % at which the dial colour is fully red. */
     val colorPwmEnd: Int = 90,
-    /** Configured max speed (km/h) used to normalise the dial arc. */
-    val maxSpeed: Int = 50,
+    /** Configured maximum in the selected outer-ring unit. */
+    val maxSpeed: Int = 100,
 
     // ── Quick controls ──────────────────────────────────────────────────────
     /** The connected wheel supports lock, unlock and lock-state requests. */

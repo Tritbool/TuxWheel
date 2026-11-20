@@ -89,6 +89,22 @@ class DashboardCanvasRenderer(private val context: Context) {
         val dialColor = if (state.valueOnDial == "2") pwmColor else if (dial >= 0)
             color(R.color.wheelview_main_positive_dial) else color(R.color.wheelview_main_negative_dial)
         dialArc(g.outer, dial, g.outerStroke, dialColor)
+        val dialModeLabel = context.getString(when (state.valueOnDial) {
+            "0" -> R.string.speed
+            "1" -> R.string.current
+            "2" -> R.string.pwm
+            "3" -> R.string.phase_current
+            else -> R.string.speed
+        })
+        paint.style = Paint.Style.FILL
+        paint.color = textColor
+        paint.textAlign = Paint.Align.CENTER
+        paint.textSize = fitted(
+            DashboardRect(g.outer.cx - g.outer.width * .28f, g.outer.cy + g.outer.width * .25f,
+                g.outer.cx + g.outer.width * .28f, g.outer.cy + g.outer.width * .48f),
+            dialModeLabel
+        )
+        canvas.drawText(dialModeLabel, g.outer.cx, g.outer.cy + g.outer.width * .42f, paint)
         arc(g.inner, 144f, 90f, g.innerStroke, dim)
         arc(g.inner, 306f, 90f, g.innerStroke, dim)
         val batteryColor = color(R.color.wheelview_battery_dial)
@@ -118,8 +134,13 @@ class DashboardCanvasRenderer(private val context: Context) {
         val unitHeight = bounds.height()
         paint.textSize = if (state.useShortPwm) unitSize * 1.2f else unitSize
         paint.color = if (state.useShortPwm && state.displayMode == DisplayMode.SPEED) pwmColor else textColor
-        val subtitle = if (!state.useShortPwm) state.speedUnit else if (state.displayMode == DisplayMode.PWM)
-            state.speedDisplay + state.speedUnit else DashboardFormatting.format("%02.0f%% / %02.0f%%", state.pwm, state.maxPwm)
+        val subtitle = when {
+            state.useShortPwm && state.displayMode == DisplayMode.PWM ->
+                state.speedDisplay + state.speedUnit
+            state.useShortPwm -> DashboardFormatting.format("%02.0f%% / %02.0f%%", state.pwm, state.maxPwm)
+            state.displayMode == DisplayMode.PWM -> "%"
+            else -> state.speedUnit
+        }
         canvas.drawText(subtitle, g.outer.cx, speedBottom + unitHeight *
             if (state.useShortPwm) 3.3f else 1.7f, paint)
         paint.color = textColor

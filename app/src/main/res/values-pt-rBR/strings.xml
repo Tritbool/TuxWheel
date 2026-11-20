@@ -100,8 +100,8 @@
     <string name="about_app_title">O programie</string>
 	<string name="settings_title">Ustawienia</string>
     <string name="amp">A</string>
-	<string name="max_speed_dial_title">Maksymalna prędkość</string>
-	<string name="max_speed_dial_description">Maksymalna prędkość wyświetlana na prędkościomierzu</string>
+	<string name="max_speed_dial_title">Máximo do anel externo</string>
+	<string name="max_speed_dial_description">Valor máximo exibido no anel externo (%1$s)</string>
 	<string name="use_mph_title">Prędkość i dystans w milach</string>
 	<string name="use_mph_description">Pokazuj prędkość i dystans w milach zamiast w kilometrach</string>
 	<string name="enable_alarms_title">Włącz alarmy</string>

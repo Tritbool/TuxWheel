@@ -79,14 +79,6 @@ fun applicationScreen(
             }
 
             switchPref(
-                name = stringResource(R.string.use_psi_title),
-                desc = stringResource(R.string.use_psi_description),
-                default = appConfig.usePsi
-            ) {
-                appConfig.usePsi = it
-            }
-
-            switchPref(
                 name = stringResource(R.string.use_fahrenheit_title),
                 desc = stringResource(R.string.use_fahrenheit_description),
                 default = appConfig.useFahrenheit,
@@ -116,29 +108,13 @@ fun applicationScreen(
             ) {
                 appConfig.viewBlocks = it.toTypedArray()
             }
-            var usePipMode by remember { mutableStateOf(appConfig.usePipMode) }
-
             switchPref(
                 name = stringResource(R.string.use_pip_mode_title),
                 desc = stringResource(R.string.use_pip_mode_description),
                 default = appConfig.usePipMode,
             ) {
                 appConfig.usePipMode = it
-                usePipMode = it
             }
-            AnimatedVisibility(visible = usePipMode) {
-                list(
-                    name = stringResource(R.string.pip_block_title),
-                    entries = mapOf(
-                        "0" to stringResource(R.string.speed),
-                        "1" to stringResource(R.string.consumption),
-                    ),
-                    defaultKey = appConfig.pipBlock,
-                ) {
-                    appConfig.pipBlock = it.first
-                }
-            }
-
             multiList(
                 name = stringResource(R.string.notification_buttons_title),
                 desc = stringResource(R.string.notification_buttons_description),
@@ -153,19 +129,6 @@ fun applicationScreen(
             ) {
                 appConfig.notificationButtons = it.toTypedArray()
                 notifications.update()
-            }
-
-            multiList(
-                name = stringResource(R.string.main_menu_buttons_title),
-                entries = mapOf(
-                    "reset" to stringResource(R.string.reset_max_values_title),
-                ),
-                keyIcons = mapOf(
-                    "reset" to R.drawable.ic_action_reset,
-                ),
-                defaultKeys = appConfig.mainMenuButtons.toList()
-            ) {
-                appConfig.mainMenuButtons = it.toTypedArray()
             }
 
             switchPref(
@@ -192,21 +155,22 @@ fun applicationScreen(
             ) {
                 valueOnDial = it.first
                 appConfig.valueOnDial = valueOnDial
-                if (valueOnDial == "2")
-                    appConfig.maxSpeed = 100
             }
 
             val pwmDial = (valueOnDial == "2")
-            AnimatedVisibility(visible = !pwmDial) {
-                sliderPref(
-                    name = stringResource(R.string.max_speed_dial_title),
-                    desc = stringResource(R.string.max_speed_dial_description),
-                    min = 10f,
-                    max = 400f,
-                    position = appConfig.maxSpeed.toFloat(),
-                ) {
-                    appConfig.maxSpeed = it.toInt()
-                }
+            val ringUnit = when (valueOnDial) {
+                "0" -> stringResource(if (appConfig.useMph) R.string.mph else R.string.kmh)
+                "1", "3" -> stringResource(R.string.amp)
+                else -> stringResource(R.string.persent)
+            }
+            sliderPref(
+                name = stringResource(R.string.max_speed_dial_title),
+                desc = stringResource(R.string.max_speed_dial_description, ringUnit),
+                min = 10f,
+                max = 400f,
+                position = appConfig.maxSpeed.toFloat(),
+            ) {
+                appConfig.maxSpeed = it.toInt()
             }
 
             var shortPwm by remember { mutableStateOf(appConfig.useShortPwm) }
@@ -214,22 +178,19 @@ fun applicationScreen(
                 name = stringResource(R.string.use_short_pwm_title),
                 desc = stringResource(R.string.use_short_pwm_description),
                 default = shortPwm,
-                showDiv = (shortPwm || pwmDial),
+                showDiv = true,
             ) {
                 shortPwm = it
                 appConfig.useShortPwm = shortPwm
-                if (!shortPwm)
-                    appConfig.swapSpeedPwm = false
             }
 
-            AnimatedVisibility(visible = shortPwm) {
-                switchPref(
-                    name = stringResource(R.string.swap_speedpwm_title),
-                    desc = stringResource(R.string.swap_speedpwm_description),
-                    default = appConfig.swapSpeedPwm,
-                ) {
-                    appConfig.swapSpeedPwm = it
-                }
+            switchPref(
+                name = stringResource(R.string.swap_speedpwm_title),
+                desc = stringResource(R.string.swap_speedpwm_description),
+                default = appConfig.swapSpeedPwm,
+                showDiv = false,
+            ) {
+                appConfig.swapSpeedPwm = it
             }
 
             var colorPwmStart by remember { mutableStateOf(appConfig.colorPwmStart.toFloat()) }
@@ -305,15 +266,6 @@ fun applicationScreen(
         }
 
         group(name = stringResource(R.string.audio_category_title)) {
-            switchPref(
-                name = stringResource(R.string.connection_sound_title),
-                desc = stringResource(R.string.connection_sound_description),
-                themeIcon = ThemeIconEnum.SettingsConnectionSound,
-                default = appConfig.connectionSound,
-            ) {
-                appConfig.connectionSound = it
-            }
-
             sliderPref(
                 name = stringResource(R.string.no_connection_sound_title),
                 desc = stringResource(R.string.no_connection_sound_description),
@@ -335,17 +287,6 @@ fun applicationScreen(
                 showDiv = false,
             ) {
                 appConfig.useStopMusic = it
-            }
-        }
-
-        group(name = stringResource(R.string.connection_category_title)) {
-            switchPref(
-                name = stringResource(R.string.use_reconnect_title),
-                desc = stringResource(R.string.use_reconnect_description),
-                default = appConfig.useReconnect,
-                showDiv = false,
-            ) {
-                appConfig.useReconnect = it
             }
         }
 
@@ -421,6 +362,7 @@ fun applicationScreen(
         group(name = stringResource(R.string.system_category_title)) {
             switchPref(
                 name = stringResource(R.string.use_detect_battery_optimization_title),
+                desc = stringResource(R.string.use_detect_battery_optimization_description),
                 default = appConfig.detectBatteryOptimization,
             ) {
                 appConfig.detectBatteryOptimization = it

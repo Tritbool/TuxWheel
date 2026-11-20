@@ -127,4 +127,22 @@ class TripParserTest {
         assertThat(memory.maxPwm).isEqualTo(99f)
         verify { dao wasNot Called }
     }
+
+    @Test
+    fun parsesDecimalKilometresAndMissingOrBlankSpeedValues() {
+        val context = mockkClass(Context::class, relaxed = true)
+        val csv = (
+            "date,time,speed,voltage,current,power,pwm,battery_level,distance,totaldistance,system_temp\n" +
+                "2024-01-01,10:00:00.000,25.5,100,10,1000,20,80,0.0,100.0,30\n" +
+                "2024-01-01,10:00:20.000,,100,10,1000,25,79,0.5,100.5,31\n"
+        ).byteInputStream()
+
+        val (_, trip) = TripParser.parseFile(context, "stealth.csv", csv, persist = false)
+
+        assertThat(trip).isNotNull()
+        assertThat(trip!!.distance).isEqualTo(500)
+        assertThat(trip.duration).isEqualTo(1)
+        assertThat(trip.maxSpeed).isEqualTo(25.5f)
+        assertThat(trip.avgSpeed).isEqualTo(12.75f)
+    }
 }

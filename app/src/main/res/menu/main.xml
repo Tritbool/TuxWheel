@@ -19,7 +19,7 @@
         android:id="@+id/miReset"
         android:icon="@drawable/ic_action_reset"
         android:title="@string/reset_extremum_values_title"
-        android:visible="false"
+        android:visible="true"
         app:showAsAction="always" />
     <item
         android:id="@+id/miSettings"

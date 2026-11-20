@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
+import org.junit.Before
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -24,6 +25,12 @@ class AppConfigNightModeTest {
 
     private val application = ApplicationProvider.getApplicationContext<Application>()
 
+    @Before
+    fun resetPreferences() {
+        androidx.preference.PreferenceManager.getDefaultSharedPreferences(application).edit()
+            .clear().putInt("versionSettings", 1).commit()
+    }
+
     private fun storedRaw(): String? =
         androidx.preference.PreferenceManager.getDefaultSharedPreferences(application)
             .getString(application.getString(R.string.day_night_theme), null)
@@ -31,6 +38,11 @@ class AppConfigNightModeTest {
     @Test fun `unset night mode defaults to following the system`() {
         assertThat(config.dayNightThemeMode)
             .isEqualTo(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)
+    }
+
+    @Test fun `unset outer ring defaults to PWM and a 100 percent scale`() {
+        assertThat(config.valueOnDial).isEqualTo("2")
+        assertThat(config.maxSpeed).isEqualTo(100)
     }
 
     @Test fun `legacy unspecified value is repaired to follow the system`() {

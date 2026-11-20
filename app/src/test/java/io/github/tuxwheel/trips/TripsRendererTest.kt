@@ -46,7 +46,7 @@ class TripsRendererTest {
         every { owner.lifecycle } returns lifecycle
         lifecycle.currentState = Lifecycle.State.CREATED
         val repository = mockk<TripRepository>()
-        coEvery { repository.loadItems(any(), any(), any()) } returns emptyList()
+        coEvery { repository.loadItems(any(), any(), any(), any()) } returns emptyList()
         val renderer = TripsPageRenderer(
             LayoutInflater.from(context).inflate(R.layout.main_view_trips, null),
             repository, AppConfig(context), TripsScroll(), owner
@@ -54,29 +54,32 @@ class TripsRendererTest {
         try {
             renderer.start()
             idle()
-            coVerify(exactly = 0) { repository.loadItems(any(), any(), any()) }
+            coVerify(exactly = 0) { repository.loadItems(any(), any(), any(), any()) }
             lifecycle.currentState = Lifecycle.State.STARTED
             idle()
-            coVerify(exactly = 1) { repository.loadItems(any(), false, any()) }
+            coVerify(exactly = 1) { repository.loadItems(any(), false, false, any()) }
             renderer.refresh()
             idle()
-            coVerify(exactly = 2) { repository.loadItems(any(), false, any()) }
+            coVerify(exactly = 2) { repository.loadItems(any(), false, false, any()) }
             lifecycle.currentState = Lifecycle.State.CREATED
             idle()
             renderer.refresh()
             idle()
-            coVerify(exactly = 2) { repository.loadItems(any(), false, any()) }
+            coVerify(exactly = 2) { repository.loadItems(any(), false, false, any()) }
             lifecycle.currentState = Lifecycle.State.STARTED
             idle()
-            coVerify(exactly = 3) { repository.loadItems(any(), false, any()) }
-            renderer.preferences(true, true)
+            coVerify(exactly = 3) { repository.loadItems(any(), false, false, any()) }
+            renderer.preferences(true, true, false)
             idle()
-            coVerify(exactly = 1) { repository.loadItems(any(), true, any()) }
+            coVerify(exactly = 1) { repository.loadItems(any(), true, false, any()) }
+            renderer.preferences(true, true, true)
+            idle()
+            coVerify(exactly = 1) { repository.loadItems(any(), true, true, any()) }
             renderer.stop()
             idle()
             renderer.refresh()
             idle()
-            coVerify(exactly = 4) { repository.loadItems(any(), any(), any()) }
+            coVerify(exactly = 5) { repository.loadItems(any(), any(), any(), any()) }
         } finally {
             renderer.dispose()
             lifecycle.currentState = Lifecycle.State.DESTROYED
@@ -112,10 +115,10 @@ class TripsRendererTest {
             }.get(adapter) as TripsScroll
             TripsScroll::class.java.getDeclaredField("compose").apply { isAccessible = true }
                 .set(scroll, androidx.compose.foundation.lazy.LazyListState(4, 17))
-            holder.tripsRenderer!!.preferences(false, false)
+            holder.tripsRenderer!!.preferences(false, false, false)
             assertThat(compose.visibility).isEqualTo(View.VISIBLE)
             config.setValue("use_compose_trips", false)
-            holder.tripsRenderer!!.preferences(false, false)
+            holder.tripsRenderer!!.preferences(false, false, false)
             assertThat(scroll.compose.firstVisibleItemIndex).isEqualTo(4)
             assertThat(scroll.compose.firstVisibleItemScrollOffset).isEqualTo(17)
             assertThat(holder.itemView).isSameInstanceAs(page)
@@ -143,7 +146,7 @@ class TripsRendererTest {
         every { owner.lifecycle } returns lifecycle
         lifecycle.currentState = Lifecycle.State.STARTED
         val repository = mockk<TripRepository>()
-        coEvery { repository.loadItems(any(), any(), any()) } returns emptyList()
+        coEvery { repository.loadItems(any(), any(), any(), any()) } returns emptyList()
         coEvery { repository.deleteFile(any(), any()) } throws IllegalStateException("DB failed after file deletion")
         val renderer = TripsPageRenderer(
             LayoutInflater.from(context).inflate(R.layout.main_view_trips, null),
@@ -152,14 +155,14 @@ class TripsRendererTest {
         try {
             renderer.start()
             idle()
-            coVerify(exactly = 1) { repository.loadItems(any(), any(), any()) }
+            coVerify(exactly = 1) { repository.loadItems(any(), any(), any(), any()) }
             val item = TripItemState(Uri.parse("content://media/external/downloads/42"), "ride.csv", null, "ride", "", "")
             TripsPageRenderer::class.java.getDeclaredMethod("delete", TripItemState::class.java).apply {
                 isAccessible = true
             }.invoke(renderer, item)
             idle()
             coVerify(exactly = 1) { repository.deleteFile(any(), item) }
-            coVerify(exactly = 2) { repository.loadItems(any(), any(), any()) }
+            coVerify(exactly = 2) { repository.loadItems(any(), any(), any(), any()) }
         } finally {
             renderer.dispose()
             lifecycle.currentState = Lifecycle.State.DESTROYED

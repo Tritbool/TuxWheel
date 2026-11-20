@@ -17,6 +17,7 @@ import java.text.ParsePosition
 import java.text.SimpleDateFormat
 import java.util.ArrayList
 import java.util.Locale
+import kotlin.math.roundToInt
 import kotlinx.coroutines.CancellationException
 
 object TripParser: KoinComponent {
@@ -84,38 +85,46 @@ object TripParser: KoinComponent {
 
         try {
             checkCancellation()
-            val headerLine = reader.readLine()?.split(",") ?: return Pair(emptyList(), null)
+            val headerLine = reader.readLine()?.removePrefix("\uFEFF")?.split(",")
+                ?: return Pair(emptyList(), null)
             for (i in headerLine.indices) {
                 try {
-                    header[LogHeaderEnum.valueOf(headerLine[i].uppercase())] = i
+                    header[LogHeaderEnum.valueOf(headerLine[i].trim().uppercase())] = i
                 } catch (_: IllegalArgumentException) {
                 }
+            }
+            if (LogHeaderEnum.DATE !in header || LogHeaderEnum.TIME !in header) {
+                lastErrorValue = "CSV is missing its date or time column"
+                return Pair(emptyList(), null)
             }
             reader.forEachLine { line ->
                 checkCancellation()
                 if (line.isNotEmpty())
                 {
                     val row = line.split(",")
-                    val timeString = row[header[LogHeaderEnum.TIME]!!]
-                    val dateString = row[header[LogHeaderEnum.DATE]!!]
+                    fun value(column: LogHeaderEnum): String =
+                        header[column]?.takeIf { it in row.indices }?.let { row[it].trim() }.orEmpty()
+                    val timeString = value(LogHeaderEnum.TIME)
+                    val dateString = value(LogHeaderEnum.DATE)
+                    if (timeString.isEmpty() || dateString.isEmpty()) return@forEachLine
+                    val time = sdfTime.parse(timeString)?.time
+                        ?: throw IllegalArgumentException("Invalid log time: $timeString")
+                    val timePlusDay = sdfFullDate.parse(
+                        "$dateString $timeString", ParsePosition(8)
+                    )?.time ?: time
                     val logTick = LogTick(
                         timeString = timeString,
-                        timePlusDayOfWeek = sdfFullDate.parse(
-                            "$dateString $timeString",
-                            ParsePosition(8)
-                        )!!.time / 100f,
-                        time = sdfTime.parse(timeString)!!.time / 100f,
-                        batteryLevel = row[header[LogHeaderEnum.BATTERY_LEVEL]!!].toIntOrNull()
-                            ?: 0,
-                        voltage = row[header[LogHeaderEnum.VOLTAGE]!!].toDoubleOrNull() ?: 0.0,
-                        current = row[header[LogHeaderEnum.CURRENT]!!].toDoubleOrNull() ?: 0.0,
-                        power = row[header[LogHeaderEnum.POWER]!!].toDoubleOrNull() ?: 0.0,
-                        speed = row[header[LogHeaderEnum.SPEED]!!].toDoubleOrNull() ?: 0.0,
-                        temperature = row[header[LogHeaderEnum.SYSTEM_TEMP]!!].toIntOrNull() ?: 0,
-                        pwm = row[header[LogHeaderEnum.PWM]!!].toDoubleOrNull() ?: 0.0,
-                        distance = row[header[LogHeaderEnum.DISTANCE]!!].toIntOrNull() ?: 0,
-                        totalDistance = row[header[LogHeaderEnum.TOTALDISTANCE]!!].toIntOrNull()
-                            ?: 0
+                        timePlusDayOfWeek = timePlusDay / 100f,
+                        time = time / 100f,
+                        batteryLevel = value(LogHeaderEnum.BATTERY_LEVEL).toIntOrNull() ?: 0,
+                        voltage = value(LogHeaderEnum.VOLTAGE).toDoubleOrNull() ?: 0.0,
+                        current = value(LogHeaderEnum.CURRENT).toDoubleOrNull() ?: 0.0,
+                        power = value(LogHeaderEnum.POWER).toDoubleOrNull() ?: 0.0,
+                        speed = value(LogHeaderEnum.SPEED).toDoubleOrNull() ?: 0.0,
+                        temperature = value(LogHeaderEnum.SYSTEM_TEMP).toDoubleOrNull()?.toInt() ?: 0,
+                        pwm = value(LogHeaderEnum.PWM).toDoubleOrNull() ?: 0.0,
+                        distance = distanceMeters(value(LogHeaderEnum.DISTANCE)),
+                        totalDistance = distanceMeters(value(LogHeaderEnum.TOTALDISTANCE))
                     )
                     resultList.add(logTick)
                 }
@@ -152,6 +161,7 @@ object TripParser: KoinComponent {
                     // +24 hours in minutes
                     duration += 1440
                 }
+                if (resultList.size > 1 && duration == 0) duration = 1
                 var timeToExclude = 0f
                 var beforeTime = first.time // 1/10 sec
                 var firstTotalDistance = 0
@@ -173,9 +183,13 @@ object TripParser: KoinComponent {
                     maxPwm = maxPwm.coerceAtLeast(it.pwm.toFloat())
                 }
 
-                val maxTotalDistance = resultList.subList(0.coerceAtLeast(resultList.size - 10), resultList.size).maxOf { it.totalDistance }
                 val logDuration = (last.time - first.time - timeToExclude) / 600
-                distance = maxTotalDistance - firstTotalDistance
+                val recentTicks = resultList.subList(0.coerceAtLeast(resultList.size - 10), resultList.size)
+                val maxTotalDistance = recentTicks.maxOf { it.totalDistance }
+                distance = (maxTotalDistance - firstTotalDistance).coerceAtLeast(0)
+                if (distance == 0) {
+                    distance = (recentTicks.maxOf { it.distance } - resultList.first().distance).coerceAtLeast(0)
+                }
                 val powers = resultList.map { it.power }
                 maxPower = powers.max().toFloat()
                 val speeds = resultList.map { it.speed }
@@ -198,5 +212,15 @@ object TripParser: KoinComponent {
         }
 
         return Pair(resultList, trip)
+    }
+
+    private fun distanceMeters(value: String): Int {
+        val distance = value.toDoubleOrNull()?.takeIf { it.isFinite() } ?: return 0
+        val meters = if (value.contains('.') || value.contains('e', ignoreCase = true)) {
+            distance * 1000.0
+        } else {
+            distance
+        }
+        return meters.roundToInt()
     }
 }
