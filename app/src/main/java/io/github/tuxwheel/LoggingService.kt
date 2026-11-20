@@ -464,12 +464,13 @@ class LoggingService : Service() {
         val wd = viewModel
         val file = fileUtil ?: return
         val formatter = sdf ?: return
+        val speed = if (appConfig.stealthLogging) "" else String.format(Locale.US, "%.2f", wd.speedDouble)
         file.writeLine(
             String.format(
                 Locale.US,
-                "%s,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%d,%.1f,%.1f,%.2f,%.2f,%.2f,%.2f,%s,%d",
+                "%s,%s,%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%d,%.1f,%.1f,%.2f,%.2f,%.2f,%.2f,%s,%d",
                 formatter.format(System.currentTimeMillis()),
-                wd.speedDouble,
+                speed,
                 wd.voltageDouble,
                 wd.phaseCurrentDouble,
                 wd.currentDouble,

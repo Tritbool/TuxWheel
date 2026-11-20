@@ -53,7 +53,7 @@ class FileUtil(val context: Context, private val buffered: Boolean = false) {
         get() = file == null || file.toString() == "null" || stream == null
 
     @JvmOverloads
-    fun prepareFile(fileName: String, folder: String? = ""): Boolean {
+    fun prepareFile(fileName: String, folder: String? = "", append: Boolean = true): Boolean {
         this.fileName = fileName
         uri = null
         file = null
@@ -104,17 +104,18 @@ class FileUtil(val context: Context, private val buffered: Boolean = false) {
             if (!dir.mkdirs() && !ignoreTimber) Timber.i("Directory not created")
             file = File(dir, fileName)
         }
-        prepareStream()
+        prepareStream(append)
         return !isNull
     }
 
-    fun prepareStream() {
+    @JvmOverloads
+    fun prepareStream(append: Boolean = true) {
         try {
             close()
             if (uri != null) {
-                stream = context.contentResolver.openOutputStream(uri!!, "wa")
+                stream = context.contentResolver.openOutputStream(uri!!, if (append) "wa" else "w")
             } else if (file != null) {
-                stream = FileOutputStream(file, true)
+                stream = FileOutputStream(file, append)
             }
             if (buffered) stream = stream?.buffered()
         } catch (e: FileNotFoundException) {
@@ -202,7 +203,7 @@ class FileUtil(val context: Context, private val buffered: Boolean = false) {
         get() = context.contentResolver
 
     private fun getMimeType(fileName: String): String {
-        return if (fileName.endsWith(".csv")) {
+        return if (fileName.endsWith(".csv", ignoreCase = true)) {
             "text/csv"
         } else if (fileName.endsWith(".html") || fileName.endsWith(".htm")) {
             "text/html"
@@ -293,30 +294,28 @@ class FileUtil(val context: Context, private val buffered: Boolean = false) {
                 MediaStore.Downloads.DISPLAY_NAME,
                 MediaStore.Downloads.TITLE,
                 MediaStore.Downloads.SIZE,
-                MediaStore.Downloads._ID
+                MediaStore.Downloads._ID,
+                MediaStore.MediaColumns.RELATIVE_PATH
             )
-            val where =
-                String.format("%s = 'text/comma-separated-values'", MediaStore.Downloads.MIME_TYPE)
+            val where = "${MediaStore.Downloads.DISPLAY_NAME} LIKE ? AND " +
+                "${MediaStore.MediaColumns.RELATIVE_PATH} LIKE ?"
             val cursor = context.contentResolver.query(
                 uri,
                 projection,
-                where + " AND " + MediaStore.Downloads.DISPLAY_NAME + " LIKE ?", arrayOf(
-                    "$fileStartsWith%"
-                ),
+                where,
+                arrayOf("$fileStartsWith%.csv", "${Environment.DIRECTORY_DOWNLOADS}/${Constants.LOG_FOLDER_NAME}/%"),
                 MediaStore.Downloads.DATE_MODIFIED + " DESC"
             )
-            if (cursor != null && cursor.moveToFirst()) {
-                val title =
-                    cursor.getString(0.coerceAtLeast(cursor.getColumnIndex(MediaStore.Downloads.DISPLAY_NAME)))
-                val mediaId =
-                    cursor.getString(0.coerceAtLeast(cursor.getColumnIndex(MediaStore.Downloads._ID)))
-                cursor.close()
-                val result = FileUtil(context)
-                val downloads = MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL)
-                result.uri = Uri.withAppendedPath(downloads, mediaId)
-                result.file = result.getPathFromUri(result.uri)?.let { File(it) }
-                result.fileName = title
-                return result
+            cursor?.use {
+                if (it.moveToFirst()) {
+                    val title = it.getString(it.getColumnIndexOrThrow(MediaStore.Downloads.DISPLAY_NAME))
+                    val mediaId = it.getLong(it.getColumnIndexOrThrow(MediaStore.Downloads._ID))
+                    val result = FileUtil(context)
+                    result.uri = ContentUris.withAppendedId(uri, mediaId)
+                    result.file = result.getPathFromUri(result.uri)?.let(::File)
+                    result.fileName = title
+                    return result
+                }
             }
             return null
         }
@@ -351,12 +350,8 @@ class FileUtil(val context: Context, private val buffered: Boolean = false) {
                     if (wheelDir.isDirectory) {
                         val wheelFiles = wheelDir.listFiles() ?: continue
                         for (f in wheelFiles) {
-                            val indexExt = f.absolutePath.lastIndexOf(".")
-                            if (f.isDirectory || indexExt < 1) {
-                                continue
-                            }
-                            val extension = f.absolutePath.substring(indexExt)
-                            if (extension == ".csv" && !f.name.startsWith("RAW")) {
+                            if (f.isDirectory) continue
+                            if (isTripLogFile(f.name)) {
                                 try {
                                     val contentUri = FileProvider.getUriForFile(
                                         context,
@@ -388,32 +383,36 @@ class FileUtil(val context: Context, private val buffered: Boolean = false) {
             // Android 10+
             val uri = MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
             val projection = arrayOf(
-                MediaStore.Downloads.MIME_TYPE,
                 MediaStore.Downloads.DISPLAY_NAME,
-                MediaStore.Downloads.TITLE,
                 MediaStore.Downloads.SIZE,
                 MediaStore.Downloads._ID
             )
-            val tripProjection = projection + MediaStore.Downloads.DATE_MODIFIED
-            val where =
-                String.format("%s = 'text/comma-separated-values'", MediaStore.Downloads.MIME_TYPE)
+            val tripProjection = projection + MediaStore.Downloads.DATE_MODIFIED +
+                MediaStore.MediaColumns.RELATIVE_PATH
+            val relativePath = MediaStore.MediaColumns.RELATIVE_PATH
+            val where = "${MediaStore.Downloads.DISPLAY_NAME} LIKE ? AND " +
+                "($relativePath LIKE ? OR $relativePath LIKE ? OR $relativePath LIKE ?)"
+            val pathArgs = listOf(Constants.LOG_FOLDER_NAME, Constants.LOG_FOLDER_OLD_NAME, Constants.LEGACY_LOG_FOLDER_NAME)
+                .map { "${Environment.DIRECTORY_DOWNLOADS}/$it/%" }
             context.contentResolver.query(
                 uri,
                 tripProjection,
-                where + " AND " + MediaStore.Downloads.DISPLAY_NAME + " NOT LIKE ?",
-                arrayOf("RAW_%"),
+                where,
+                (listOf("%.csv") + pathArgs).toTypedArray(),
                 MediaStore.Downloads.DATE_MODIFIED + " DESC"
             )?.use { cursor ->
                 if (cursor.moveToFirst()) {
                     do {
-                        val title =
-                            cursor.getString(0.coerceAtLeast(cursor.getColumnIndex(MediaStore.Downloads.DISPLAY_NAME)))
-                        val description =
-                            sizeToKb(cursor.getLong(0.coerceAtLeast(cursor.getColumnIndex(MediaStore.Downloads.SIZE))))
+                        val title = cursor.getString(
+                            cursor.getColumnIndexOrThrow(MediaStore.Downloads.DISPLAY_NAME)
+                        )
+                        if (!isTripLogFile(title)) continue
+                        val size = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Downloads.SIZE))
+                        val description = sizeToKb(size)
                         val mediaId = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Downloads._ID))
                         tripModels.add(TripModel(
                             title, description, ContentUris.withAppendedId(uri, mediaId),
-                            fileSize = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Downloads.SIZE)),
+                            fileSize = size,
                             lastModified = cursor.getLong(cursor.getColumnIndexOrThrow(MediaStore.Downloads.DATE_MODIFIED))
                         ))
                     } while (cursor.moveToNext())
@@ -421,5 +420,11 @@ class FileUtil(val context: Context, private val buffered: Boolean = false) {
             }
             return tripModels
         }
+
+        internal fun isTripLogFile(fileName: String): Boolean =
+            fileName.endsWith(".csv", ignoreCase = true) &&
+                !fileName.startsWith("RAW", ignoreCase = true) &&
+                !fileName.endsWith(".raw.csv", ignoreCase = true) &&
+                !fileName.endsWith(".bms.csv", ignoreCase = true)
     }
 }

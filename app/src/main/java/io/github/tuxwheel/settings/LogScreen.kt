@@ -127,14 +127,26 @@ fun logScreen(appConfig: AppConfig = koinInject()) {
             appConfig.continueThisDayLog = it
         }
 
+        switchPref(
+            name = stringResource(R.string.log_stealth_mode_title),
+            desc = stringResource(R.string.stealth_log_description),
+            default = appConfig.stealthLogging,
+        ) {
+            appConfig.stealthLogging = it
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q || BuildConfig.DEBUG) {
             val activity = (LocalContext.current as? MainActivity)
             clickablePref(
                 name = stringResource(R.string.import_log),
             ) {
-                activity?.getCsvResults?.launch("text/*")
+                activity?.getCsvResults?.launch("*/*")
             }
 
+        }
+
+        if (BuildConfig.DEBUG) {
+            val activity = (LocalContext.current as? MainActivity)
             clickablePref(
                 name = stringResource(R.string.create_test_log),
             ) {

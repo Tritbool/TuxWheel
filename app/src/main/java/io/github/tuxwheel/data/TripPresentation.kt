@@ -23,22 +23,40 @@ data class TripItemState(
 }
 
 object TripPresentation {
-    fun item(context: Context, model: TripModel, trip: TripDataDbEntry?, useMph: Boolean): TripItemState {
-        val descriptions = descriptions(context, trip, useMph, model.description)
+    fun item(
+        context: Context,
+        model: TripModel,
+        trip: TripDataDbEntry?,
+        useMph: Boolean,
+        hideSpeeds: Boolean = false
+    ): TripItemState {
+        val descriptions = descriptions(context, trip, useMph, model.description, hideSpeeds)
         return TripItemState(
             model.uri, model.fileName, model.pathLegacyAndroid,
             friendlyName(context, model.title), descriptions.first, descriptions.second
         )
     }
 
-    fun descriptions(context: Context, trip: TripDataDbEntry?, useMph: Boolean, fallback: String): Pair<String, String> {
+    fun descriptions(
+        context: Context,
+        trip: TripDataDbEntry?,
+        useMph: Boolean,
+        fallback: String,
+        hideSpeeds: Boolean = false
+    ): Pair<String, String> {
         if (trip == null || trip.duration == 0) return fallback to ""
         fun format(value: Float) = String.format(Locale.getDefault(), "%.2f", value)
         fun units(value: Float) = format(if (useMph) MathsUtil.kmToMiles(value) else value)
         val speedUnit = context.getString(if (useMph) R.string.mph else R.string.kmh)
         val distanceUnit = context.getString(if (useMph) R.string.miles else R.string.km)
-        val first = "🚀 ${units(trip.maxSpeed)} $speedUnit\n♿ ${units(trip.avgSpeed)} $speedUnit" +
-            "\n😱 ${trip.maxPwm}%" + if (trip.ecId != 0) "\n⚡ electro.club" else ""
+        val first = buildList {
+            if (!hideSpeeds) {
+                add("🚀 ${units(trip.maxSpeed)} $speedUnit")
+                add("♿ ${units(trip.avgSpeed)} $speedUnit")
+            }
+            add("😱 ${trip.maxPwm}%")
+            if (trip.ecId != 0) add("⚡ electro.club")
+        }.joinToString("\n")
         val consumption = if (useMph) trip.consumptionByKm / MathsUtil.kmToMilesMultiplier.toFloat() else trip.consumptionByKm
         val second = "⌚ ${trip.duration} ${context.getString(R.string.min)}" +
             "\n📏 ${units(trip.distance / 1000f)} $distanceUnit" +

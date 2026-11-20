@@ -26,7 +26,8 @@ class TripRepository(
     suspend fun loadItems(
         context: Context,
         useMph: Boolean,
-        publish: (List<TripItemState>) -> Unit = {}
+        hideTripSpeeds: Boolean = false,
+        publish: (List<TripItemState>) -> Unit = {},
     ): List<TripItemState> = withContext(Dispatchers.IO) {
         filesMutex.withLock {
             val coroutine = currentCoroutineContext()
@@ -55,7 +56,9 @@ class TripRepository(
                 statisticsByUri[key]?.takeIf { it.fileName == fileName } ?:
                     cached[fileName].takeUnless { fileName in collisions }
             val items = models.map { model ->
-                TripPresentation.item(context, model, statistic(model.uri.toString(), model.fileName), useMph)
+                TripPresentation.item(
+                    context, model, statistic(model.uri.toString(), model.fileName), useMph, hideTripSpeeds
+                )
             }.toMutableList()
             coroutine.ensureActive()
             publish(items.toList())
@@ -82,7 +85,7 @@ class TripRepository(
                 if (parsed != null) stoppedKeys.remove(key)
                 (parsed ?: statistic)?.let { statisticsByUri[key] = it.copy() }
                 if (needsParsing) {
-                    items[index] = TripPresentation.item(context, model, parsed ?: statistic, useMph)
+                    items[index] = TripPresentation.item(context, model, parsed ?: statistic, useMph, hideTripSpeeds)
                     coroutine.ensureActive()
                     publish(items.toList())
                 }

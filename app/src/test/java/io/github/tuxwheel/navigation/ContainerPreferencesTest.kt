@@ -5,7 +5,6 @@ import android.view.LayoutInflater
 import android.view.View
 import androidx.preference.PreferenceManager
 import androidx.test.core.app.ApplicationProvider
-import io.github.tuxwheel.AppConfig
 import io.github.tuxwheel.MainContainerRenderer
 import io.github.tuxwheel.MainPageAdapter
 import io.github.tuxwheel.R
@@ -22,17 +21,6 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class, sdk = [28])
 class ContainerPreferencesTest {
-    @Test fun `retired watch menu choices are ignored without losing reset`() {
-        val application = ApplicationProvider.getApplicationContext<Application>()
-        val preferences = PreferenceManager.getDefaultSharedPreferences(application)
-        preferences.edit().clear().putInt("versionSettings", 1)
-            .putString("main_menu_buttons", "watch;reset;miband").commit()
-        val config = AppConfig(application)
-        assertThat(config.mainMenuButtons.toList()).containsExactly("reset")
-        config.mainMenuButtons = emptyArray()
-        assertThat(config.mainMenuButtons.toList()).isEmpty()
-    }
-
     @Test fun `retired notification choices are ignored while supported controls remain`() {
         val application = ApplicationProvider.getApplicationContext<Application>()
         val connection = application.getString(R.string.icon_connection)

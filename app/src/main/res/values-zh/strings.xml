@@ -98,8 +98,8 @@
     <string name="about_app_title">关于TuxWheel</string>
     <string name="settings_title">设置</string>
     <string name="amp">A</string>
-    <string name="max_speed_dial_title">最大速度</string>
-    <string name="max_speed_dial_description">外部表盘上显示的最高速度</string>
+    <string name="max_speed_dial_title">外环最大值</string>
+    <string name="max_speed_dial_description">外环显示的最大值（%1$s）</string>
     <string name="use_mph_title">使用英里</string>
     <string name="use_mph_description">以英里而不是公里显示速度</string>
     <string name="enable_alarms_title">启用警报</string>

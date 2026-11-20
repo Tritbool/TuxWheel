@@ -116,6 +116,16 @@ class DashboardMapperTest {
     }
 
     @Test
+    fun `outer ring speed scale follows the displayed unit`() {
+        every { appConfig.useMph } returns true
+        every { appConfig.valueOnDial } returns "0"
+
+        val result = DashboardMapper.map(connectedState(), null, appConfig)
+
+        assertThat(result.mainDialFraction).isWithin(0.001f).of(20f * 0.6213712f / 50f)
+    }
+
+    @Test
     fun `speed geq 100 displays as integer`() {
         val data = eucData(speed = 102.0)
         val result = DashboardMapper.map(connectedState(data), null, appConfig)

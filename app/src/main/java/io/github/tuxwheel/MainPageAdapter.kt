@@ -81,7 +81,9 @@ class MainPageAdapter(private var pages: MutableList<Int>, val activity: MainAct
             activity.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 appConfig.telemetryPreferences().collect { preferences ->
                     refreshTelemetryValues()
-                    tripsRenderer?.preferences(preferences.useMph, preferences.autoUploadEc)
+                    tripsRenderer?.preferences(
+                        preferences.useMph, preferences.autoUploadEc, preferences.hideTripSpeeds
+                    )
                 }
             }
         }
@@ -397,7 +399,7 @@ class MainPageAdapter(private var pages: MutableList<Int>, val activity: MainAct
             start(activity)
         }
         holder.tripsRenderer?.apply {
-            preferences(appConfig.useMph, appConfig.autoUploadEc)
+            preferences(appConfig.useMph, appConfig.autoUploadEc, appConfig.hideTripSpeeds)
             start()
         }
     }

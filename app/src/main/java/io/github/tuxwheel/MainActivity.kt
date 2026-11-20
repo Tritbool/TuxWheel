@@ -11,6 +11,7 @@ import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
 import android.content.*
 import android.content.DialogInterface.OnShowListener
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.graphics.drawable.AnimationDrawable
@@ -18,6 +19,7 @@ import android.media.AudioManager
 import android.net.Uri
 import android.os.*
 import android.provider.MediaStore
+import android.provider.OpenableColumns
 import android.util.Rational
 import android.view.KeyEvent
 import android.view.Menu
@@ -29,6 +31,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresPermission
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.preference.PreferenceManager
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ViewCompositionStrategy
@@ -52,6 +55,7 @@ import io.github.tuxwheel.utils.PermissionsUtil.checkExternalFilePermission
 import io.github.tuxwheel.utils.PermissionsUtil.checkNotificationsPermissions
 import io.github.tuxwheel.utils.PermissionsUtil.isMaxBleReq
 import io.github.tuxwheel.utils.SomeUtil.playBeep
+import io.github.tuxwheel.utils.SomeUtil.playPhoneBeep
 import io.github.tuxwheel.views.PiPView
 import com.google.android.material.snackbar.Snackbar
 import io.github.tritbool.euc.ble.core.BLEConstants
@@ -64,6 +68,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
 import timber.log.Timber
+import java.io.IOException
 import java.util.*
 import java.util.concurrent.TimeUnit
 
@@ -74,6 +79,44 @@ class MainActivity : AppCompatActivity() {
     private var eventsLoggingTree: EventsLoggingTree? = null
     override fun attachBaseContext(base: Context) {
         super.attachBaseContext(LocaleManager.setLocale(base))
+    }
+
+    private fun startConnectionLostBeeps() {
+        if (appConfig.noConnectionSound <= 0 || connectionLostBeepJob?.isActive == true) return
+        connectionLostBeepJob = lifecycleScope.launch {
+            while (true) {
+                val period = appConfig.noConnectionSound
+                if (period <= 0) {
+                    kotlinx.coroutines.delay(500)
+                    continue
+                }
+                kotlinx.coroutines.delay(period * 1_000L)
+                val state = viewModel.sessionState.value
+                if (!state.isConnected && appConfig.noConnectionSound > 0) {
+                    playPhoneBeep()
+                }
+            }
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun updateAutoMute(state: BleSessionState) {
+        val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
+        val shouldMute = appConfig.useStopMusic && state.isConnected && state.currentSpeed < 3.5
+        if (shouldMute && !mutedByAutoMute) {
+            musicWasMutedBeforeAutoMute = audioManager.isStreamMute(AudioManager.STREAM_MUSIC)
+            if (!musicWasMutedBeforeAutoMute) {
+                audioManager.adjustStreamVolume(
+                    AudioManager.STREAM_MUSIC, AudioManager.ADJUST_MUTE, 0
+                )
+                mutedByAutoMute = true
+            }
+        } else if (!shouldMute && mutedByAutoMute) {
+            audioManager.adjustStreamVolume(
+                AudioManager.STREAM_MUSIC, AudioManager.ADJUST_UNMUTE, 0
+            )
+            mutedByAutoMute = false
+        }
     }
 
     //region private variables
@@ -105,6 +148,20 @@ class MainActivity : AppCompatActivity() {
 
     // Last BLE error already reported to the user, to avoid repeating the same snackbar
     private var lastShownError: String? = null
+    private var connectionLostBeepJob: Job? = null
+    private var connectionWasLost = false
+    private var mutedByAutoMute = false
+    private var musicWasMutedBeforeAutoMute = false
+    private val audioPreferencesListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        when (appConfig.getResId(key)) {
+            R.string.no_connection_sound -> {
+                connectionLostBeepJob?.cancel()
+                connectionLostBeepJob = null
+                if (connectionWasLost && appConfig.noConnectionSound > 0) startConnectionLostBeeps()
+            }
+            R.string.use_stop_music -> updateAutoMute(viewModel.sessionState.value)
+        }
+    }
 
     // Logging service
     private var loggingService: LoggingService? = null
@@ -158,12 +215,7 @@ class MainActivity : AppCompatActivity() {
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
         if (appConfig.usePipMode && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !this.isInPictureInPictureMode) {
-            when (appConfig.pipBlock) {
-                getString(R.string.consumption) -> speedModel.title =
-                    getString(R.string.consumption)
-
-                else -> speedModel.title = getString(R.string.speed)
-            }
+            speedModel.title = getString(R.string.speed)
             try {
                 this.enterPictureInPictureMode(
                     PictureInPictureParams.Builder().setAspectRatio(Rational(16, 9)).build()
@@ -225,6 +277,8 @@ class MainActivity : AppCompatActivity() {
         // `isPaused` is still true; dropping that emission left `mConnectionState` stale
         // (wrong menu icon and an inverted connect/disconnect action after backgrounding).
 
+        val wasConnected = mConnectionState == BLEConstants.ConnectionState.CONNECTED
+
         // Connection state changes
         if (state.isReconnecting != wasReconnecting || state.isAutoConnecting != wasAutoConnecting) {
             wasReconnecting = state.isReconnecting
@@ -255,6 +309,17 @@ class MainActivity : AppCompatActivity() {
             }
             notifications.update()
         }
+        when {
+            state.isConnected -> {
+                connectionWasLost = false
+                connectionLostBeepJob?.cancel()
+            }
+            wasConnected && state.connectionState == BLEConstants.ConnectionState.DISCONNECTED -> {
+                connectionWasLost = true
+                startConnectionLostBeeps()
+            }
+        }
+        updateAutoMute(state)
 
         // Protocol auto-detection failed — show picker so the user can select manually
         if (state.protocolSelectionRequired && protocolSelectionDialog?.isShowing != true) {
@@ -302,12 +367,7 @@ class MainActivity : AppCompatActivity() {
 
             // Update PiP if active
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isInPictureInPictureMode) {
-                when (appConfig.pipBlock) {
-                    getString(R.string.consumption) -> speedModel.value.floatValue =
-                        Calculator.whByKm.toFloat()
-
-                    else -> speedModel.value.floatValue = (viewModel.speedDouble).toFloat()
-                }
+                speedModel.value.floatValue = viewModel.speedDouble.toFloat()
                 pipView.invalidate()
             }
 
@@ -418,8 +478,6 @@ class MainActivity : AppCompatActivity() {
                 (icon as? AnimationDrawable)?.start()
             }
         }
-        mMenu?.findItem(R.id.miReset)?.isVisible = appConfig.mainMenuButtons.contains("reset")
-
         if (LoggingService.isInstanceCreated()) {
             miLogging!!.setTitle(R.string.stop_data_service)
             miLogging!!.setIcon(ThemeManager.getId(ThemeIconEnum.MenuLogOn))
@@ -515,6 +573,8 @@ class MainActivity : AppCompatActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         githubUpdates = GithubUpdatePrompt(this).also { it.start() }
+        PreferenceManager.getDefaultSharedPreferences(application)
+            .registerOnSharedPreferenceChangeListener(audioPreferencesListener)
         binding.settingsView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
         binding.pipView.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
 
@@ -619,6 +679,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
+        updateAutoMute(viewModel.sessionState.value)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isInPictureInPictureMode) {
             togglePipView(show = true)
         }
@@ -626,6 +687,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStop() {
         super.onStop()
+        updateAutoMute(BleSessionState())
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             togglePipView(show = false)
         }
@@ -649,6 +711,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        connectionLostBeepJob?.cancel()
+        updateAutoMute(BleSessionState())
+        PreferenceManager.getDefaultSharedPreferences(application)
+            .unregisterOnSharedPreferenceChangeListener(audioPreferencesListener)
         containerRenderer?.dispose()
         containerRenderer = null
         super.onDestroy()
@@ -1094,30 +1160,55 @@ class MainActivity : AppCompatActivity() {
     // File import via Android content picker
     val getCsvResults =
         registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris: List<Uri>? ->
-            uris?.let {
-                CoroutineScope(Dispatchers.IO + Job()).launch {
-                    for (uri in it) {
-                        contentResolver.apply {
-                            query(uri, null, null, null, null)?.use { cursor ->
-                                val nameIndex =
-                                    cursor.getColumnIndex(MediaStore.Downloads.DISPLAY_NAME)
-                                cursor.moveToFirst()
-                                cursor.getString(nameIndex)
-                            }?.let { fileName ->
-                                openInputStream(uri)?.use { stream ->
-                                    val fileUtil = FileUtil(this@MainActivity)
-                                    fileUtil.prepareFile(fileName, "manual")
-                                    fileUtil.writeAllStream(stream)
-                                    fileUtil.close()
+            uris?.takeIf { it.isNotEmpty() }?.let { selectedUris ->
+                lifecycleScope.launch {
+                    var imported = 0
+                    var failed = 0
+                    withContext(Dispatchers.IO) {
+                        selectedUris.forEach { uri ->
+                            try {
+                                val displayName = contentResolver.query(
+                                    uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null
+                                )?.use { cursor ->
+                                    val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+                                    if (index >= 0 && cursor.moveToFirst()) cursor.getString(index) else null
+                                } ?: throw IOException("The selected file has no name")
+                                val fileName = displayName.substringAfterLast('/').substringAfterLast('\\').trim()
+                                require(fileName.isNotEmpty()) { "The selected file has no usable name" }
+                                require(fileName.endsWith(".csv", ignoreCase = true)) {
+                                    "The selected file is not a CSV log"
                                 }
+                                val input = contentResolver.openInputStream(uri)
+                                    ?: throw IOException("Unable to open the selected file")
+                                input.use { stream ->
+                                    val fileUtil = FileUtil(applicationContext)
+                                    try {
+                                        check(fileUtil.prepareFile(fileName, "manual", append = false)) {
+                                            "Unable to create the imported log"
+                                        }
+                                        fileUtil.writeAllStream(stream)
+                                    } finally {
+                                        fileUtil.close()
+                                    }
+                                }
+                                imported++
+                            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                                throw cancelled
+                            } catch (exception: Exception) {
+                                Timber.w(exception, "Importing selected CSV log")
+                                failed++
                             }
                         }
                     }
-                    withContext(Dispatchers.Main) {
-                        if (::pagerAdapter.isInitialized) {
-                            pagerAdapter.updatePageOfTrips()
-                        }
+                    if (imported > 0 && ::pagerAdapter.isInitialized) {
+                        pagerAdapter.updatePageOfTrips()
                     }
+                    val message = if (failed > 0) {
+                        getString(R.string.trip_import_failed, failed)
+                    } else {
+                        getString(R.string.trip_import_success, imported)
+                    }
+                    Toast.makeText(this@MainActivity, message, Toast.LENGTH_LONG).show()
                 }
             }
         }

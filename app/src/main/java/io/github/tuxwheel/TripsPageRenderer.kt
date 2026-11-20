@@ -35,25 +35,31 @@ internal class TripsPageRenderer(
     private val items = mutableStateOf<List<TripItemState>>(emptyList())
     private var useMph = appConfig.useMph
     private var autoUpload = appConfig.autoUploadEc
+    private var hideTripSpeeds = appConfig.hideTripSpeeds
     private var collecting: Job? = null
     private val deletions = mutableSetOf<Job>()
     private var disposed = false
     private val state = TripsState(
-        load = { publish -> repository.loadItems(context, useMph, publish) },
+        load = { publish ->
+            repository.loadItems(
+                context, useMph, hideTripSpeeds = hideTripSpeeds, publish = publish
+            )
+        },
         failure = { Timber.w(it, "Loading trips"); Toast.makeText(context, R.string.trip_load_failed, Toast.LENGTH_LONG).show() }
     )
 
     init {
         compose.setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
         compose.setContent { TripsScreen(items.value, scroll.compose, ::delete) }
-        preferences(useMph, autoUpload)
+        preferences(useMph, autoUpload, hideTripSpeeds)
     }
 
-    fun preferences(mph: Boolean, upload: Boolean) {
+    fun preferences(mph: Boolean, upload: Boolean, hideSpeeds: Boolean) {
         if (disposed) return
-        val reload = useMph != mph || autoUpload != upload
+        val reload = useMph != mph || autoUpload != upload || hideTripSpeeds != hideSpeeds
         useMph = mph
         autoUpload = upload
+        hideTripSpeeds = hideSpeeds
         if (reload) refresh()
     }
 

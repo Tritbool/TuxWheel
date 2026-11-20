@@ -100,8 +100,8 @@
     <string name="about_app_title">За TuxWheel</string>
 	<string name="settings_title">Настройки</string>
     <string name="amp">A</string>
-	<string name="max_speed_dial_title">Максимална скорост</string>
-	<string name="max_speed_dial_description">Максималната скорост показвана на външния ринг</string>
+	<string name="max_speed_dial_title">Максимум на външния пръстен</string>
+	<string name="max_speed_dial_description">Максимална стойност на външния пръстен (%1$s)</string>
 	<string name="use_mph_title">Скорост и дистанция в мили</string>
 	<string name="use_mph_description">Показвай скоростта и дистанцията в мили вместо в километри</string>
 	<string name="enable_alarms_title">Включи алармите</string>

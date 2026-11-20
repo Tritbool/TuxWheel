@@ -100,8 +100,8 @@
     <string name="about_app_title">O TuxWheel</string>
 	<string name="settings_title">Nastavení</string>
     <string name="amp">A</string>
-	<string name="max_speed_dial_title">Maximální rychlost</string>
-	<string name="max_speed_dial_description">Maximální rychlost zobrazená ciferníku</string>
+	<string name="max_speed_dial_title">Maximum vnějšího kruhu</string>
+	<string name="max_speed_dial_description">Maximální hodnota zobrazená na vnějším kruhu (%1$s)</string>
 	<string name="use_mph_title">Rychlost a vzdálenost v mílích</string>
 	<string name="use_mph_description">Zobrazit míle místo kilometrů.</string>
 	<string name="enable_alarms_title">Zapnout upozornění</string>

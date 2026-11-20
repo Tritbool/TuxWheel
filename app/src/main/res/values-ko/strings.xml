@@ -157,8 +157,8 @@
 
     <!-- Fuzzy -->
     <string name="newton">"N*m"</string>
-    <string name="max_speed_dial_title">외부 스케일의 상한</string>
-    <string name="max_speed_dial_description">외부 스케일의 최대 값(속도 또는 전류)</string>
+    <string name="max_speed_dial_title">외부 링 최대값</string>
+    <string name="max_speed_dial_description">외부 링에 표시되는 최대값 (%1$s)</string>
     <string name="measurement_systems_category_title">측정 시스템</string>
     <string name="use_mph_title">"MPH 사용"</string>
     <string name="use_mph_description">"킬로미터가 아니라 마일로 속도를 표기합니다"</string>
@@ -175,7 +175,7 @@
     <string name="connection_sound_title">"연결음"</string>
     <string name="connection_sound_description">"휠이 연결되거나 끊어질 때 소리를 재생합니다"</string>
     <string name="no_connection_sound_title">"연결 끊김 비프음 간격"</string>
-    <string name="no_connection_sound_description">알림 기간,0-비활성화</string>
+    <string name="no_connection_sound_description">연결이 끊긴 동안 휴대전화 비프음을 반복합니다. 0으로 설정하면 끕니다.</string>
     <string name="use_stop_music_title">"자동 음소거"</string>
     <string name="use_stop_music_description">"속도가 3.5 km/h 미만이면 자동으로 음소거합니다"</string>
 

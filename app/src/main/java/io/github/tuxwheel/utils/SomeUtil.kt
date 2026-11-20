@@ -68,18 +68,24 @@ object SomeUtil: KoinComponent {
         playBeep(onlyByWheel = false, onlyDefault = false)
     }
 
+    @SuppressLint("MissingPermission")
+    @JvmStatic
+    fun playPhoneBeep() {
+        playBeep(onlyByWheel = false, onlyDefault = false, forcePhone = true)
+    }
+
     private val mediaPlayer by lazy { MediaPlayer() }
     private var beepTimer: CountDownTimer? = null
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
     @Suppress("DEPRECATION")
     @JvmStatic
-    fun playBeep(onlyByWheel: Boolean, onlyDefault: Boolean) {
+    fun playBeep(onlyByWheel: Boolean, onlyDefault: Boolean, forcePhone: Boolean = false) {
         if (viewModel == null) {
             return
         }
 
-        if (appConfig.beepByWheel || onlyByWheel) {
+        if ((appConfig.beepByWheel && !forcePhone) || onlyByWheel) {
             viewModel.wheelBeep()
             return
         }
@@ -127,7 +133,7 @@ object SomeUtil: KoinComponent {
                 }
             } catch (e: IOException) {
                 e.printStackTrace()
-                playBeep(onlyByWheel = false, onlyDefault = true)
+                playBeep(onlyByWheel = false, onlyDefault = true, forcePhone = forcePhone)
             }
         } else {
             // default beep

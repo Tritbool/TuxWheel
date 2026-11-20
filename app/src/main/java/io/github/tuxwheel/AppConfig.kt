@@ -65,26 +65,27 @@ class AppConfig(var context: Context) : KoinComponent {
 
     data class TelemetryPreferences(
         val useMph: Boolean,
-        val usePsi: Boolean,
         val useFahrenheit: Boolean,
         val nightMode: Int,
         val viewBlocks: List<String>,
         val pageGraph: Boolean,
         val pageEvents: Boolean,
         val pageTrips: Boolean,
-        val autoUploadEc: Boolean
+        val autoUploadEc: Boolean,
+        val hideTripSpeeds: Boolean
     )
 
     fun telemetryPreferences(): Flow<TelemetryPreferences> = callbackFlow {
         fun snapshot() = TelemetryPreferences(
-            useMph, usePsi, useFahrenheit, dayNightThemeMode,
-            viewBlocks.toList(), pageGraph, pageEvents, pageTrips, autoUploadEc
+            useMph, useFahrenheit, dayNightThemeMode,
+            viewBlocks.toList(), pageGraph, pageEvents, pageTrips, autoUploadEc, hideTripSpeeds
         )
         val resources = setOf(
-            R.string.use_mph, R.string.use_psi,
+            R.string.use_mph,
             R.string.use_fahrenheit, R.string.day_night_theme,
             R.string.view_blocks_string, R.string.show_page_graph,
-            R.string.show_page_events, R.string.show_page_trips, R.string.auto_upload_ec
+            R.string.show_page_events, R.string.show_page_trips, R.string.auto_upload_ec,
+            R.string.hide_trip_speeds
         )
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
             if (key == null || getResId(key) in resources) trySend(snapshot())
@@ -114,11 +115,6 @@ class AppConfig(var context: Context) : KoinComponent {
         get() = getValue(R.string.use_mph, false)
         set(value) = setValue(R.string.use_mph, value)
 
-    var usePsi: Boolean
-        get() = getValue(R.string.use_psi, false)
-        set(value) = setValue(R.string.use_psi, value)
-
-
     var useFahrenheit: Boolean
         get() = getValue(R.string.use_fahrenheit, false)
         set(value) = setValue(R.string.use_fahrenheit, value)
@@ -147,10 +143,6 @@ class AppConfig(var context: Context) : KoinComponent {
         get() = getValue(R.string.use_pip_mode, false)
         set(value) = setValue(R.string.use_pip_mode, value)
 
-    var pipBlock: String
-        get() = getValue(R.string.pip_block, "")
-        set(value) = setValue(R.string.pip_block, value)
-
     private var notificationButtonsString: String?
         get() = getValue(R.string.notification_buttons, null)
         set(value) {
@@ -172,11 +164,11 @@ class AppConfig(var context: Context) : KoinComponent {
         }
 
     var maxSpeed: Int
-        get() = getValue(R.string.max_speed, 50)
+        get() = getValue(R.string.max_speed, 100)
         set(value) = setValue(R.string.max_speed, value)
 
     var valueOnDial: String
-        get() = getValue(R.string.value_on_dial, "0")
+        get() = getValue(R.string.value_on_dial, "2")
         set(value) = setValue(R.string.value_on_dial, value)
 
     var pageGraph: Boolean
@@ -190,10 +182,6 @@ class AppConfig(var context: Context) : KoinComponent {
     var pageTrips: Boolean
         get() = getValue(R.string.show_page_trips, true)
         set(value) = setValue(R.string.show_page_trips, value)
-
-    var connectionSound: Boolean
-        get() = getValue(R.string.connection_sound, false)
-        set(value) = setValue(R.string.connection_sound, value)
 
     var noConnectionSound: Int
         get() = getValue(R.string.no_connection_sound, 5)
@@ -229,11 +217,6 @@ class AppConfig(var context: Context) : KoinComponent {
     var customBeepTimeLimit: Float
         get() = getValue("custom_beep_time_limit", 2.0f)
         set(value) = setValue("custom_beep_time_limit", value)
-
-    var useReconnect: Boolean
-        get() = getValue(R.string.use_reconnect, false)
-        set(value) {
-        }
 
     var detectBatteryOptimization: Boolean
         get() = getValue(R.string.use_detect_battery_optimization, true)
@@ -302,14 +285,17 @@ class AppConfig(var context: Context) : KoinComponent {
     var continueThisDayLogMacException: String
         get() = getValue(R.string.continue_this_day_log_exception, "")
         set(value) = setValue(R.string.continue_this_day_log_exception, value)
+
+    var hideTripSpeeds: Boolean
+        get() = getValue(R.string.hide_trip_speeds, false)
+        set(value) = setValue(R.string.hide_trip_speeds, value)
+
+    var stealthLogging: Boolean
+        get() = getValue(R.string.stealth_logging, false)
+        set(value) = setValue(R.string.stealth_logging, value)
     //endregion    
 
     //region toolbar
-    var mainMenuButtons: Array<String>
-        get() = getValue<String?>("main_menu_buttons", null)?.split(separator)
-            ?.filter { it == "reset" }?.toTypedArray() ?: emptyArray()
-        set(value) = setValue("main_menu_buttons", value.joinToString(separator))
-
     var showClock: Boolean
         get() = getValue("show_clock", true)
         set(value) = setValue("show_clock", value)

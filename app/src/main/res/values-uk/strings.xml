@@ -68,7 +68,7 @@
     <string name="about_app_title">Про TuxWheel</string>
     <string name="settings_title">Налаштування</string>
     <string name="amp">А</string>
-    <string name="max_speed_dial_title">Верхня границя зовн. шкали</string>
+    <string name="max_speed_dial_title">Максимум зовнішнього кільця</string>
     <string name="use_mph_title">Використовувати милі</string>
     <string name="use_mph_description">Показувати милі замість кілометрів.</string>
     <string name="view_blocks_title">Блоки під спідометром</string>
@@ -148,7 +148,7 @@
     <string name="use_pip_mode_description">Переходити у режим картинка-в-картинці замість згортання</string>
     <string name="use_pip_mode_title">Картинка-в-Картинці</string>
     <string name="voltage_sag">Просадка напруги</string>
-    <string name="max_speed_dial_description">Максимальне значення зовнішньої шкали (швидкість та сила струму)</string>
+    <string name="max_speed_dial_description">Максимальне значення зовнішнього кільця (%1$s)</string>
     <string name="connection_sound_description">Програвати звуки підключення і відключення колеса</string>
     <string name="connection_sound_title">Звуки підключення колеса</string>
     <string name="sec">сек</string>
@@ -157,7 +157,7 @@
     <string name="warning_speed_title">Попереднє попередження</string>
     <string name="warning_speed_description">Попереднє попередження по швидкості (0 = вимк)</string>
     <string name="no_connection_sound_title">Періодичні оповіщення в разі втрати підключення</string>
-    <string name="no_connection_sound_description">Період сповіщень, 0-відключити</string>
+    <string name="no_connection_sound_description">Повторювати звуковий сигнал телефона, поки колесо відключене. 0 — вимкнути.</string>
     <string name="power_factor_description">Не міняйте якщо не знаєте що це, 90 за замовченням</string>
     <string name="power_factor_title">Фактор потужності</string>
     <string name="rotation_speed_title">Швидкість розкрутки</string>

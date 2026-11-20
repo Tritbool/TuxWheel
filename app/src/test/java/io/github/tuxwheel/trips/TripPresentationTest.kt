@@ -54,6 +54,18 @@ class TripPresentationTest {
         assertThat(TripPresentation.descriptions(context, null, false, "empty")).isEqualTo("empty" to "")
     }
 
+    @Test fun `trip stealth mode hides speeds but keeps other statistics`() {
+        val trip = TripDataDbEntry(
+            fileName = "fixture.csv", duration = 42, maxSpeed = 40f, avgSpeed = 20f,
+            maxPwm = 85.5f, distance = 10000, consumptionTotal = 200f,
+            consumptionByKm = 20f, ecId = 1
+        )
+        val descriptions = TripPresentation.descriptions(context, trip, false, "unused", hideSpeeds = true)
+        assertThat(descriptions.first).isEqualTo("😱 85.5%\n⚡ electro.club")
+        assertThat(descriptions.first).doesNotContain("km/h")
+        assertThat(descriptions.second).contains("10.00 km")
+    }
+
     @Test fun `friendly names cover today week current year prior year and arbitrary CSV names`() {
         mockkStatic(DateFormat::class)
         every { DateFormat.getBestDateTimePattern(Locale.US, "MMMM dd, HH:mm") } returns "MMMM dd, HH:mm"
