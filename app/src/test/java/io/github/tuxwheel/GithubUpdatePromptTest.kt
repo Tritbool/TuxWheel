@@ -4,6 +4,7 @@ import android.app.AlertDialog
 import android.app.Application
 import android.app.PictureInPictureParams
 import android.content.Intent
+import android.net.Uri
 import android.os.Looper
 import androidx.activity.ComponentActivity
 import com.google.common.truth.Truth.assertThat
@@ -15,6 +16,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowAlertDialog
+import org.robolectric.shadows.ShadowResolveInfo
 
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class, sdk = [28])
@@ -48,6 +50,12 @@ class GithubUpdatePromptTest {
     @Test fun `Download opens only browsable HTTPS URL and popup is cleaned on pause`() {
         val controller = Robolectric.buildActivity(ComponentActivity::class.java).setup()
         val activity = controller.get()
+        val downloadIntent = Intent(Intent.ACTION_VIEW, Uri.parse(release.apkUrl))
+            .addCategory(Intent.CATEGORY_BROWSABLE)
+        shadowOf(activity.packageManager).addResolveInfoForIntent(
+            downloadIntent,
+            ShadowResolveInfo.newResolveInfo("Browser", "test.browser")
+        )
         val prompt = GithubUpdatePrompt(activity, { true }, { release })
         prompt.start()
         shadowOf(Looper.getMainLooper()).idle()
