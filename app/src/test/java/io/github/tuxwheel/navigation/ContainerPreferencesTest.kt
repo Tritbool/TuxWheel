@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import androidx.preference.PreferenceManager
 import androidx.test.core.app.ApplicationProvider
+import io.github.tuxwheel.AppConfig
 import io.github.tuxwheel.MainContainerRenderer
 import io.github.tuxwheel.MainPageAdapter
 import io.github.tuxwheel.R
