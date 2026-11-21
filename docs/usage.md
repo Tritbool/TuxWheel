@@ -44,9 +44,13 @@ see it in the notification drawer. If recording is working, the trip also appear
 in the app's trip list.
 
 During a session, notifications remain visible. An interruption keeps the same
-log open and retries the same wheel. After **15 minutes** without a connection
-(configurable from 1 to 120 minutes), the session closes; wheel surveillance
-continues. Opening or closing the dashboard does not stop black-box recording.
+log open and retries the saved wheels again in the app-defined order, giving
+another present wheel its turn ahead of a failing one. After **15 minutes**
+without a connection (configurable from 1 to 120 minutes), the session closes
+and the wheel is left alone until it is seen again after a disappearance;
+wheel surveillance continues for other wheels. A "Connected to <wheel>"
+notification is posted once per black-box connection. Opening or closing the
+dashboard does not stop black-box recording.
 
 Manual disconnection closes the log immediately. Choose whether to wait for the
 wheel to disappear and return (default), reconnect immediately, or suspend the

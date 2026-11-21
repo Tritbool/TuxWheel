@@ -38,6 +38,8 @@
     <string name="background_session_location_help">Autorisez la localisation « Toujours » dans les permissions de l\'application, puis activez à nouveau la boîte noire. Android l\'exige pour les scans Bluetooth en arrière-plan sur cette version.</string>
     <string name="background_session_error">Erreur de la boîte noire : %1$s</string>
     <string name="background_session_waiting">En attente des roues mémorisées</string>
+    <string name="background_session_events">Événements boîte noire</string>
+    <string name="background_session_connected">Connecté à %1$s</string>
     <string name="background_session_recording">Roue connectée — enregistrement</string>
     <string name="background_session_starting_log">Roue connectée — démarrage de l\'enregistrement</string>
     <string name="background_session_logging_failed">Enregistrement arrêté ou impossible à démarrer</string>

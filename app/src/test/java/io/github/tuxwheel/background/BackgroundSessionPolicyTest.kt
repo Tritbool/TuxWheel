@@ -59,4 +59,28 @@ class BackgroundSessionPolicyTest {
         assertFalse(policy.expired(100_000, 60_000))
         assertEquals(other, policy.choose(wheels, setOf(other), emptySet(), 100_000, 0))
     }
+
+    @Test fun `rechoose surveys every known wheel instead of pinning the last connected one`() {
+        val policy = BackgroundSessionPolicy()
+        policy.begin(other, 0)
+        policy.updateConnection(true, 10)
+        policy.updateConnection(false, 10)
+        // The pinned wheel stays demoted while it is the only candidate.
+        assertEquals(other, policy.rechoose(wheels, setOf(other), emptySet(), 30_000, 0))
+        // A preferred wheel appearing later wins over the demoted failure.
+        assertEquals(favorite, policy.rechoose(wheels, setOf(favorite, other), emptySet(), 30_100, 0))
+        policy.retarget(favorite, 30_100)
+        assertEquals(favorite, policy.address)
+        // The grace window keeps counting from the original link loss, not from the switch.
+        assertFalse(policy.expired(900_009, 900_000))
+        assertTrue(policy.expired(900_010, 900_000))
+    }
+
+    @Test fun `rechoose falls back to another saved wheel once the pinned one vanishes`() {
+        val policy = BackgroundSessionPolicy()
+        policy.begin(favorite, 0)
+        policy.updateConnection(false, 10)
+        assertEquals(other, policy.rechoose(wheels, setOf(other), emptySet(), 30_000, 0))
+        assertNull(policy.rechoose(wheels, emptySet(), emptySet(), 40_000, 0))
+    }
 }

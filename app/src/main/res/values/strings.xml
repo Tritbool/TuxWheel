@@ -37,6 +37,8 @@
     <string name="background_session_location_help">Allow location access “all the time” in the app permissions, then enable black box again. Android requires this for background Bluetooth scans on this version.</string>
     <string name="background_session_error">Black box error: %1$s</string>
     <string name="background_session_waiting">Waiting for saved wheels</string>
+    <string name="background_session_events">Black box events</string>
+    <string name="background_session_connected">Connected to %1$s</string>
     <string name="background_session_recording">Wheel connected — recording</string>
     <string name="background_session_starting_log">Wheel connected — starting recording</string>
     <string name="background_session_logging_failed">Recording stopped or could not start</string>

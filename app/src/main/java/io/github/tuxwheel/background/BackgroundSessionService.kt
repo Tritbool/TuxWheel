@@ -51,10 +51,16 @@ class BackgroundSessionService : Service() {
     private var manualDisconnectPending = false
     private var stopping = false
     private var lastNotificationText: Int? = null
+    private val sessionSleepUntil = mutableMapOf<String, Long>()
+    private var connectedNotifiedFor: String? = null
 
     override fun onBind(intent: Intent): IBinder? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (stopping) {
+            // A pending start can arrive before stopSelf() is applied; the same instance must resume.
+            stopping = false
+        }
         try {
             showNotification(R.string.background_session_waiting)
         } catch (e: SecurityException) {
@@ -126,6 +132,7 @@ class BackgroundSessionService : Service() {
             }
         }
 
+        sessionSleepUntil.entries.removeAll { it.key !in manager.present.value }
         val state = session.sessionState.value
         if (manualDisconnectPending) {
             if (state.connectionState != BLEConstants.ConnectionState.DISCONNECTED || state.isReconnecting) return
@@ -143,7 +150,7 @@ class BackgroundSessionService : Service() {
             !state.isScanning && !state.isAutoConnecting && !state.isReconnecting
         ) {
             val wheel = policy.choose(
-                config.rememberedWheels.map { it.address }, manager.present.value, config.backgroundBlockedWheels, now,
+                awakeWheels(now), manager.present.value, config.backgroundBlockedWheels, now,
                 config.wheelPriorityWaitSeconds * 1_000L,
             )
             if (wheel != null) {
@@ -157,7 +164,8 @@ class BackgroundSessionService : Service() {
                 // Stay alive for the existing priority window, but not indefinitely while idle.
                 if (manager.present.value.none { address ->
                         config.rememberedWheels.any { it.address == address } &&
-                            address !in config.backgroundBlockedWheels
+                            address !in config.backgroundBlockedWheels &&
+                            (sessionSleepUntil[address] ?: 0L) <= now
                     }
                 ) {
                     stopping = true
@@ -179,6 +187,7 @@ class BackgroundSessionService : Service() {
             config.backgroundInterruptedAt = System.currentTimeMillis()
         }
         if (policy.expired(now, config.backgroundSessionTimeoutMinutes * 60_000L)) {
+            sessionSleepUntil[requireNotNull(policy.address)] = now + config.backgroundSessionTimeoutMinutes * 60_000L
             session.disconnect(userInitiated = false)
             finishSession()
             showNotification(R.string.background_session_waiting)
@@ -194,6 +203,13 @@ class BackgroundSessionService : Service() {
             LoggingService.isRecording() -> R.string.background_session_recording
             else -> R.string.background_session_starting_log
         })
+        val notifiedAddress = state.selectedDevice?.address.takeIf { state.isConnected }
+        if (notifiedAddress == null) {
+            connectedNotifiedFor = null
+        } else if (connectedNotifiedFor != notifiedAddress) {
+            connectedNotifiedFor = notifiedAddress
+            notifyConnected(notifiedAddress)
+        }
         if (state.isConnected && !loggingRequested && !loggingFailed) {
             if (!LoggingService.isInstanceCreated()) {
                 try {
@@ -216,8 +232,23 @@ class BackgroundSessionService : Service() {
             state.connectionState == BLEConstants.ConnectionState.DISCONNECTED &&
             !state.isScanning && !state.isAutoConnecting && policy.canRetry(now)
         ) {
-            policy.attempting(now)
-            connect(requireNotNull(policy.address))
+            val target = policy.rechoose(
+                awakeWheels(now), manager.present.value, config.backgroundBlockedWheels, now, 0L,
+            )
+            when {
+                target == null -> if (policy.address != null) {
+                    finishSession()
+                    showNotification(R.string.background_session_waiting)
+                }
+                target == policy.address -> {
+                    policy.attempting(now)
+                    connect(target)
+                }
+                else -> {
+                    policy.retarget(target, now)
+                    connect(target)
+                }
+            }
         }
     }
 
@@ -234,6 +265,36 @@ class BackgroundSessionService : Service() {
             manager.reportError(e)
         } catch (e: SecurityException) {
             manager.reportError(e)
+        }
+    }
+
+    private fun awakeWheels(now: Long): List<String> =
+        config.rememberedWheels.map { it.address }.filter { address ->
+            (sessionSleepUntil[address] ?: 0L) <= now
+        }
+
+    private fun wheelDisplayName(address: String): String =
+        config.rememberedWheels.firstOrNull { it.address == address }?.displayName ?: address
+
+    private fun notifyConnected(address: String) {
+        val notifications = getSystemService(NotificationManager::class.java)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            notifications.createNotificationChannel(NotificationChannel(
+                EVENT_CHANNEL, getString(R.string.background_session_events), NotificationManager.IMPORTANCE_DEFAULT,
+            ))
+        }
+        val notification = NotificationCompat.Builder(this, EVENT_CHANNEL)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(getString(R.string.background_session_title))
+            .setContentText(getString(R.string.background_session_connected, wheelDisplayName(address)))
+            .setAutoCancel(true)
+            .setContentIntent(PendingIntent.getActivity(this, 22, Intent(this, MainActivity::class.java),
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT))
+            .build()
+        try {
+            notifications.notify(EVENT_NOTIFICATION_ID, notification)
+        } catch (e: SecurityException) {
+            Timber.w(e, "Could not post black box connection notification")
         }
     }
 
@@ -370,7 +431,9 @@ class BackgroundSessionService : Service() {
 
     companion object {
         internal const val CHANNEL = "background_sessions"
+        internal const val EVENT_CHANNEL = "background_session_events"
         private const val NOTIFICATION_ID = 20
+        private const val EVENT_NOTIFICATION_ID = 21
         private const val LEGACY_ABSENCE_MILLIS = 60_000L
     }
 }
