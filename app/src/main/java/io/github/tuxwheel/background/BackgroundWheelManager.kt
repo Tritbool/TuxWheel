@@ -31,6 +31,12 @@ internal class BackgroundWheelManager(
 ) {
     private val _present = MutableStateFlow<Set<String>>(emptySet())
     val present = _present.asStateFlow()
+    private val _serviceStatus = MutableStateFlow<Int?>(null)
+    val serviceStatus = _serviceStatus.asStateFlow()
+    private val _lastError = MutableStateFlow<String?>(null)
+    val lastError = _lastError.asStateFlow()
+    private val _observationReady = MutableStateFlow(false)
+    val observationReady = _observationReady.asStateFlow()
     private var observed = emptySet<String>()
     private var started = false
 
@@ -117,16 +123,20 @@ internal class BackgroundWheelManager(
             for (address in associations() - desired) manager.stopObservingDevicePresence(address)
             for (address in desired - observed) manager.startObservingDevicePresence(address)
             observed = desired
+            _observationReady.value = desired.isNotEmpty()
             _present.value = _present.value.intersect(desired)
             if (!config.backgroundSessionPaused && _present.value.any {
                     it !in config.backgroundBlockedWheels
                 }
             ) startService()
         } catch (e: IllegalArgumentException) {
+            _observationReady.value = false
             reportError(e)
         } catch (e: IllegalStateException) {
+            _observationReady.value = false
             reportError(e)
         } catch (e: SecurityException) {
+            _observationReady.value = false
             reportError(e)
         }
     }
@@ -152,8 +162,17 @@ internal class BackgroundWheelManager(
         }
     }
 
+    fun setServiceStatus(status: Int?) {
+        _serviceStatus.value = status
+    }
+
+    fun clearError() {
+        _lastError.value = null
+    }
+
     fun reportError(error: Exception) {
         Timber.e(error, "Background wheel session failed")
+        _lastError.value = error.message ?: error.javaClass.simpleName
         Toast.makeText(context, context.getString(R.string.background_session_error, error.message),
             Toast.LENGTH_LONG).show()
     }

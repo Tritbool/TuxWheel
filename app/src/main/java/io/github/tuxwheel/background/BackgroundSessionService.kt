@@ -163,6 +163,8 @@ class BackgroundSessionService : Service() {
                     stopping = true
                     stopSelf()
                 }
+            } else {
+                showNotification(R.string.background_session_waiting)
             }
             return
         }
@@ -336,6 +338,7 @@ class BackgroundSessionService : Service() {
             startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE)
         } else startForeground(NOTIFICATION_ID, notification)
         lastNotificationText = text
+        manager.setServiceStatus(text)
     }
 
     private fun startForegroundServiceCompat(intent: Intent) {
@@ -357,6 +360,7 @@ class BackgroundSessionService : Service() {
 
     override fun onDestroy() {
         stopping = true
+        manager.setServiceStatus(null)
         stopLegacyScan()
         scope.cancel()
         releaseWakeLock()
@@ -365,7 +369,7 @@ class BackgroundSessionService : Service() {
     }
 
     companion object {
-        private const val CHANNEL = "background_sessions"
+        internal const val CHANNEL = "background_sessions"
         private const val NOTIFICATION_ID = 20
         private const val LEGACY_ABSENCE_MILLIS = 60_000L
     }

@@ -5,6 +5,18 @@
     <string name="background_session_companion_help">Allumez chaque roue mémorisée pour l\'associer une fois à Android. Android surveille ensuite sa présence, y compris après un redémarrage du téléphone. Une notification reste visible pendant la session. Un arrêt forcé, des permissions retirées ou les restrictions de batterie du fabricant peuvent empêcher le fonctionnement.</string>
     <string name="background_session_legacy_help">Sous Android 6 à 11, la surveillance nécessite une notification permanente et un scan Bluetooth basse consommation. Activez le Bluetooth et la localisation système. La localisation en arrière-plan est requise sous Android 10 et 11.</string>
     <string name="background_session_enable">Activer ou reprendre la boîte noire</string>
+    <string name="background_session_disabled">Désactivée</string>
+    <string name="background_session_paused">En pause — reprenez la boîte noire pour reconnecter</string>
+    <string name="background_session_enabled">Activée — ouvrir pour voir l\'état</string>
+    <string name="background_session_status">État : %1$s</string>
+    <string name="background_session_bluetooth_off">Le Bluetooth est désactivé</string>
+    <string name="background_session_no_wheels">Mémorisez une roue avant de lancer la surveillance</string>
+    <string name="background_session_associations_missing">Associez chaque roue mémorisée à Android ci-dessous</string>
+    <string name="background_session_monitoring">Surveillance demandée — en attente de détection par Android</string>
+    <string name="background_session_observation_unconfirmed">Surveillance des roues non confirmée — vérifiez la dernière erreur et réactivez la boîte noire</string>
+    <string name="background_session_not_running">La surveillance ne fonctionne pas — désactivez puis réactivez la boîte noire</string>
+    <string name="background_session_last_error">Dernière erreur : %1$s</string>
+    <string name="background_session_notifications_disabled">Les notifications sont désactivées ; activez-les dans les paramètres Android pour voir l\'état de la session.</string>
     <string name="background_session_timeout">Terminer la session après %1$d minutes sans connexion</string>
     <string name="background_session_timeout_title">Délai sans connexion (minutes)</string>
     <string name="background_session_timeout_error">Saisissez une valeur entre 1 et 120</string>
@@ -27,7 +39,7 @@
     <string name="background_session_recording">Roue connectée — enregistrement</string>
     <string name="background_session_starting_log">Roue connectée — démarrage de l\'enregistrement</string>
     <string name="background_session_logging_failed">Enregistrement arrêté ou impossible à démarrer</string>
-    <string name="background_session_reconnecting">Connexion interrompue — en attente de la roue</string>
+    <string name="background_session_reconnecting">Connexion ou reconnexion à la roue</string>
     <string name="background_session_done">Terminer</string>
     <string name="third_party_licenses_title">Logiciels tiers et licences</string>
     <string name="third_party_license_read_error">Impossible d’ouvrir cette licence.</string>

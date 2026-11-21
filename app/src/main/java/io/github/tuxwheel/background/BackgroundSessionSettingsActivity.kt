@@ -2,7 +2,9 @@ package io.github.tuxwheel.background
 
 import android.Manifest
 import android.app.Activity
+import android.app.NotificationManager
 import android.bluetooth.le.ScanFilter
+import android.bluetooth.BluetoothManager
 import android.companion.AssociationRequest
 import android.companion.BluetoothLeDeviceFilter
 import android.companion.CompanionDeviceManager
@@ -26,15 +28,24 @@ import androidx.activity.ComponentActivity
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import io.github.tuxwheel.AppConfig
 import io.github.tuxwheel.R
+import io.github.tuxwheel.ble.BleSessionViewModel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 
 class BackgroundSessionSettingsActivity : ComponentActivity() {
     private val config: AppConfig by inject()
     private val manager: BackgroundWheelManager by inject()
+    private val session: BleSessionViewModel by inject()
     private lateinit var content: LinearLayout
+    private lateinit var status: TextView
     private var enabling = false
     private var associating = false
     private val permissions = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
@@ -64,6 +75,14 @@ class BackgroundSessionSettingsActivity : ComponentActivity() {
         }
         setContentView(ScrollView(this).apply { addView(content) })
         render()
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                while (true) {
+                    updateStatus()
+                    delay(1_000)
+                }
+            }
+        }
     }
 
     override fun onResume() {
@@ -75,6 +94,9 @@ class BackgroundSessionSettingsActivity : ComponentActivity() {
     private fun render() {
         content.removeAllViews()
         text(R.string.background_session_description)
+        status = TextView(this)
+        content.addView(status)
+        updateStatus()
         text(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             R.string.background_session_companion_help
         } else R.string.background_session_legacy_help)
@@ -141,6 +163,7 @@ class BackgroundSessionSettingsActivity : ComponentActivity() {
     }
 
     private fun requestEnable() {
+        manager.clearError()
         if (config.rememberedWheels.isEmpty()) {
             enabling = false
             Toast.makeText(this, R.string.wheels_empty, Toast.LENGTH_LONG).show()
@@ -248,6 +271,39 @@ class BackgroundSessionSettingsActivity : ComponentActivity() {
 
     private fun text(resource: Int) {
         content.addView(TextView(this).apply { setText(resource) })
+    }
+
+    private fun updateStatus() {
+        val hasPermissions = manager.hasPermissions()
+        val companion = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+        val wheels = config.rememberedWheels
+        val missingAssociations = companion && hasPermissions &&
+            wheels.any { it.address !in manager.associations() }
+        val serviceStatus = manager.serviceStatus.value
+        val statusText = getString(backgroundSessionStatus(
+            enabled = config.backgroundSessionEnabled,
+            paused = config.backgroundSessionPaused,
+            hasPermissions = hasPermissions,
+            bluetoothOn = hasPermissions && getSystemService(BluetoothManager::class.java)?.adapter?.isEnabled == true,
+            hasWheels = wheels.isNotEmpty(),
+            missingAssociations = missingAssociations,
+            observationReady = manager.observationReady.value,
+            serviceStatus = serviceStatus,
+            companion = companion,
+        ))
+        val error = if (config.backgroundSessionEnabled) {
+            manager.lastError.value ?: session.sessionState.value.lastError.takeIf { manager.serviceStatus.value != null }
+        } else null
+        val channelBlocked = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+            getSystemService(NotificationManager::class.java)
+                .getNotificationChannel(BackgroundSessionService.CHANNEL)?.importance == NotificationManager.IMPORTANCE_NONE
+        status.text = getString(R.string.background_session_status, statusText) +
+            (if (config.backgroundSessionEnabled && serviceStatus != null && missingAssociations)
+                "\n" + getString(R.string.background_session_associations_missing) else "") +
+            (if (config.backgroundSessionEnabled &&
+                (!NotificationManagerCompat.from(this).areNotificationsEnabled() || channelBlocked))
+                "\n" + getString(R.string.background_session_notifications_disabled) else "") +
+            (error?.let { "\n" + getString(R.string.background_session_last_error, it) } ?: "")
     }
 
     private fun button(label: String, action: () -> Unit) {

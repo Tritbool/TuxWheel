@@ -50,6 +50,7 @@ jobs:
           --tests io.github.tuxwheel.ble.BleCommandDiscoveryTest
           --tests io.github.tuxwheel.ble.WheelAutoConnectTest
           --tests io.github.tuxwheel.background.BackgroundSessionPolicyTest
+          --tests io.github.tuxwheel.background.BackgroundSessionStatusTest
           --tests io.github.tuxwheel.background.BackgroundWheelManagerTest
           --tests io.github.tuxwheel.RememberedWheelsTest
           --tests io.github.tuxwheel.settings.CommandContractMappingTest
