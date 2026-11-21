@@ -1,7 +1,7 @@
 <resources>
     <string name="background_session_title">Black box</string>
     <string name="background_session_description">Connect to saved wheels and record automatically, without opening the app. Recording always starts on connection in this mode.</string>
-    <string name="background_session_companion_help">Turn on each saved wheel to associate it with Android once. Android then watches for it, including after a phone restart. An ongoing notification is shown during a session. Force-stop, revoked permissions and manufacturer battery restrictions can prevent operation.</string>
+    <string name="background_session_companion_help">Turn on a saved wheel to associate it with Android once. TuxWheel disconnects from it during association, because a connected wheel cannot be found. Android then watches associated wheels, including after a phone restart; unassociated wheels are ignored. An ongoing notification is shown during a session. Force-stop, revoked permissions and manufacturer battery restrictions can prevent operation.</string>
     <string name="background_session_legacy_help">On Android 6–11, waiting for wheels requires a permanent notification and low-power Bluetooth scanning. Enable Bluetooth and system location. Background location permission is required on Android 10–11.</string>
     <string name="background_session_enable">Enable or resume black box</string>
     <string name="background_session_disabled">Disabled</string>
@@ -10,7 +10,9 @@
     <string name="background_session_status">Status: %1$s</string>
     <string name="background_session_bluetooth_off">Bluetooth is off</string>
     <string name="background_session_no_wheels">Save a wheel before monitoring</string>
-    <string name="background_session_associations_missing">Associate every saved wheel with Android below</string>
+    <string name="background_session_associations_missing">Associate at least one saved wheel with Android below</string>
+    <string name="background_session_association_disconnect">Wheel disconnected so Android can find it. Keep it on and nearby.</string>
+    <string name="background_session_associations_partial">Some saved wheels are not associated with Android and are ignored</string>
     <string name="background_session_monitoring">Monitoring requested — waiting for Android to detect a wheel</string>
     <string name="background_session_observation_unconfirmed">Wheel monitoring could not be confirmed — check the last error and try enabling black box again</string>
     <string name="background_session_not_running">Monitoring is not running — disable and enable black box again</string>

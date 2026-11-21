@@ -24,9 +24,12 @@ The mode is off by default. It connects and records immediately, independently
 of the normal auto-log speed threshold, without opening the dashboard.
 Saved-wheel order and its existing priority wait are retained.
 
-On Android 12+, turn on each saved wheel once and approve Android's companion
-device association. Android watches associated wheels and can wake TuxWheel
-after a phone restart. Associate newly saved wheels in the same settings screen.
+On Android 12+, turn on a saved wheel and approve Android's companion device
+association once. TuxWheel disconnects from the wheel during association,
+because a connected wheel stops advertising and Android cannot find it. One
+associated wheel is enough to enable the mode; unassociated wheels are ignored
+and can be associated later from the same settings screen. Android watches
+associated wheels and can wake TuxWheel after a phone restart.
 On Android 6–11, a foreground service performs filtered, low-power BLE scans
 and has a permanent notification even while waiting. Grant location and, on
 Android 10–11, background location; older versions also need storage permission.

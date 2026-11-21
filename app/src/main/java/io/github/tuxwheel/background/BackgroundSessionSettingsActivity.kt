@@ -1,6 +1,7 @@
 package io.github.tuxwheel.background
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.NotificationManager
 import android.bluetooth.le.ScanFilter
@@ -36,6 +37,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import io.github.tuxwheel.AppConfig
 import io.github.tuxwheel.R
 import io.github.tuxwheel.ble.BleSessionViewModel
+import io.github.tritbool.euc.ble.core.BLEConstants
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
@@ -212,9 +214,12 @@ class BackgroundSessionSettingsActivity : ComponentActivity() {
                 render()
                 return
             }
-            val missing = config.rememberedWheels.firstOrNull { it.address !in manager.associations() }
-            if (missing != null) {
-                associate(missing.address)
+            val associated = manager.associations()
+            if (config.rememberedWheels.none { it.address in associated }) {
+                val connected = session.sessionState.value.deviceAddress.uppercase(java.util.Locale.ROOT)
+                val wheel = config.rememberedWheels.firstOrNull { it.address == connected }
+                    ?: config.rememberedWheels.first()
+                associate(wheel.address)
                 return
             }
         }
@@ -229,6 +234,7 @@ class BackgroundSessionSettingsActivity : ComponentActivity() {
     private fun associate(address: String) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
         associating = true
+        releaseWheelForAssociation()
         val request = AssociationRequest.Builder()
             .addDeviceFilter(BluetoothLeDeviceFilter.Builder().setScanFilter(
                 ScanFilter.Builder().setDeviceAddress(address).build(),
@@ -269,6 +275,18 @@ class BackgroundSessionSettingsActivity : ComponentActivity() {
         }
     }
 
+    @SuppressLint("MissingPermission")
+    private fun releaseWheelForAssociation() {
+        val state = session.sessionState.value
+        if (state.connectionState != BLEConstants.ConnectionState.DISCONNECTED || state.isReconnecting ||
+            state.isAutoConnecting
+        ) {
+            // A connected BLE wheel stops advertising, so Android's companion search would never find it.
+            session.disconnect(userInitiated = false)
+            Toast.makeText(this, R.string.background_session_association_disconnect, Toast.LENGTH_LONG).show()
+        }
+    }
+
     private fun text(resource: Int) {
         content.addView(TextView(this).apply { setText(resource) })
     }
@@ -277,8 +295,10 @@ class BackgroundSessionSettingsActivity : ComponentActivity() {
         val hasPermissions = manager.hasPermissions()
         val companion = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
         val wheels = config.rememberedWheels
-        val missingAssociations = companion && hasPermissions &&
-            wheels.any { it.address !in manager.associations() }
+        val associated = if (companion && hasPermissions) manager.associations() else emptySet()
+        val missingAssociations = companion && hasPermissions && wheels.none { it.address in associated }
+        val partialAssociations = companion && hasPermissions && !missingAssociations &&
+            wheels.any { it.address !in associated }
         val serviceStatus = manager.serviceStatus.value
         val statusText = getString(backgroundSessionStatus(
             enabled = config.backgroundSessionEnabled,
@@ -298,8 +318,7 @@ class BackgroundSessionSettingsActivity : ComponentActivity() {
             getSystemService(NotificationManager::class.java)
                 .getNotificationChannel(BackgroundSessionService.CHANNEL)?.importance == NotificationManager.IMPORTANCE_NONE
         status.text = getString(R.string.background_session_status, statusText) +
-            (if (config.backgroundSessionEnabled && serviceStatus != null && missingAssociations)
-                "\n" + getString(R.string.background_session_associations_missing) else "") +
+            (if (partialAssociations) "\n" + getString(R.string.background_session_associations_partial) else "") +
             (if (config.backgroundSessionEnabled &&
                 (!NotificationManagerCompat.from(this).areNotificationsEnabled() || channelBlocked))
                 "\n" + getString(R.string.background_session_notifications_disabled) else "") +
