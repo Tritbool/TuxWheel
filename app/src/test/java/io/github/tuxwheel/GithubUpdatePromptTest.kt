@@ -66,6 +66,7 @@ class GithubUpdatePromptTest {
         shadowOf(Looper.getMainLooper()).idle()
         val dialog = ShadowAlertDialog.getLatestAlertDialog()
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
+        shadowOf(Looper.getMainLooper()).idle()
         val intent = activity.startedIntent
             ?: error("No download intent was started")
         assertThat(intent.action).isEqualTo(Intent.ACTION_VIEW)
