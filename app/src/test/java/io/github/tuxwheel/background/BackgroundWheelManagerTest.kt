@@ -5,11 +5,13 @@ import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import io.github.tuxwheel.AppConfig
 import io.github.tuxwheel.ble.BleSessionViewModel
+import io.github.tuxwheel.ble.BleSessionState
 import io.github.tuxwheel.ble.RememberedWheel
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
@@ -27,6 +29,7 @@ class BackgroundWheelManagerTest {
     private val disconnects = MutableSharedFlow<String>(extraBufferCapacity = 8)
     private val session = mockk<BleSessionViewModel> {
         every { manualDisconnects } returns disconnects
+        every { sessionState } returns MutableStateFlow(BleSessionState())
     }
 
     @Test fun `manual disconnect blocks wheel until disappearance and persists the block`() = runTest {

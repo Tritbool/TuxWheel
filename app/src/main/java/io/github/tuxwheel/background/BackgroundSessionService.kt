@@ -224,9 +224,10 @@ class BackgroundSessionService : Service() {
         val adapter = getSystemService(BluetoothManager::class.java)?.adapter
         if (adapter == null || !adapter.isEnabled) return
         try {
-            val name = advertisedNames[address]
+            val device = adapter.getRemoteDevice(address)
+            val name = advertisedNames[address] ?: device.name?.takeIf { it.isNotBlank() }
                 ?: config.rememberedWheels.firstOrNull { it.address == address }?.name.orEmpty()
-            session.connectExternalDevice(adapter.getRemoteDevice(address), name)
+            session.connectExternalDevice(device, name)
         } catch (e: IllegalArgumentException) {
             manager.reportError(e)
         } catch (e: SecurityException) {

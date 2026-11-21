@@ -48,6 +48,8 @@ revoked permissions and manufacturer battery restrictions can prevent operation.
 After a force-stop, reopen TuxWheel to restore monitoring. This is not a
 replacement for the wheel's own safety systems.
 
+### Manual connection
+
 1. Enable Bluetooth and open the scan dialog.
 2. Grant **Nearby devices** permissions on Android 12+.
    Older Android versions require location permission for BLE scanning;

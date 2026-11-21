@@ -17,6 +17,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import java.util.Locale
@@ -50,6 +52,11 @@ internal class BackgroundWheelManager(
                 }
             }
         }
+        scope.launch {
+            session.sessionState.map { it.isConnected }.distinctUntilChanged().collect { connected ->
+                if (connected && config.backgroundSessionEnabled && !config.backgroundSessionPaused) startService()
+            }
+        }
     }
 
     fun appeared(address: String) {
@@ -68,10 +75,10 @@ internal class BackgroundWheelManager(
         if (normalized in config.backgroundBlockedWheels) {
             config.backgroundBlockedWheels = config.backgroundBlockedWheels - normalized
         }
+    }
 
-        fun clearPresence() {
-            _present.value = emptySet()
-        }
+    fun clearPresence() {
+        _present.value = emptySet()
     }
 
     fun hasPermissions(includeBackgroundLocation: Boolean = true): Boolean {

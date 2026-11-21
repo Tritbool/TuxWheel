@@ -295,7 +295,8 @@ class MainActivity : AppCompatActivity() {
 
             when (state.connectionState) {
                 BLEConstants.ConnectionState.CONNECTED -> {
-                    if (!appConfig.backgroundSessionEnabled && !LoggingService.isInstanceCreated() && appConfig.autoLog && appConfig.startAutoLoggingWhenIsMovingMore == 0f) {
+                    if ((!appConfig.backgroundSessionEnabled || appConfig.backgroundSessionPaused) &&
+                        !LoggingService.isInstanceCreated() && appConfig.autoLog && appConfig.startAutoLoggingWhenIsMovingMore == 0f) {
                         toggleLoggingService()
                     }
                     notifications.notificationMessageId = R.string.connected
@@ -356,7 +357,8 @@ class MainActivity : AppCompatActivity() {
             notifications.update()
 
             // Auto-start logging when moving
-            if (!appConfig.backgroundSessionEnabled && !LoggingService.isInstanceCreated() && appConfig.startAutoLoggingWhenIsMovingMore != 0f && appConfig.autoLog && viewModel.speedDouble > appConfig.startAutoLoggingWhenIsMovingMore) {
+            if ((!appConfig.backgroundSessionEnabled || appConfig.backgroundSessionPaused) &&
+                !LoggingService.isInstanceCreated() && appConfig.startAutoLoggingWhenIsMovingMore != 0f && appConfig.autoLog && viewModel.speedDouble > appConfig.startAutoLoggingWhenIsMovingMore) {
                 toggleLoggingService()
             }
 
