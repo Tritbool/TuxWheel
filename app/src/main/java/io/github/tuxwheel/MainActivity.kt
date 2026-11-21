@@ -295,7 +295,8 @@ class MainActivity : AppCompatActivity() {
 
             when (state.connectionState) {
                 BLEConstants.ConnectionState.CONNECTED -> {
-                    if (!LoggingService.isInstanceCreated() && appConfig.autoLog && appConfig.startAutoLoggingWhenIsMovingMore == 0f) {
+                    if ((!appConfig.backgroundSessionEnabled || appConfig.backgroundSessionPaused) &&
+                        !LoggingService.isInstanceCreated() && appConfig.autoLog && appConfig.startAutoLoggingWhenIsMovingMore == 0f) {
                         toggleLoggingService()
                     }
                     notifications.notificationMessageId = R.string.connected
@@ -356,7 +357,8 @@ class MainActivity : AppCompatActivity() {
             notifications.update()
 
             // Auto-start logging when moving
-            if (!LoggingService.isInstanceCreated() && appConfig.startAutoLoggingWhenIsMovingMore != 0f && appConfig.autoLog && viewModel.speedDouble > appConfig.startAutoLoggingWhenIsMovingMore) {
+            if ((!appConfig.backgroundSessionEnabled || appConfig.backgroundSessionPaused) &&
+                !LoggingService.isInstanceCreated() && appConfig.startAutoLoggingWhenIsMovingMore != 0f && appConfig.autoLog && viewModel.speedDouble > appConfig.startAutoLoggingWhenIsMovingMore) {
                 toggleLoggingService()
             }
 
@@ -728,6 +730,14 @@ class MainActivity : AppCompatActivity() {
             return
         }
         Timber.wtf("-=[ finish ]=-")
+        if (appConfig.backgroundSessionEnabled) {
+            if (isLoggingServiceBound) {
+                unbindService(mLoggingServiceConnection)
+                isLoggingServiceBound = false
+            }
+            unregisterReceiver(mNotificationButtonReceiver)
+            return
+        }
         onDestroyProcess = true
         stopLoggingService()
         viewModel.fullReset()
@@ -989,6 +999,13 @@ class MainActivity : AppCompatActivity() {
         val wheels = appConfig.rememberedWheels
         if (!checkBlePermissions(this, RESULT_REQUEST_PERMISSIONS_BT)) return
         startupLookupHandled = true
+        if (appConfig.backgroundSessionEnabled) {
+            val manager = org.koin.core.context.GlobalContext.get()
+                .get<io.github.tuxwheel.background.BackgroundWheelManager>()
+            manager.restore()
+            if (!appConfig.backgroundSessionPaused) manager.startService()
+            return
+        }
         viewModel.autoConnect(wheels)
     }
 

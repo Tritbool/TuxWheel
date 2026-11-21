@@ -76,6 +76,10 @@ class LoggingService : Service() {
         // Must happen within a few seconds of startForegroundService(), otherwise Android
         // kills the service with ForegroundServiceDidNotStartInTimeException.
         startAsForeground()
+        if (appConfig.backgroundSessionEnabled && !viewModel.sessionState.value.isConnected) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
         acquireWakeLock()
         if (!logStarted) {
             if (!startLogging()) {
@@ -403,7 +407,7 @@ class LoggingService : Service() {
         fileUtil?.close()
         fileUtil = null
         Timber.wtf("DataLogger Stopping...")
-        notifications.setCustomTitle("Uploading tack...")
+        if (!appConfig.backgroundSessionEnabled) notifications.setCustomTitle("Uploading tack...")
         broadcastState(path, false)
         instance = null
         Timber.wtf("DataLogger Stopped")
@@ -502,6 +506,7 @@ class LoggingService : Service() {
     }
 
     companion object {
+        internal fun isRecording(): Boolean = instance?.logStarted == true
         private var instance: LoggingService? = null
 
         fun isInstanceCreated(): Boolean {

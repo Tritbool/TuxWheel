@@ -1,5 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="background_session_title">Boîte noire</string>
+    <string name="background_session_description">Connexion aux roues mémorisées et enregistrement automatiques, sans ouvrir l\'application. Dans ce mode, l\'enregistrement commence dès la connexion.</string>
+    <string name="background_session_companion_help">Allumez chaque roue mémorisée pour l\'associer une fois à Android. Android surveille ensuite sa présence, y compris après un redémarrage du téléphone. Une notification reste visible pendant la session. Un arrêt forcé, des permissions retirées ou les restrictions de batterie du fabricant peuvent empêcher le fonctionnement.</string>
+    <string name="background_session_legacy_help">Sous Android 6 à 11, la surveillance nécessite une notification permanente et un scan Bluetooth basse consommation. Activez le Bluetooth et la localisation système. La localisation en arrière-plan est requise sous Android 10 et 11.</string>
+    <string name="background_session_enable">Activer ou reprendre la boîte noire</string>
+    <string name="background_session_timeout">Terminer la session après %1$d minutes sans connexion</string>
+    <string name="background_session_timeout_title">Délai sans connexion (minutes)</string>
+    <string name="background_session_timeout_error">Saisissez une valeur entre 1 et 120</string>
+    <string name="background_session_disconnect">Déconnexion manuelle : %1$s</string>
+    <string name="background_session_disconnect_title">Après une déconnexion manuelle</string>
+    <string-array name="background_disconnect_policies">
+        <item>Attendre que la roue disparaisse puis revienne</item>
+        <item>Reconnecter immédiatement</item>
+        <item>Attendre la reprise manuelle de la boîte noire</item>
+    </string-array>
+    <string name="background_session_associate">Associer %1$s à Android</string>
+    <string name="background_session_associated">%1$s — associée à Android</string>
+    <string name="background_session_already_associated">Cette roue est déjà associée</string>
+    <string name="background_session_association_failed">Échec de l\'association de la roue</string>
+    <string name="background_session_companion_unavailable">Ce téléphone ne permet pas l\'association d\'appareils compagnons</string>
+    <string name="background_session_permissions">Accordez les permissions demandées pour activer la boîte noire</string>
+    <string name="background_session_location_help">Autorisez la localisation « Toujours » dans les permissions de l\'application, puis activez à nouveau la boîte noire. Android l\'exige pour les scans Bluetooth en arrière-plan sur cette version.</string>
+    <string name="background_session_error">Erreur de la boîte noire : %1$s</string>
+    <string name="background_session_waiting">En attente des roues mémorisées</string>
+    <string name="background_session_recording">Roue connectée — enregistrement</string>
+    <string name="background_session_starting_log">Roue connectée — démarrage de l\'enregistrement</string>
+    <string name="background_session_logging_failed">Enregistrement arrêté ou impossible à démarrer</string>
+    <string name="background_session_reconnecting">Connexion interrompue — en attente de la roue</string>
+    <string name="background_session_done">Terminer</string>
     <string name="third_party_licenses_title">Logiciels tiers et licences</string>
     <string name="third_party_license_read_error">Impossible d’ouvrir cette licence.</string>
     <string name="trip_delete_failed">Impossible de supprimer le fichier du trajet.</string>
