@@ -24,7 +24,7 @@ and firmware.
 ## What makes TuxWheel different
 
 - **Fully offline.** No GPS, no trackers, no ads, no data collection. The only network
-  use is an optional check for a newer app release (at most once per 24 h); F-Droid
+  use is an optional startup check for a newer app release (at most once per 5 min); F-Droid
   builds ship without it. Details in [docs/privacy.md](docs/privacy.md).
 - **Speed limiter.** Cap the wheel's maximum speed at runtime; your own max speed is
   restored when the limiter is turned off.

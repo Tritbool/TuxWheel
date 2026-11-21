@@ -41,7 +41,7 @@ class GithubUpdatesTest {
             .put("browser_download_url", apk)))
 
     @Test fun `versions compare numeric components and optional v without integer overflow`() {
-        listOf("1.10.0" to "1.9.9", "v2" to "1.99", "1.0.1" to "1",
+        listOf("0.0.4" to "0.0.3", "1.10.0" to "1.9.9", "v2" to "1.99", "1.0.1" to "1",
             "999999999999999999999" to "2").forEach { (next, current) ->
             assertThat(GithubReleases.isNewer(next, current)).isTrue()
         }
@@ -105,7 +105,7 @@ class GithubUpdatesTest {
         }
     }
 
-    @Test fun `failed attempts persist across checker instances and retry only after a day`() = runBlocking {
+    @Test fun `failed attempts persist across checker instances and retry after five minutes`() = runBlocking {
         var time = 1_000L
         var calls = 0
         fun checker() = GithubUpdateChecker(preferences, "1", { time }) {
@@ -113,7 +113,7 @@ class GithubUpdatesTest {
             throw java.io.IOException("Offline")
         }
         assertThat(checker().check()).isNull()
-        time += GithubUpdateChecker.DAY_MILLIS - 1
+        time += 5 * 60 * 1000L - 1
         assertThat(checker().check()).isNull()
         assertThat(calls).isEqualTo(1)
         time++
@@ -133,13 +133,26 @@ class GithubUpdatesTest {
         assertThat(checker.check()?.tag).isEqualTo("v1.10.0")
         assertThat(checker.check()).isNull()
         assertThat(calls).isEqualTo(1)
-        val malformed = GithubUpdateChecker(preferences, "1", { GithubUpdateChecker.DAY_MILLIS + 100 }) {
+        val malformed = GithubUpdateChecker(preferences, "1", { 5 * 60 * 1000L + 100 }) {
             calls++
             "{bad json"
         }
         assertThat(malformed.check()).isNull()
         assertThat(malformed.check()).isNull()
         assertThat(calls).isEqualTo(2)
+    }
+
+    @Test fun `startup after publication detects a release despite an earlier daily check`() = runBlocking {
+        val previous = 1_000L
+        preferences.edit().putLong("last_attempt", previous).commit()
+        val json = release().put("tag_name", "0.0.4")
+        val url = "https://github.com/Tritbool/TuxWheel/releases/download/0.0.4/TuxWheel.apk"
+        json.getJSONArray("assets").getJSONObject(0).put("browser_download_url", url)
+        val checker = GithubUpdateChecker(preferences, "0.0.3", { previous + 5 * 60 * 1000L }) {
+            json.toString()
+        }
+
+        assertThat(checker.check()).isEqualTo(GithubRelease("0.0.4", url))
     }
 
     @Test fun `cancellation propagates without removing persisted attempt`() = runBlocking {

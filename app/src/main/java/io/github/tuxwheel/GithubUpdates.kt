@@ -9,6 +9,7 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import timber.log.Timber
 import java.io.IOException
 import java.net.HttpURLConnection
 import java.net.URI
@@ -150,11 +151,13 @@ internal class GithubUpdateChecker(
         val claimed = synchronized(GithubUpdateChecker::class.java) {
             val time = now()
             val previous = preferences.getLong("last_attempt", Long.MIN_VALUE)
-            // A backwards clock is treated as a new day, rather than disabling checks forever.
-            if (previous != Long.MIN_VALUE && time >= previous && time - previous < DAY_MILLIS) {
+            // A backwards clock allows a new attempt, rather than disabling checks forever.
+            if (previous != Long.MIN_VALUE && time >= previous && time - previous < CHECK_INTERVAL_MILLIS) {
                 false
             } else {
-                preferences.edit().putLong("last_attempt", time).commit()
+                preferences.edit().putLong("last_attempt", time).commit().also { saved ->
+                    if (!saved) Timber.w("Unable to persist GitHub update attempt")
+                }
             }
         }
         if (!claimed) return@withContext null
@@ -164,12 +167,13 @@ internal class GithubUpdateChecker(
             GithubReleases.parse(body, installedVersion)
         } catch (cancelled: CancellationException) {
             throw cancelled
-        } catch (_: Exception) {
+        } catch (error: Exception) {
+            Timber.w(error, "GitHub update check failed")
             null
         }
     }
 
     companion object {
-        const val DAY_MILLIS = 24 * 60 * 60 * 1000L
+        const val CHECK_INTERVAL_MILLIS = 5 * 60 * 1000L
     }
 }

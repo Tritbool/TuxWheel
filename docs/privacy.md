@@ -9,9 +9,12 @@
 
 Core BLE, dashboard and logging features work offline. Upstream release builds
 use Internet permission to check GitHub's latest stable release at startup, at
-most once per 24 hours (including failed attempts). GitHub receives the network
+most once per five minutes (including failed or cancelled attempts). There is no
+periodic background polling; restarting the app after that interval allows a
+fresh check, even if the previous attempt failed. GitHub receives the network
 request, including your IP address; no ride data is uploaded. Network failures
-are silent. A newer stable version offers **Download** (opens the release APK
+do not show a popup and are recorded through the app's standard logging. A newer
+stable version offers **Download** (opens the release APK
 in your browser) or **Later**; TuxWheel does not download or install APKs itself.
 Debug builds do not check for release APKs with a different application ID.
 Source/help links open in your chosen browser; sharing opens your chosen app.

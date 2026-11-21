@@ -16,6 +16,14 @@ import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowAlertDialog
 
+private class RecordingComponentActivity : ComponentActivity() {
+    var startedIntent: Intent? = null
+
+    override fun startActivity(intent: Intent) {
+        startedIntent = intent
+    }
+}
+
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class, sdk = [28])
 class GithubUpdatePromptTest {
@@ -46,7 +54,7 @@ class GithubUpdatePromptTest {
     }
 
     @Test fun `Download opens only browsable HTTPS URL and popup is cleaned on pause`() {
-        val controller = Robolectric.buildActivity(ComponentActivity::class.java).setup()
+        val controller = Robolectric.buildActivity(RecordingComponentActivity::class.java).setup()
         val activity = controller.get()
         val prompt = GithubUpdatePrompt(activity, { true }, { release })
         prompt.start()
@@ -58,7 +66,8 @@ class GithubUpdatePromptTest {
         shadowOf(Looper.getMainLooper()).idle()
         val dialog = ShadowAlertDialog.getLatestAlertDialog()
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
-        val intent = shadowOf(activity).nextStartedActivity
+        val intent = activity.startedIntent
+            ?: error("No download intent was started")
         assertThat(intent.action).isEqualTo(Intent.ACTION_VIEW)
         assertThat(intent.categories).contains(Intent.CATEGORY_BROWSABLE)
         assertThat(intent.data.toString()).isEqualTo(release.apkUrl)
