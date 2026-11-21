@@ -17,6 +17,37 @@ an attempt or disconnect intentionally without reconnecting.
 
 ## Connect to a wheel
 
+### Optional black box
+
+In logging settings, open **Black box** and enable it after saving your wheels.
+The mode is off by default. It connects and records immediately, independently
+of the normal auto-log speed threshold, without opening the dashboard.
+Saved-wheel order and its existing priority wait are retained.
+
+On Android 12+, turn on each saved wheel once and approve Android's companion
+device association. Android watches associated wheels and can wake TuxWheel
+after a phone restart. Associate newly saved wheels in the same settings screen.
+On Android 6–11, a foreground service performs filtered, low-power BLE scans
+and has a permanent notification even while waiting. Grant location and, on
+Android 10–11, background location; older versions also need storage permission.
+
+During a session, notifications remain visible. An interruption keeps the same
+log open and retries the same wheel. After **15 minutes** without a connection
+(configurable from 1 to 120 minutes), the session closes; wheel surveillance
+continues. Opening or closing the dashboard does not stop black-box recording.
+
+Manual disconnection closes the log immediately. Choose whether to wait for the
+wheel to disappear and return (default), reconnect immediately, or suspend the
+mode until **Enable or resume black box** is switched on again. Absence is a
+Bluetooth proximity signal, not proof the wheel is powered off; on Android 6–11
+it requires 60 seconds without advertisements. The suspension settings survive
+process restarts.
+
+Enable Bluetooth and, on older Android versions, system location. Force-stop,
+revoked permissions and manufacturer battery restrictions can prevent operation.
+After a force-stop, reopen TuxWheel to restore monitoring. This is not a
+replacement for the wheel's own safety systems.
+
 1. Enable Bluetooth and open the scan dialog.
 2. Grant **Nearby devices** permissions on Android 12+.
    Older Android versions require location permission for BLE scanning;

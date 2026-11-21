@@ -3,6 +3,7 @@ package io.github.tuxwheel.ble
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.Application
+import android.bluetooth.BluetoothDevice
 import android.os.Build
 import android.net.Uri
 import androidx.annotation.RequiresApi
@@ -94,6 +95,8 @@ class BleSessionViewModel internal constructor(
     private val _sessionState = MutableStateFlow(BleSessionState.EMPTY)
     val sessionState: StateFlow<BleSessionState> = _sessionState.asStateFlow()
 
+    private val _manualDisconnects = MutableSharedFlow<String>(extraBufferCapacity = 8)
+    internal val manualDisconnects: SharedFlow<String> = _manualDisconnects.asSharedFlow()
 
     internal val rawTraffic = RawTrafficCapture()
     internal val bmsLabCapture = BmsLabCapture()
@@ -1193,7 +1196,12 @@ class BleSessionViewModel internal constructor(
     }
 
     @RequiresPermission(allOf = [Manifest.permission.BLUETOOTH_SCAN, Manifest.permission.BLUETOOTH_CONNECT])
-    fun disconnect() {
+    fun disconnect(userInitiated: Boolean = true) {
+        if (userInitiated) {
+            _manualDisconnects.tryEmit(
+                _sessionState.value.selectedDevice?.address ?: rawTrafficAddress
+            )
+        }
         viewModelScope.launch {
             if (wheelLookup != null) {
                 finishWheelLookup()
@@ -1346,6 +1354,7 @@ class BleSessionViewModel internal constructor(
         fallbackName: String = "",
         resetProtocol: Boolean = false,
         rememberOnConnect: Boolean = false,
+        externalDevice: BluetoothDevice? = null,
     ) {
         try {
             prepareForConnection()
@@ -1362,13 +1371,26 @@ class BleSessionViewModel internal constructor(
             wheelToRemember = target.takeIf { rememberOnConnect }
             connectionRequested = true
             updateConnectionState(BLEConstants.ConnectionState.CONNECTING)
-            client.connect(target)
+            if (externalDevice == null) client.connect(target)
+            else client.connectExternalDevice(externalDevice, target.name, target.rssi)
             Timber.i("Connecting to device: %s", target.address)
         } catch (e: Exception) {
             connectionRequested = false
             wheelToRemember = null
             updateDisconnectedState()
             updateError(e.message ?: "Failed to connect to ${device.address}")
+        }
+    }
+
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    internal fun connectExternalDevice(device: BluetoothDevice, name: String, rssi: Int = 0) {
+        viewModelScope.launch {
+            if (connectionRequested || wheelLookup != null || manualScanRequested) return@launch
+            connectDiscoveredDevice(
+                EUCDevice(name, device.address, 0, rssi = rssi),
+                resetProtocol = true,
+                externalDevice = device,
+            )
         }
     }
 

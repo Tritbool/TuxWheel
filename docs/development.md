@@ -1,5 +1,12 @@
 # Development
 
+The `background-session` integration pins `euc_ble_library` as the `ble-library`
+Git submodule because `connectExternalDevice` is not in the published 1.1.0
+artifact. Run `git submodule update --init` before building. An explicit
+`-PeucBleLibraryDir=/path/to/euc_ble_library` still overrides this checkout.
+Build with `-Peuc.androidGradlePluginVersion=9.2.1` to align the included Android
+library with the app. CI uses the same pinned library commit.
+
 ## Using the latest local BLE library
 
 Build against your local `euc_ble_library` checkout instead of a published release:

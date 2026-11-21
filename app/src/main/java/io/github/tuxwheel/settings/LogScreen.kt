@@ -2,6 +2,8 @@ package io.github.tuxwheel.settings
 
 import android.Manifest
 import android.os.Build
+import android.content.Intent
+import io.github.tuxwheel.background.BackgroundSessionSettingsActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -38,6 +40,13 @@ fun logScreen(appConfig: AppConfig = koinInject()) {
         modifier = Modifier
             .verticalScroll(rememberScrollState())
     ) {
+        val context = LocalContext.current
+        clickablePref(
+            name = stringResource(R.string.background_session_title),
+            desc = stringResource(R.string.background_session_description),
+        ) {
+            context.startActivity(Intent(context, BackgroundSessionSettingsActivity::class.java))
+        }
         var autoLogDependency by remember { mutableStateOf(appConfig.autoLog) }
         val writePermission = rememberLauncherForActivityResult(
             ActivityResultContracts.RequestPermission()

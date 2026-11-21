@@ -225,6 +225,41 @@ class AppConfig(var context: Context) : KoinComponent {
     //endregion
 
     //region logs
+    var backgroundSessionEnabled: Boolean
+        get() = getValue("background_session_enabled", false)
+        set(value) {
+            if (value) {
+                backgroundSessionPaused = false
+                backgroundBlockedWheels = emptySet()
+            }
+            setValue("background_session_enabled", value)
+        }
+
+    var backgroundSessionTimeoutMinutes: Int
+        get() = getValue("background_session_timeout_minutes", 15).coerceIn(1, 120)
+        set(value) = setValue("background_session_timeout_minutes", value.coerceIn(1, 120))
+
+    /** 0: wait for absence, 1: reconnect immediately, 2: wait for manual reactivation. */
+    var backgroundManualDisconnectPolicy: Int
+        get() = getValue("background_manual_disconnect_policy", 0).coerceIn(0, 2)
+        set(value) = setValue("background_manual_disconnect_policy", value.coerceIn(0, 2))
+
+    var backgroundSessionPaused: Boolean
+        get() = getValue("background_session_paused", false)
+        set(value) = setValue("background_session_paused", value)
+
+    var backgroundBlockedWheels: Set<String>
+        get() = getValue("background_blocked_wheels", "").split(';').filter { it.isNotEmpty() }.toSet()
+        set(value) = setValue("background_blocked_wheels", value.sorted().joinToString(";"))
+
+    internal var backgroundActiveWheel: String
+        get() = getValue("background_active_wheel", "")
+        set(value) = setValue("background_active_wheel", value)
+
+    internal var backgroundInterruptedAt: Long
+        get() = getValue("background_interrupted_at", 0L)
+        set(value) = setValue("background_interrupted_at", value)
+
     var autoLog: Boolean
         get() = getValue(R.string.auto_log, false)
         set(value) {
