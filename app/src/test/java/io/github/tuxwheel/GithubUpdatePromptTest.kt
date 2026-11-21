@@ -4,7 +4,6 @@ import android.app.AlertDialog
 import android.app.Application
 import android.app.PictureInPictureParams
 import android.content.Intent
-import android.net.Uri
 import android.os.Looper
 import androidx.activity.ComponentActivity
 import com.google.common.truth.Truth.assertThat
@@ -16,7 +15,14 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowAlertDialog
-import org.robolectric.shadows.ShadowResolveInfo
+
+private class RecordingComponentActivity : ComponentActivity() {
+    var startedIntent: Intent? = null
+
+    override fun startActivity(intent: Intent) {
+        startedIntent = intent
+    }
+}
 
 @RunWith(RobolectricTestRunner::class)
 @Config(application = Application::class, sdk = [28])
@@ -48,14 +54,8 @@ class GithubUpdatePromptTest {
     }
 
     @Test fun `Download opens only browsable HTTPS URL and popup is cleaned on pause`() {
-        val controller = Robolectric.buildActivity(ComponentActivity::class.java).setup()
+        val controller = Robolectric.buildActivity(RecordingComponentActivity::class.java).setup()
         val activity = controller.get()
-        val downloadIntent = Intent(Intent.ACTION_VIEW, Uri.parse(release.apkUrl))
-            .addCategory(Intent.CATEGORY_BROWSABLE)
-        shadowOf(activity.packageManager).addResolveInfoForIntent(
-            downloadIntent,
-            ShadowResolveInfo.newResolveInfo("Browser", "test.browser")
-        )
         val prompt = GithubUpdatePrompt(activity, { true }, { release })
         prompt.start()
         shadowOf(Looper.getMainLooper()).idle()
@@ -66,7 +66,8 @@ class GithubUpdatePromptTest {
         shadowOf(Looper.getMainLooper()).idle()
         val dialog = ShadowAlertDialog.getLatestAlertDialog()
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).performClick()
-        val intent = shadowOf(activity).nextStartedActivity
+        val intent = activity.startedIntent
+            ?: error("No download intent was started")
         assertThat(intent.action).isEqualTo(Intent.ACTION_VIEW)
         assertThat(intent.categories).contains(Intent.CATEGORY_BROWSABLE)
         assertThat(intent.data.toString()).isEqualTo(release.apkUrl)
