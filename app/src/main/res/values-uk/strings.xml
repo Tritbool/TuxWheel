@@ -21,7 +21,7 @@
     <string name="average_riding_speed">Серед. руху</string>
     <string name="angle">Нахил уперед</string>
     <string name="roll">Нахил в бік</string>
-    <string name="temperature2">Темп. процесора</string>
+    <string name="motor_temperature">Температура мотора</string>
     <string name="total_distance">Пробіг</string>
     <string name="name">Назва</string>
     <string name="model">Модель</string>

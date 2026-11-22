@@ -320,12 +320,6 @@ class MainPageAdapter(private var pages: MutableList<Int>, val activity: MainAct
     //region SecondPage
     private val secondPageValues = LinkedHashMap<Int, String>()
 
-    private fun updateFieldForSecondPage(resId: Int, value: String) {
-        if (secondPageValues.containsKey(resId)) {
-            secondPageValues[resId] = value
-        }
-    }
-
     private fun createSecondPage() {
         telemetryItems.value = secondPageValues.toList()
     }
@@ -336,8 +330,9 @@ class MainPageAdapter(private var pages: MutableList<Int>, val activity: MainAct
 
     private fun refreshTelemetryValues() {
         if (secondPageValues.isEmpty()) return
+        secondPageValues.clear()
         TelemetryPresentation.values(activity, appConfig, viewModel).forEach { (key, value) ->
-            updateFieldForSecondPage(key, value)
+            if (value != null) secondPageValues[key] = value
         }
         updateSecondPage()
     }
@@ -415,7 +410,7 @@ class MainPageAdapter(private var pages: MutableList<Int>, val activity: MainAct
 
     fun configureSecondDisplay() {
         secondPageValues.clear()
-        TelemetryPresentation.fields(viewModel.wheelType).forEach { secondPageValues[it] = "" }
+        TelemetryPresentation.fields().forEach { secondPageValues[it] = "" }
         createSecondPage()
     }
 

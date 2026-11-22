@@ -212,7 +212,11 @@
     <string name="phase_current">Phase current</string>
     <string name="power">Power</string>
     <string name="temperature">System temp</string>
-    <string name="temperature2">Motor temp</string>
+    <string name="motor_temperature">Motor temperature</string>
+    <string name="mosfet_temperature">MOSFET temperature</string>
+    <string name="board_temperature">Board temperature</string>
+    <string name="tire_pressure">Tire pressure</string>
+    <string name="kpa">kPa</string>
     <string name="maxtemperature">Max temp</string>
     <string name="pwm">PWM</string>
     <string name="max_pwm">Max PWM</string>

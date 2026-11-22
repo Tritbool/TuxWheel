@@ -53,7 +53,7 @@
     <string name="temperature">"시스템 온도"</string>
 
     <!-- Fuzzy -->
-    <string name="temperature2">"2차 온도"</string>
+    <string name="motor_temperature">모터 온도</string>
     <string name="maxtemperature">최대 온도</string>
     <string name="pwm"></string>
     <string name="max_pwm">최대 PWM</string>
