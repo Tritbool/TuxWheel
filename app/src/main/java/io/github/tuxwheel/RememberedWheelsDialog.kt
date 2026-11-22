@@ -322,21 +322,22 @@ internal class RememberedWheelsDialog(
                         protocolChoices.map { it.second }
                     val checked = protocolChoices.indexOfFirst { it.first == wheel.protocolId }
                         .let { if (it >= 0) it + 1 else 0 }
-                    val title = LinearLayout(context).apply {
+                    val protocolBuilder = AlertDialog.Builder(context)
+                    val title = LinearLayout(protocolBuilder.context).apply {
                         orientation = LinearLayout.VERTICAL
                         val padding = dp(20)
                         setPadding(padding, padding, padding, 0)
-                        addView(TextView(context).apply {
+                        addView(TextView(protocolBuilder.context).apply {
                             text = context.getString(R.string.wheels_protocol_title, wheel.displayName)
                             textSize = 18f
                         })
-                        addView(TextView(context).apply {
+                        addView(TextView(protocolBuilder.context).apply {
                             setText(R.string.wheels_protocol_help)
                             setPadding(0, dp(6), 0, 0)
                             textSize = 13f
                         })
                     }
-                    AlertDialog.Builder(context)
+                    protocolBuilder
                         .setCustomTitle(title)
                         .setSingleChoiceItems(labels.toTypedArray(), checked) { dialog, which ->
                             val id = if (which == 0) "" else protocolChoices[which - 1].first
