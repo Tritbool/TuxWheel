@@ -1035,9 +1035,7 @@ class MainActivity : AppCompatActivity() {
         viewModel.cancelAutoConnect()
         RememberedWheelsDialog(
             this, appConfig,
-            viewModel.getAvailableProtocols().map {
-                it.javaClass.simpleName to it.javaClass.simpleName.removeSuffix("SyncProtocol")
-            },
+            viewModel.getAvailableProtocols().map { it.javaClass.simpleName to it.manufacturer },
         ).show(
             scope = lifecycleScope,
             session = viewModel.sessionState,

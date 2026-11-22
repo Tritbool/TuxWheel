@@ -135,9 +135,11 @@
     <string name="wheels_empty">Aucune roue mémorisée. Ajoutez-en une en Bluetooth ou par adresse MAC.</string>
     <string name="wheels_move_up">Monter dans la liste</string>
     <string name="wheels_move_down">Descendre dans la liste</string>
-    <string name="wheels_protocol">Protocole</string>
+    <string name="wheels_protocol">Protocole Bluetooth</string>
+    <string name="wheels_protocol_help">Fa\u00e7on dont TuxWheel communique avec cette roue (le langage propre \u00e0 sa marque). Laissez en automatique sauf si la connexion \u00e9choue.</string>
+    <string name="wheel_options">Options de la roue</string>
     <string name="wheels_protocol_auto">D\u00e9tection automatique</string>
-    <string name="wheels_protocol_title">Protocole pour %1$s</string>
+    <string name="wheels_protocol_title">Protocole Bluetooth pour %1$s</string>
     <string name="wheels_rename">Renommer</string>
     <string name="wheels_forget">Oublier la roue</string>
     <string name="wheels_forget_confirm">Retirer %1$s de vos roues mémorisées ?</string>

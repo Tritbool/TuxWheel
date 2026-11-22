@@ -217,10 +217,17 @@ internal class RememberedWheelsDialog(
                 setBackgroundResource(selectableBackground(context))
                 scaleType = ImageView.ScaleType.CENTER
             }
+            val options = ImageButton(parent.context).apply {
+                setImageResource(R.drawable.ic_baseline_settings_24)
+                setBackgroundResource(selectableBackground(context))
+                scaleType = ImageView.ScaleType.CENTER
+                contentDescription = context.getString(R.string.wheel_options)
+            }
             row.addView(handle, LinearLayout.LayoutParams(dp(48), dp(48)))
             row.addView(label, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            row.addView(options, LinearLayout.LayoutParams(dp(48), dp(48)))
             row.addView(action, LinearLayout.LayoutParams(dp(48), dp(48)))
-            return WheelRow(row, label, action).also { holder ->
+            return WheelRow(row, label, options, action).also { holder ->
                 handle.setOnTouchListener { _, event ->
                     if (event.actionMasked == MotionEvent.ACTION_DOWN && wheels.size > 1 &&
                         holder.bindingAdapterPosition in wheels.indices
@@ -231,7 +238,7 @@ internal class RememberedWheelsDialog(
                         false
                     }
                 }
-                row.setOnClickListener {
+                options.setOnClickListener {
                     wheels.getOrNull(holder.bindingAdapterPosition)?.let { onOptions(it, refresh) }
                 }
                 action.setOnClickListener {
@@ -260,7 +267,12 @@ internal class RememberedWheelsDialog(
         }
     }
 
-    private class WheelRow(view: View, val label: TextView, val action: ImageButton) : RecyclerView.ViewHolder(view)
+    private class WheelRow(
+        view: View,
+        val label: TextView,
+        val options: ImageButton,
+        val action: ImageButton,
+    ) : RecyclerView.ViewHolder(view)
 
     private fun dp(value: Int) = (value * context.resources.displayMetrics.density + 0.5f).toInt()
 
@@ -311,6 +323,7 @@ internal class RememberedWheelsDialog(
                         .let { if (it >= 0) it + 1 else 0 }
                     AlertDialog.Builder(context)
                         .setTitle(context.getString(R.string.wheels_protocol_title, wheel.displayName))
+                        .setMessage(context.getString(R.string.wheels_protocol_help))
                         .setSingleChoiceItems(labels.toTypedArray(), checked) { dialog, which ->
                             val id = if (which == 0) "" else protocolChoices[which - 1].first
                             update { this[it] = this[it].copy(protocolId = id) }

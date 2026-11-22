@@ -170,9 +170,11 @@
     <string name="wheels_empty">No saved wheels. Add one with Bluetooth or by MAC address.</string>
     <string name="wheels_move_up">Move up</string>
     <string name="wheels_move_down">Move down</string>
-    <string name="wheels_protocol">Protocol</string>
+    <string name="wheels_protocol">Bluetooth protocol</string>
+    <string name="wheels_protocol_help">How TuxWheel talks to this wheel (the brand-specific language). Leave on automatic unless the connection fails.</string>
+    <string name="wheel_options">Wheel options</string>
     <string name="wheels_protocol_auto">Automatic detection</string>
-    <string name="wheels_protocol_title">Protocol for %1$s</string>
+    <string name="wheels_protocol_title">Bluetooth protocol for %1$s</string>
     <string name="wheels_rename">Rename</string>
     <string name="wheels_forget">Forget wheel</string>
     <string name="wheels_forget_confirm">Remove %1$s from your saved wheels?</string>
