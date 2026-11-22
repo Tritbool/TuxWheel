@@ -43,7 +43,6 @@ jobs:
       - name: Run unit tests, lint, and release assembly
         run: >-
           ./gradlew -PeucBleLibraryDir=.ci/euc-ble-library
-         
           :app:testDebugUnitTest
           --tests io.github.tuxwheel.GithubUpdatesTest
           --tests io.github.tuxwheel.GithubUpdatePromptTest
