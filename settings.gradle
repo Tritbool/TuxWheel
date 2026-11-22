@@ -34,6 +34,16 @@ if (eucBleLibraryDir.isPresent()) {
     if (!file("${eucBleLibraryDir.get()}/settings.gradle").exists()) {
         throw new GradleException('Initialize the pinned BLE source with git submodule update --init, or supply -PeucBleLibraryDir.')
     }
+    def rootPropertiesFile = file('local.properties')
+    def rootProperties = new Properties()
+    if (rootPropertiesFile.exists()) {
+        rootPropertiesFile.withInputStream { rootProperties.load(it) }
+    }
+    def sdkDir = rootProperties.getProperty('sdk.dir')
+    def includedPropertiesFile = file("${eucBleLibraryDir.get()}/local.properties")
+    if (sdkDir != null && !includedPropertiesFile.exists()) {
+        includedPropertiesFile.text = "sdk.dir=${sdkDir}\n"
+    }
     includeBuild(eucBleLibraryDir.get()) {
         dependencySubstitution {
             substitute module('io.github.tritbool:euc-ble-library') using project(':euc-ble-android')
