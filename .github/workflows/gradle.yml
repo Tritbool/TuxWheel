@@ -31,7 +31,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Assemble release APK
-        run: ./gradlew -Peuc.androidGradlePluginVersion=9.2.1 :app:assembleRelease --no-daemon
+        run: ./gradlew :app:assembleRelease --no-daemon
 
       - name: Sign and verify APK
         shell: bash
