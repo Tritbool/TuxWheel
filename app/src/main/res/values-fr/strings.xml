@@ -27,7 +27,7 @@
     <string-array name="background_disconnect_policies">
         <item>Attendre que la roue disparaisse puis revienne (recommand\u00e9)</item>
         <item>Reconnecter imm\u00e9diatement</item>
-        <item>Mettre la bo\u00eete noire en pause jusqu'\u00e0 reprise manuelle</item>
+        <item>Mettre la bo\u00eete noire en pause jusqu\'\u00e0 reprise manuelle</item>
     </string-array>
     <string name="background_session_associate">Associer %1$s à Android</string>
     <string name="background_session_associated">%1$s \u2014 associ\u00e9e \u00e0 Android (appui pour dissocier)</string>
