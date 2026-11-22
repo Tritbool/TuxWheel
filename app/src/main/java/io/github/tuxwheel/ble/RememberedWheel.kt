@@ -7,7 +7,8 @@ import java.util.Locale
 data class RememberedWheel(
     val address: String,
     val name: String,
-    val alias: String = ""
+    val alias: String = "",
+    val protocolId: String = ""
 ) {
     val displayName: String get() = alias.ifBlank {
         name.takeUnless { it.isBlank() || it.equals("Unknown", ignoreCase = true) } ?: address

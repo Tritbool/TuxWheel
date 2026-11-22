@@ -1359,7 +1359,10 @@ class BleSessionViewModel internal constructor(
         try {
             prepareForConnection()
             val client = _eucBleClient
-            if (resetProtocol) client.clearForcedProtocol()
+            val rememberedProtocol = appConfig.rememberedWheels
+                .firstOrNull { it.address.equals(device.address, ignoreCase = true) }?.protocolId.orEmpty()
+            if (rememberedProtocol.isNotBlank()) forceProtocol(rememberedProtocol)
+            else if (resetProtocol) client.clearForcedProtocol()
             if (client.getProtocolSelectionMode() != ProtocolSelectionMode.FORCED) {
                 client.setProtocolSelectionMode(ProtocolSelectionMode.AUTO_WITH_MANUAL_FALLBACK)
             }
@@ -1480,6 +1483,9 @@ class BleSessionViewModel internal constructor(
                 ?: return false
         val result = _eucBleClient.selectProtocol(protocol)
         if (result) {
+            _sessionState.value.deviceAddress.takeIf { it.isNotBlank() }?.let { address ->
+                appConfig.setRememberedWheelProtocol(address, protocolId)
+            }
             protocolActive = true
             cancelProtocolWatchdog()
             refreshSecurityCapabilities(forceContextRefresh = true)

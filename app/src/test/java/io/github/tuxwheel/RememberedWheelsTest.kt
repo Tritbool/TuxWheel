@@ -53,6 +53,22 @@ class RememberedWheelsTest {
             .containsExactly("16S", "Begode Master", "wheel2", "Sherman").inOrder()
     }
 
+    @Test fun `per-wheel protocol persists and resets to automatic detection`() {
+        config.rememberedWheels = listOf(first, second)
+
+        config.setRememberedWheelProtocol(first.address.lowercase(), "LeaperkimSyncProtocol")
+        config.setRememberedWheelProtocol("11:22:33:44:55:66", "KingsongSyncProtocol")
+
+        val stored = AppConfig(application).rememberedWheels
+        assertThat(stored).containsExactly(
+            first.copy(protocolId = "LeaperkimSyncProtocol"), second
+        ).inOrder()
+
+        config.setRememberedWheelProtocol(first.address, "")
+
+        assertThat(AppConfig(application).rememberedWheels).containsExactly(first, second).inOrder()
+    }
+
     @Test fun `MAC input groups hexadecimal digits while typing or pasting`() {
         assertThat(RememberedWheel.formatAddressInput("aAb")).isEqualTo("AA:B")
         assertThat(RememberedWheel.formatAddressInput("aa-bb-cc-dd-ee-ff")).isEqualTo(first.address)

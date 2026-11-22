@@ -447,7 +447,7 @@ class AppConfig(var context: Context) : KoinComponent {
                     val wheel = wheels.optJSONObject(index) ?: return@mapNotNull null
                     val address = RememberedWheel.normalizeAddress(wheel.optString("address"))
                         ?: return@mapNotNull null
-                    RememberedWheel(address, wheel.optString("name"), wheel.optString("alias"))
+                    RememberedWheel(address, wheel.optString("name"), wheel.optString("alias"), wheel.optString("protocol"))
                 }.distinctBy { it.address }
             } catch (e: JSONException) {
                 Timber.e(e, "Failed to read remembered wheels")
@@ -465,10 +465,19 @@ class AppConfig(var context: Context) : KoinComponent {
                             .put("address", wheel.address)
                             .put("name", wheel.name)
                             .put("alias", wheel.alias)
+                            .put("protocol", wheel.protocolId)
                     )
                 }
             setValue("remembered_wheels", wheels.toString())
         }
+
+    fun setRememberedWheelProtocol(address: String, protocolId: String) {
+        val wheels = rememberedWheels.toMutableList()
+        val index = wheels.indexOfFirst { it.address.equals(address, ignoreCase = true) }
+        if (index < 0 || wheels[index].protocolId == protocolId) return
+        wheels[index] = wheels[index].copy(protocolId = protocolId)
+        rememberedWheels = wheels
+    }
 
     fun rememberWheel(address: String, name: String, addIfMissing: Boolean = true) {
         val key = RememberedWheel.normalizeAddress(address) ?: return

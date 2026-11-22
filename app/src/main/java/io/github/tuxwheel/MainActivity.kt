@@ -1033,7 +1033,12 @@ class MainActivity : AppCompatActivity() {
     private fun showRememberedWheels() {
         startupLookupHandled = true
         viewModel.cancelAutoConnect()
-        RememberedWheelsDialog(this, appConfig).show(
+        RememberedWheelsDialog(
+            this, appConfig,
+            viewModel.getAvailableProtocols().map {
+                it.javaClass.simpleName to it.javaClass.simpleName.removeSuffix("SyncProtocol")
+            },
+        ).show(
             scope = lifecycleScope,
             session = viewModel.sessionState,
             onDisconnect = {

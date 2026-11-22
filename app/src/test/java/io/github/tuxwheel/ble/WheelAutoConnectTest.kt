@@ -58,6 +58,7 @@ class WheelAutoConnectTest {
         every { config.rawLoggingPreferences() } returns flowOf(false)
         every { config.wheelPriorityWaitSeconds } returns 1
         every { config.rememberWheel(any(), any(), any()) } returns Unit
+        every { config.rememberedWheels } returns emptyList()
         startKoin { modules(module { single { config } }) }
         every { client.setConnectionCallback(capture(callback)) } answers { }
         every { client.setErrorCallback(capture(errors)) } answers { }

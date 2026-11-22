@@ -135,6 +135,9 @@
     <string name="wheels_empty">Aucune roue mémorisée. Ajoutez-en une en Bluetooth ou par adresse MAC.</string>
     <string name="wheels_move_up">Monter dans la liste</string>
     <string name="wheels_move_down">Descendre dans la liste</string>
+    <string name="wheels_protocol">Protocole</string>
+    <string name="wheels_protocol_auto">D\u00e9tection automatique</string>
+    <string name="wheels_protocol_title">Protocole pour %1$s</string>
     <string name="wheels_rename">Renommer</string>
     <string name="wheels_forget">Oublier la roue</string>
     <string name="wheels_forget_confirm">Retirer %1$s de vos roues mémorisées ?</string>

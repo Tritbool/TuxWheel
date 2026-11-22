@@ -34,6 +34,7 @@ import kotlinx.coroutines.launch
 internal class RememberedWheelsDialog(
     private val context: Context,
     private val config: AppConfig,
+    private val protocolChoices: List<Pair<String, String>> = emptyList(),
 ) {
     fun show(
         scope: CoroutineScope,
@@ -302,6 +303,23 @@ internal class RememberedWheelsDialog(
                     .setNegativeButton(android.R.string.cancel, null)
                     .show()
             })
+            if (protocolChoices.isNotEmpty()) {
+                add(R.string.wheels_protocol to {
+                    val labels = listOf(context.getString(R.string.wheels_protocol_auto)) +
+                        protocolChoices.map { it.second }
+                    val checked = protocolChoices.indexOfFirst { it.first == wheel.protocolId }
+                        .let { if (it >= 0) it + 1 else 0 }
+                    AlertDialog.Builder(context)
+                        .setTitle(context.getString(R.string.wheels_protocol_title, wheel.displayName))
+                        .setSingleChoiceItems(labels.toTypedArray(), checked) { dialog, which ->
+                            val id = if (which == 0) "" else protocolChoices[which - 1].first
+                            update { this[it] = this[it].copy(protocolId = id) }
+                            dialog.dismiss()
+                        }
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .show()
+                })
+            }
             add(R.string.wheels_forget to {
                 AlertDialog.Builder(context)
                     .setMessage(context.getString(R.string.wheels_forget_confirm, wheel.displayName))
