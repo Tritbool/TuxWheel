@@ -24,24 +24,26 @@ The mode is off by default. It connects and records immediately, independently
 of the normal auto-log speed threshold, without opening the dashboard.
 Saved-wheel order and its existing priority wait are retained.
 
-On Android 12+, turn on a saved wheel and approve Android's companion device
-association once. TuxWheel disconnects from the wheel during association,
-because a connected wheel stops advertising and Android cannot find it. One
-associated wheel is enough to enable the mode; unassociated wheels are ignored
-and can be associated later from the same settings screen. Android watches
-associated wheels and can wake TuxWheel after a phone restart.
-On Android 6–11, a foreground service performs filtered, low-power BLE scans
-and has a permanent notification even while waiting. Grant location and, on
-Android 10–11, background location; older versions also need storage permission.
+A foreground service performs filtered, low-power BLE scans for saved wheels
+and has a permanent notification even while waiting, on every Android version.
+On Android 12+, approving Android's companion-device association for saved
+wheels additionally lets Android itself wake TuxWheel when the app process is
+gone; it is recommended but the in-app scan no longer depends on it. TuxWheel
+disconnects from the wheel during association, because a connected wheel stops
+advertising and Android cannot find it. One associated wheel is enough to
+enable the mode; other wheels can be associated later from the same settings
+screen. On Android 6–11, grant location and, on Android 10–11, background
+location; older versions also need storage permission. Disabling manufacturer
+battery restrictions for TuxWheel is recommended so the OS does not kill the
+waiting service.
 
 The settings screen shows whether the mode is disabled or paused, whether
 permissions, Bluetooth or associations need attention, and the current service
-status and last error when available. On Android 12+, "monitoring requested"
-means presence observation was requested from Android, not that a wheel is connected;
-there is no waiting notification. A notification appears when a session starts
-and indicates connection and recording. On Android 13+, allow notifications to
-see it in the notification drawer. If recording is working, the trip also appears
-in the app's trip list.
+status and last error when available. A notification appears when a session
+starts and indicates connection and recording; the waiting notification shows
+the service is alive but no wheel is in range. On Android 13+, allow
+notifications to see them in the notification drawer. If recording is working,
+the trip also appears in the app's trip list.
 
 During a session, notifications remain visible. An interruption keeps the same
 log open and retries the saved wheels again in the app-defined order, giving
@@ -55,8 +57,8 @@ dashboard does not stop black-box recording.
 Manual disconnection closes the log immediately. Choose whether to wait for the
 wheel to disappear and return (default), reconnect immediately, or suspend the
 mode until **Enable or resume black box** is switched on again. Absence is a
-Bluetooth proximity signal, not proof the wheel is powered off; on Android 6–11
-it requires 60 seconds without advertisements. The suspension settings survive
+Bluetooth proximity signal, not proof the wheel is powered off; it requires 60
+seconds without advertisements. The suspension settings survive
 process restarts.
 
 Enable Bluetooth and, on older Android versions, system location. Force-stop,

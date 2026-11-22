@@ -143,9 +143,7 @@ internal class BackgroundWheelManager(
 
     fun restore() {
         refresh()
-        if (config.backgroundSessionEnabled && !config.backgroundSessionPaused &&
-            Build.VERSION.SDK_INT < Build.VERSION_CODES.S
-        ) startService()
+        if (config.backgroundSessionEnabled && !config.backgroundSessionPaused) startService()
     }
 
     fun startService() {

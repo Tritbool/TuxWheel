@@ -122,14 +122,12 @@ class BackgroundSessionService : Service() {
             return
         }
         val now = SystemClock.elapsedRealtime()
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
-            updateLegacyScan()
-            lastSeen.filter { (address, time) ->
-                address != policy.address && now - time >= LEGACY_ABSENCE_MILLIS
-            }.keys.toList().forEach { address ->
-                lastSeen.remove(address)
-                manager.disappeared(address)
-            }
+        updatePresenceScan()
+        lastSeen.filter { (address, time) ->
+            address != policy.address && now - time >= PRESENCE_ABSENCE_MILLIS
+        }.keys.toList().forEach { address ->
+            lastSeen.remove(address)
+            manager.disappeared(address)
         }
 
         sessionSleepUntil.entries.removeAll { it.key !in manager.present.value }
@@ -160,20 +158,7 @@ class BackgroundSessionService : Service() {
         }
         if (policy.address == null) {
             releaseWakeLock()
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                // Stay alive for the existing priority window, but not indefinitely while idle.
-                if (manager.present.value.none { address ->
-                        config.rememberedWheels.any { it.address == address } &&
-                            address !in config.backgroundBlockedWheels &&
-                            (sessionSleepUntil[address] ?: 0L) <= now
-                    }
-                ) {
-                    stopping = true
-                    stopSelf()
-                }
-            } else {
-                showNotification(R.string.background_session_waiting)
-            }
+            showNotification(R.string.background_session_waiting)
             return
         }
         acquireWakeLock()
@@ -311,17 +296,17 @@ class BackgroundSessionService : Service() {
     }
 
     @SuppressLint("MissingPermission")
-    private fun updateLegacyScan() {
+    private fun updatePresenceScan() {
         val addresses = config.rememberedWheels.map { it.address }.toSet()
         val adapter = getSystemService(BluetoothManager::class.java)?.adapter
         if (adapter?.isEnabled != true) {
-            stopLegacyScan()
+            stopPresenceScan()
             manager.clearPresence()
             lastSeen.clear()
             return
         }
         if (scanCallback != null && scannedAddresses == addresses) return
-        stopLegacyScan()
+        stopPresenceScan()
         if (addresses.isEmpty()) return
         val scanner = adapter.bluetoothLeScanner
         if (scanner == null) return
@@ -366,7 +351,7 @@ class BackgroundSessionService : Service() {
     }
 
     @SuppressLint("MissingPermission")
-    private fun stopLegacyScan() {
+    private fun stopPresenceScan() {
         val callback = scanCallback ?: return
         scanCallback = null
         try {
@@ -422,10 +407,10 @@ class BackgroundSessionService : Service() {
     override fun onDestroy() {
         stopping = true
         manager.setServiceStatus(null)
-        stopLegacyScan()
+        stopPresenceScan()
         scope.cancel()
         releaseWakeLock()
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) manager.clearPresence()
+        manager.clearPresence()
         super.onDestroy()
     }
 
@@ -434,6 +419,6 @@ class BackgroundSessionService : Service() {
         internal const val EVENT_CHANNEL = "background_session_events"
         private const val NOTIFICATION_ID = 20
         private const val EVENT_NOTIFICATION_ID = 21
-        private const val LEGACY_ABSENCE_MILLIS = 60_000L
+        private const val PRESENCE_ABSENCE_MILLIS = 60_000L
     }
 }
