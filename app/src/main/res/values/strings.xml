@@ -1,8 +1,8 @@
 <resources>
     <string name="background_session_title">Black box</string>
-    <string name="background_session_description">Connect to saved wheels and record automatically, without opening the app. Recording always starts on connection in this mode.</string>
-    <string name="background_session_companion_help">Turn on a saved wheel to associate it with Android once. TuxWheel disconnects from it during association, because a connected wheel cannot be found. Android then watches associated wheels, including after a phone restart; unassociated wheels are ignored. An ongoing notification is shown during a session. Force-stop, revoked permissions and manufacturer battery restrictions can prevent operation.</string>
-    <string name="background_session_legacy_help">On Android 6–11, waiting for wheels requires a permanent notification and low-power Bluetooth scanning. Enable Bluetooth and system location. Background location permission is required on Android 10–11.</string>
+    <string name="background_session_description">Connect to saved wheels and record automatically, without opening the app. Recording starts as soon as a wheel connects.</string>
+    <string name="background_session_companion_help">On Android 12+, associate each saved wheel once: TuxWheel disconnects during association because a connected wheel cannot be found, then Android watches the wheel, even after a phone restart. Force-stop, revoked permissions or vendor battery restrictions can stop the mode.</string>
+    <string name="background_session_legacy_help">On Android 6\u201311, waiting needs a permanent notification plus location permission; Android 10\u201311 also require background location.</string>
     <string name="background_session_enable">Enable or resume black box</string>
     <string name="background_session_disabled">Disabled</string>
     <string name="background_session_paused">Paused — resume black box to reconnect</string>
@@ -18,29 +18,40 @@
     <string name="background_session_not_running">Monitoring is not running — disable and enable black box again</string>
     <string name="background_session_last_error">Last error: %1$s</string>
     <string name="background_session_notifications_disabled">Notifications are disabled; enable them in Android settings to see session status.</string>
-    <string name="background_session_timeout">End session after %1$d minutes without a connection</string>
-    <string name="background_session_timeout_title">Disconnection timeout (minutes)</string>
+    <string name="background_session_timeout">End the session after %1$d minutes without a connection</string>
+    <string name="background_session_timeout_title">Disconnect timeout (minutes)</string>
     <string name="background_session_timeout_error">Enter a value from 1 to 120</string>
-    <string name="background_session_disconnect">Manual disconnection: %1$s</string>
-    <string name="background_session_disconnect_title">After manual disconnection</string>
+    <string name="background_session_disconnect">Manual disconnect: %1$s</string>
+    <string name="background_session_disconnect_title">After disconnecting from the app</string>
     <string-array name="background_disconnect_policies">
-        <item>Wait until the wheel disappears and returns</item>
+        <item>Wait until the wheel disappears and returns (recommended)</item>
         <item>Reconnect immediately</item>
-        <item>Wait until black box is manually resumed</item>
+        <item>Pause the black box until manually resumed</item>
     </string-array>
     <string name="background_session_associate">Associate %1$s with Android</string>
-    <string name="background_session_associated">%1$s — associated with Android</string>
+    <string name="background_session_associated">%1$s \u2014 associated with Android (tap to dissociate)</string>
     <string name="background_session_already_associated">This wheel is already associated</string>
     <string name="background_session_association_failed">Wheel association failed</string>
     <string name="background_session_companion_unavailable">This phone does not support companion device setup</string>
     <string name="background_session_permissions">Grant the requested permissions to enable black box</string>
     <string name="background_session_location_help">Allow location access “all the time” in the app permissions, then enable black box again. Android requires this for background Bluetooth scans on this version.</string>
     <string name="background_session_error">Black box error: %1$s</string>
-    <string name="background_session_waiting">Waiting for saved wheels</string>
+    <string name="background_session_waiting">No saved wheel in range</string>
+    <string name="background_session_notif_idle_title">Black box \u2014 idle</string>
+    <string name="background_session_notif_connecting_title">Black box \u2014 connecting</string>
+    <string name="background_session_notif_connecting_text">Connecting to %1$s\u2026</string>
+    <string name="background_session_notif_recording_title">Black box \u2014 recording</string>
+    <string name="background_session_notif_recording_text">Connected to %1$s</string>
+    <string name="background_session_notif_failed_title">Black box \u2014 recording failed</string>
+    <string name="background_session_timeout_help">After a wheel disconnects, TuxWheel keeps trying to reconnect for this long. When it elapses, the session ends and the wheel is ignored until it disappears and comes back.</string>
+    <string name="background_session_disconnect_help">Applies when you disconnect from inside the app.</string>
+    <string name="background_session_disassociate">Dissociate</string>
+    <string name="background_session_disassociate_confirm">Stop Android from watching %1$s? The black box will ignore it until it is associated again.</string>
     <string name="background_session_events">Black box events</string>
+    <string name="background_session_log_title">Black box recording</string>
     <string name="background_session_connected">Connected to %1$s</string>
-    <string name="background_session_recording">Wheel connected — recording</string>
-    <string name="background_session_starting_log">Wheel connected — starting recording</string>
+    <string name="background_session_recording">Wheel connected \u2014 recording</string>
+    <string name="background_session_starting_log">Wheel connected \u2014 starting recording</string>
     <string name="background_session_logging_failed">Recording stopped or could not start</string>
     <string name="background_session_reconnecting">Connecting or reconnecting to the wheel</string>
     <string name="background_session_done">Done</string>

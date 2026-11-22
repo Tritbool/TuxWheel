@@ -105,6 +105,24 @@ internal class BackgroundWheelManager(
     }
 
     @Suppress("DEPRECATION")
+    fun disassociate(address: String): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return false
+        val normalized = normalize(address)
+        val manager = context.getSystemService(CompanionDeviceManager::class.java) ?: return false
+        return try {
+            manager.disassociate(normalized)
+            refresh()
+            true
+        } catch (e: IllegalArgumentException) {
+            reportError(e)
+            false
+        } catch (e: SecurityException) {
+            reportError(e)
+            false
+        }
+    }
+
+    @Suppress("DEPRECATION")
     fun associations(): Set<String> =
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             context.getSystemService(CompanionDeviceManager::class.java)?.associations

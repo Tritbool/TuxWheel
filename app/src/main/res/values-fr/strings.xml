@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="background_session_title">Boîte noire</string>
-    <string name="background_session_description">Connexion aux roues mémorisées et enregistrement automatiques, sans ouvrir l\'application. Dans ce mode, l\'enregistrement commence dès la connexion.</string>
-    <string name="background_session_companion_help">Allumez une roue mémorisée pour l\'associer une fois à Android. TuxWheel s\'en déconnecte pendant l\'association, car une roue connectée est introuvable. Android surveille ensuite les roues associées, y compris après un redémarrage du téléphone ; les roues non associées sont ignorées. Une notification reste visible pendant la session. Un arrêt forcé, des permissions retirées ou les restrictions de batterie du fabricant peuvent empêcher le fonctionnement.</string>
-    <string name="background_session_legacy_help">Sous Android 6 à 11, la surveillance nécessite une notification permanente et un scan Bluetooth basse consommation. Activez le Bluetooth et la localisation système. La localisation en arrière-plan est requise sous Android 10 et 11.</string>
+    <string name="background_session_description">Connexion et enregistrement automatiques avec les roues enregistr\u00e9es, sans ouvrir l\'application. L\'enregistrement d\u00e9marre d\u00e8s la connexion d\'une roue.</string>
+    <string name="background_session_companion_help">Sous Android 12+, associez chaque roue enregistr\u00e9e une fois : TuxWheel s\'en d\u00e9connecte pendant l\'association (une roue connect\u00e9e est introuvable), puis Android la surveille, m\u00eame apr\u00e8s un red\u00e9marrage du t\u00e9l\u00e9phone. Un arr\u00eat forc\u00e9, des permissions retir\u00e9es ou les restrictions de batterie du fabricant peuvent emp\u00eacher le fonctionnement.</string>
+    <string name="background_session_legacy_help">Sous Android 6 \u00e0 11, la veille n\u00e9cessite une notification permanente et la localisation ; Android 10 et 11 exigent aussi la localisation en arri\u00e8re-plan.</string>
     <string name="background_session_enable">Activer ou reprendre la boîte noire</string>
     <string name="background_session_disabled">Désactivée</string>
     <string name="background_session_paused">En pause — reprenez la boîte noire pour reconnecter</string>
@@ -19,31 +19,42 @@
     <string name="background_session_not_running">La surveillance ne fonctionne pas — désactivez puis réactivez la boîte noire</string>
     <string name="background_session_last_error">Dernière erreur : %1$s</string>
     <string name="background_session_notifications_disabled">Les notifications sont désactivées ; activez-les dans les paramètres Android pour voir l\'état de la session.</string>
-    <string name="background_session_timeout">Terminer la session après %1$d minutes sans connexion</string>
-    <string name="background_session_timeout_title">Délai sans connexion (minutes)</string>
+    <string name="background_session_timeout">Terminer la session apr\u00e8s %1$d minutes sans connexion</string>
+    <string name="background_session_timeout_title">D\u00e9lai sans connexion (minutes)</string>
     <string name="background_session_timeout_error">Saisissez une valeur entre 1 et 120</string>
-    <string name="background_session_disconnect">Déconnexion manuelle : %1$s</string>
-    <string name="background_session_disconnect_title">Après une déconnexion manuelle</string>
+    <string name="background_session_disconnect">D\u00e9connexion manuelle : %1$s</string>
+    <string name="background_session_disconnect_title">Apr\u00e8s une d\u00e9connexion depuis l\'application</string>
     <string-array name="background_disconnect_policies">
-        <item>Attendre que la roue disparaisse puis revienne</item>
-        <item>Reconnecter immédiatement</item>
-        <item>Attendre la reprise manuelle de la boîte noire</item>
+        <item>Attendre que la roue disparaisse puis revienne (recommand\u00e9)</item>
+        <item>Reconnecter imm\u00e9diatement</item>
+        <item>Mettre la bo\u00eete noire en pause jusqu'\u00e0 reprise manuelle</item>
     </string-array>
     <string name="background_session_associate">Associer %1$s à Android</string>
-    <string name="background_session_associated">%1$s — associée à Android</string>
+    <string name="background_session_associated">%1$s \u2014 associ\u00e9e \u00e0 Android (appui pour dissocier)</string>
     <string name="background_session_already_associated">Cette roue est déjà associée</string>
     <string name="background_session_association_failed">Échec de l\'association de la roue</string>
     <string name="background_session_companion_unavailable">Ce téléphone ne permet pas l\'association d\'appareils compagnons</string>
     <string name="background_session_permissions">Accordez les permissions demandées pour activer la boîte noire</string>
     <string name="background_session_location_help">Autorisez la localisation « Toujours » dans les permissions de l\'application, puis activez à nouveau la boîte noire. Android l\'exige pour les scans Bluetooth en arrière-plan sur cette version.</string>
     <string name="background_session_error">Erreur de la boîte noire : %1$s</string>
-    <string name="background_session_waiting">En attente des roues mémorisées</string>
+    <string name="background_session_waiting">Aucune roue enregistr\u00e9e \u00e0 port\u00e9e</string>
+    <string name="background_session_notif_idle_title">Bo\u00eete noire \u2014 en veille</string>
+    <string name="background_session_notif_connecting_title">Bo\u00eete noire \u2014 connexion</string>
+    <string name="background_session_notif_connecting_text">Connexion \u00e0 %1$s\u2026</string>
+    <string name="background_session_notif_recording_title">Bo\u00eete noire \u2014 enregistrement</string>
+    <string name="background_session_notif_recording_text">Roue connect\u00e9e : %1$s</string>
+    <string name="background_session_notif_failed_title">Bo\u00eete noire \u2014 \u00e9chec de l\'enregistrement</string>
+    <string name="background_session_timeout_help">Apr\u00e8s une d\u00e9connexion, TuxWheel tente de reconnecter la roue pendant ce d\u00e9lai. Au bout du d\u00e9lai, la session se termine et la roue est ignor\u00e9e jusqu\'\u00e0 ce qu\'elle disparaisse puis revienne.</string>
+    <string name="background_session_disconnect_help">S\'applique quand vous vous d\u00e9connectez depuis l\'application.</string>
+    <string name="background_session_disassociate">Dissocier</string>
+    <string name="background_session_disassociate_confirm">Ne plus laisser Android surveiller %1$s ? La bo\u00eete noire l\'ignorera tant qu\'elle n\'est pas r\u00e9associ\u00e9e.</string>
     <string name="background_session_events">Événements boîte noire</string>
+    <string name="background_session_log_title">Enregistrement boîte noire</string>
     <string name="background_session_connected">Connecté à %1$s</string>
-    <string name="background_session_recording">Roue connectée — enregistrement</string>
-    <string name="background_session_starting_log">Roue connectée — démarrage de l\'enregistrement</string>
-    <string name="background_session_logging_failed">Enregistrement arrêté ou impossible à démarrer</string>
-    <string name="background_session_reconnecting">Connexion ou reconnexion à la roue</string>
+    <string name="background_session_recording">Roue connect\u00e9e \u2014 enregistrement</string>
+    <string name="background_session_starting_log">Roue connect\u00e9e \u2014 d\u00e9marrage de l\'enregistrement</string>
+    <string name="background_session_logging_failed">Enregistrement arr\u00eat\u00e9 ou impossible \u00e0 d\u00e9marrer</string>
+    <string name="background_session_reconnecting">Connexion ou reconnexion \u00e0 la roue</string>
     <string name="background_session_done">Terminer</string>
     <string name="third_party_licenses_title">Logiciels tiers et licences</string>
     <string name="third_party_license_read_error">Impossible d’ouvrir cette licence.</string>

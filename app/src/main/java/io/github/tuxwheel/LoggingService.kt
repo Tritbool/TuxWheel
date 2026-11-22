@@ -80,6 +80,9 @@ class LoggingService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
+        if (appConfig.backgroundSessionEnabled) {
+            notifications.setCustomTitle(getString(R.string.background_session_log_title))
+        }
         acquireWakeLock()
         if (!logStarted) {
             if (!startLogging()) {

@@ -124,6 +124,7 @@ class BackgroundSessionSettingsActivity : ComponentActivity() {
                 setText(config.backgroundSessionTimeoutMinutes.toString())
             }
             val dialog = builder.setTitle(R.string.background_session_timeout_title)
+                .setMessage(getString(R.string.background_session_timeout_help))
                 .setView(input).setPositiveButton(android.R.string.ok, null)
                 .setNegativeButton(android.R.string.cancel, null).create()
             dialog.setOnShowListener {
@@ -143,6 +144,7 @@ class BackgroundSessionSettingsActivity : ComponentActivity() {
         val policies = resources.getStringArray(R.array.background_disconnect_policies)
         button(getString(R.string.background_session_disconnect, policies[config.backgroundManualDisconnectPolicy])) {
             AlertDialog.Builder(this).setTitle(R.string.background_session_disconnect_title)
+                .setMessage(getString(R.string.background_session_disconnect_help))
                 .setSingleChoiceItems(policies, config.backgroundManualDisconnectPolicy) { dialog, index ->
                     config.backgroundManualDisconnectPolicy = index
                     dialog.dismiss()
@@ -157,7 +159,13 @@ class BackgroundSessionSettingsActivity : ComponentActivity() {
                     else R.string.background_session_associate, wheel.displayName,
                 )) {
                     if (wheel.address !in associated) associate(wheel.address)
-                    else Toast.makeText(this, R.string.background_session_already_associated, Toast.LENGTH_SHORT).show()
+                    else AlertDialog.Builder(this)
+                        .setMessage(getString(R.string.background_session_disassociate_confirm, wheel.displayName))
+                        .setPositiveButton(R.string.background_session_disassociate) { _, _ ->
+                            if (manager.disassociate(wheel.address)) render()
+                        }
+                        .setNegativeButton(android.R.string.cancel, null)
+                        .show()
                 }
             }
         }

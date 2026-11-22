@@ -51,6 +51,7 @@ class BackgroundSessionService : Service() {
     private var manualDisconnectPending = false
     private var stopping = false
     private var lastNotificationText: Int? = null
+    private var lastNotificationContent: String? = null
     private val sessionSleepUntil = mutableMapOf<String, Long>()
     private var connectedNotifiedFor: String? = null
 
@@ -364,7 +365,24 @@ class BackgroundSessionService : Service() {
     }
 
     private fun showNotification(text: Int) {
-        if (text == lastNotificationText) return
+        val title = when (text) {
+            R.string.background_session_waiting -> R.string.background_session_notif_idle_title
+            R.string.background_session_reconnecting -> R.string.background_session_notif_connecting_title
+            R.string.background_session_recording, R.string.background_session_starting_log ->
+                R.string.background_session_notif_recording_title
+            R.string.background_session_logging_failed -> R.string.background_session_notif_failed_title
+            else -> R.string.background_session_title
+        }
+        val wheelName = policy.address?.let(::wheelDisplayName).orEmpty()
+        val content = when (text) {
+            R.string.background_session_reconnecting ->
+                getString(R.string.background_session_notif_connecting_text, wheelName)
+            R.string.background_session_recording, R.string.background_session_starting_log ->
+                getString(R.string.background_session_notif_recording_text, wheelName)
+            else -> getString(text)
+        }
+        val dedupeKey = "$title:$content"
+        if (dedupeKey == lastNotificationContent) return
         val notifications = getSystemService(NotificationManager::class.java)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             notifications.createNotificationChannel(NotificationChannel(
@@ -373,10 +391,12 @@ class BackgroundSessionService : Service() {
         }
         val notification = NotificationCompat.Builder(this, CHANNEL)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(getString(R.string.background_session_title))
-            .setContentText(getString(text))
+            .setContentTitle(getString(title))
+            .setContentText(content)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(content))
             .setOngoing(true)
             .setSilent(true)
+            .setShowWhen(false)
             .setContentIntent(PendingIntent.getActivity(this, 20, Intent(this, MainActivity::class.java),
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT))
             .build()
@@ -384,6 +404,7 @@ class BackgroundSessionService : Service() {
             startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE)
         } else startForeground(NOTIFICATION_ID, notification)
         lastNotificationText = text
+        lastNotificationContent = dedupeKey
         manager.setServiceStatus(text)
     }
 
