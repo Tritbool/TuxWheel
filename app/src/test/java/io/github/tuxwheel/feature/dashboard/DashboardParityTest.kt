@@ -25,7 +25,7 @@ class DashboardParityTest {
         assertThat(DashboardCatalogue.labels.toSet()).hasSize(27)
         assertThat(DashboardCatalogue.labels).containsAtLeast(
             R.string.maxcurrent, R.string.maxphasecurrent, R.string.maxtemperature,
-            R.string.temperature2, R.string.ride_time, R.string.consumption)
+            R.string.motor_temperature, R.string.ride_time, R.string.consumption)
         val catalogue = listOf(DashboardBlock("PWM", "2.00%"), DashboardBlock("Voltage", "67.20 V"))
         val selected = DashboardCatalogue.select(listOf("Voltage", "PWM", "Voltage"), catalogue)
         assertThat(selected.map { it.label }).containsExactly("Voltage", "PWM", "Voltage").inOrder()
