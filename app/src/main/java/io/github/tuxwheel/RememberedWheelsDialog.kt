@@ -218,7 +218,8 @@ internal class RememberedWheelsDialog(
                 scaleType = ImageView.ScaleType.CENTER
             }
             val options = ImageButton(parent.context).apply {
-                setImageResource(R.drawable.ic_baseline_settings_24)
+                setImageResource(R.drawable.ic_wheel_options)
+                imageTintList = label.textColors
                 setBackgroundResource(selectableBackground(context))
                 scaleType = ImageView.ScaleType.CENTER
                 contentDescription = context.getString(R.string.wheel_options)
@@ -321,9 +322,22 @@ internal class RememberedWheelsDialog(
                         protocolChoices.map { it.second }
                     val checked = protocolChoices.indexOfFirst { it.first == wheel.protocolId }
                         .let { if (it >= 0) it + 1 else 0 }
+                    val title = LinearLayout(context).apply {
+                        orientation = LinearLayout.VERTICAL
+                        val padding = dp(20)
+                        setPadding(padding, padding, padding, 0)
+                        addView(TextView(context).apply {
+                            text = context.getString(R.string.wheels_protocol_title, wheel.displayName)
+                            textSize = 18f
+                        })
+                        addView(TextView(context).apply {
+                            setText(R.string.wheels_protocol_help)
+                            setPadding(0, dp(6), 0, 0)
+                            textSize = 13f
+                        })
+                    }
                     AlertDialog.Builder(context)
-                        .setTitle(context.getString(R.string.wheels_protocol_title, wheel.displayName))
-                        .setMessage(context.getString(R.string.wheels_protocol_help))
+                        .setCustomTitle(title)
                         .setSingleChoiceItems(labels.toTypedArray(), checked) { dialog, which ->
                             val id = if (which == 0) "" else protocolChoices[which - 1].first
                             update { this[it] = this[it].copy(protocolId = id) }

@@ -23,6 +23,8 @@ import io.github.tuxwheel.LoggingService
 import io.github.tuxwheel.MainActivity
 import io.github.tuxwheel.R
 import io.github.tuxwheel.ble.BleSessionViewModel
+import io.github.tuxwheel.utils.ThemeIconEnum
+import io.github.tuxwheel.utils.ThemeManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -270,7 +272,7 @@ class BackgroundSessionService : Service() {
             ))
         }
         val notification = NotificationCompat.Builder(this, EVENT_CHANNEL)
-            .setSmallIcon(R.drawable.ic_notification)
+            .setSmallIcon(ThemeManager.getId(ThemeIconEnum.NotificationIcon))
             .setContentTitle(getString(R.string.background_session_title))
             .setContentText(getString(R.string.background_session_connected, wheelDisplayName(address)))
             .setAutoCancel(true)
@@ -390,7 +392,7 @@ class BackgroundSessionService : Service() {
             ))
         }
         val notification = NotificationCompat.Builder(this, CHANNEL)
-            .setSmallIcon(R.drawable.ic_notification)
+            .setSmallIcon(ThemeManager.getId(ThemeIconEnum.NotificationIcon))
             .setContentTitle(getString(title))
             .setContentText(content)
             .setStyle(NotificationCompat.BigTextStyle().bigText(content))
