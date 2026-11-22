@@ -184,7 +184,7 @@ class AppConfig(var context: Context) : KoinComponent {
         set(value) = setValue(R.string.show_page_trips, value)
 
     var noConnectionSound: Int
-        get() = getValue(R.string.no_connection_sound, 5)
+        get() = getValue(R.string.no_connection_sound, 0)
         set(value) = setValue(R.string.no_connection_sound, value)
 
     var useStopMusic: Boolean
