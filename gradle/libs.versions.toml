@@ -1,6 +1,6 @@
 [versions]
 kotlin            = "2.4.0"
-agp               = "9.2.1"
+agp               = "9.1.0"
 ksp               = "2.2.10-2.0.2"
 compose           = "1.11.3"
 compose-material3 = "1.4.0"
