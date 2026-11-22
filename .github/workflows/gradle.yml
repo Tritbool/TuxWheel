@@ -108,6 +108,7 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
         run: |
           set -euo pipefail
           umask 077
@@ -144,8 +145,14 @@ jobs:
             exit 1
           fi
 
+          VERSION="${RELEASE_TAG#v}"
+          if [[ ! "$VERSION" =~ ^[0-9]+(\.[0-9]+)*$ ]]; then
+            echo "Erreur : tag de release non convertible en version : $RELEASE_TAG"
+            exit 1
+          fi
+
           mkdir -p dist
-          OUTPUT="dist/TuxWheel.apk"
+          OUTPUT="dist/TuxWheel-$VERSION.apk"
 
           "$BUILD_TOOLS/zipalign" -f -v 4 "${APKS[0]}" "$ALIGNED"
 
@@ -165,4 +172,4 @@ jobs:
         with:
           tag_name: ${{ github.event.release.tag_name }}
           fail_on_unmatched_files: true
-          files: dist/TuxWheel.apk
+          files: dist/TuxWheel-*.apk
