@@ -61,6 +61,7 @@ class CommandContractMappingTest {
         assertThat(commandOptionLabelResource("unknown")).isNull()
     }
 
+
     @Test
     fun `alarm command value follows the descriptor input rather than another decoded setting`() {
         val choice = CommandInput.Choice(listOf(CommandInput.Option("sport", 1)))
@@ -186,11 +187,11 @@ class CommandContractMappingTest {
     @Test
     fun `kingsong pedal mode codes carry the labels that brand gave them`() {
         assertThat(commandOptionLabelResource("mode_0", "KingSong", "SET_PEDALS_MODE"))
-            .isEqualTo(R.string.soft)
+            .isEqualTo(R.string.hard)
         assertThat(commandOptionLabelResource("mode_1", "KingSong", "SET_PEDALS_MODE"))
             .isEqualTo(R.string.medium)
         assertThat(commandOptionLabelResource("mode_2", "KingSong", "SET_PEDALS_MODE"))
-            .isEqualTo(R.string.hard)
+            .isEqualTo(R.string.soft)
     }
 
     @Test

@@ -222,12 +222,13 @@ internal fun commandInputDefaults(
  * with it.
  */
 private val brandOptionLabels: Map<Triple<String, String, String>, Int> = mapOf(
-    // KingSong sends the hardness straight through on 0x87 and echoes it back in the 0xA9 frame,
-    // with 0 = soft and 2 = hard; Gotway decodes to the opposite order, which is why this cannot
-    // be one shared table.
-    Triple("kingsong", "SET_PEDALS_MODE", "mode_0") to R.string.soft,
+    // KingSong sends the mode straight through on 0x87 and echoes it back in the 0xA9 frame,
+    // with 0 = hard and 2 = soft (WheelLog and DarknessBot both label it that way, and rider
+    // feedback confirmed the previous 0 = soft mapping was inverted); Gotway decodes to the
+    // opposite order, which is why this cannot be one shared table.
+    Triple("kingsong", "SET_PEDALS_MODE", "mode_0") to R.string.hard,
     Triple("kingsong", "SET_PEDALS_MODE", "mode_1") to R.string.medium,
-    Triple("kingsong", "SET_PEDALS_MODE", "mode_2") to R.string.hard,
+    Triple("kingsong", "SET_PEDALS_MODE", "mode_2") to R.string.soft,
 )
 
 internal fun commandOptionLabelResource(
