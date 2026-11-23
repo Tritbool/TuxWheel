@@ -92,6 +92,10 @@ class BleSessionViewModel internal constructor(
 
     private val appConfig: AppConfig by inject()
 
+    private val priorityWatcher: WheelPriorityWatcher by lazy {
+        WheelPriorityWatcher(getApplication(), appConfig, this@BleSessionViewModel)
+    }
+
     private val _sessionState = MutableStateFlow(BleSessionState.EMPTY)
     val sessionState: StateFlow<BleSessionState> = _sessionState.asStateFlow()
 
@@ -126,6 +130,12 @@ class BleSessionViewModel internal constructor(
             appConfig.rawLoggingPreferences().collect { enabled ->
                 if (!enabled) rawTraffic.discardPending()
             }
+        }
+
+        // Opt-in "follow wheel priority": watches for a higher-priority remembered wheel
+        // while a session is connected, and hands the session over without user action.
+        viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
+            priorityWatcher.start()
         }
 
         // Subscribe before the lazy client can be used to connect: trafficFlow has no replay.

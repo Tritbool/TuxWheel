@@ -28,6 +28,7 @@ class AppConfig(var context: Context) : KoinComponent {
         const val BMS_LOG_INTERVAL_MAX_SECONDS = 60
         const val BMS_LOG_INTERVAL_DEFAULT_SECONDS = 5
         internal const val AUTO_CONNECT_SCAN_SECONDS = 10
+        internal const val DEFAULT_MIN_LOGGED_DISTANCE_METERS = 10
         internal const val DEFAULT_WHEEL_PRIORITY_WAIT_SECONDS = 1
         private val AUTO_WHEEL_NAME = Regex("wheel(\\d+)", RegexOption.IGNORE_CASE)
     }
@@ -266,6 +267,15 @@ class AppConfig(var context: Context) : KoinComponent {
             setValue(R.string.auto_log, value)
         }
 
+    /**
+     * Sessions shorter than this distance are not kept: their freshly written log file and
+     * trip entry are deleted when logging stops. 0 keeps every log, however short.
+     */
+    var minLoggedDistanceMeters: Int
+        get() = getValue(R.string.min_logged_distance_meters, DEFAULT_MIN_LOGGED_DISTANCE_METERS)
+            .coerceAtLeast(0)
+        set(value) = setValue(R.string.min_logged_distance_meters, value.coerceAtLeast(0))
+
     var autoUploadEc: Boolean
         get() = getValue(R.string.auto_upload_ec, false)
         set(value) = setValue(R.string.auto_upload_ec, value)
@@ -428,6 +438,17 @@ class AppConfig(var context: Context) : KoinComponent {
         get() = getValue("wheel_priority_wait_seconds", DEFAULT_WHEEL_PRIORITY_WAIT_SECONDS)
             .coerceIn(0, AUTO_CONNECT_SCAN_SECONDS)
         set(value) = setValue("wheel_priority_wait_seconds", value.coerceIn(0, AUTO_CONNECT_SCAN_SECONDS))
+
+    /**
+     * Keep scanning while connected and switch to a higher-priority remembered wheel as soon
+     * as it appears, instead of requiring the current wheel to be turned off first.
+     * Inherent trade-off (to explain in the UI): any higher-priority wheel found in range
+     * interrupts the current connection, even mid-ride, so unexpected disconnect/reconnect
+     * behavior is expected rather than a bug.
+     */
+    var autoSwitchToPriorityWheel: Boolean
+        get() = getValue(R.string.auto_switch_wheels, false)
+        set(value) = setValue(R.string.auto_switch_wheels, value)
 
     fun migrateRememberedWheels() {
         if (getValue<String?>("remembered_wheels", null) == null) {

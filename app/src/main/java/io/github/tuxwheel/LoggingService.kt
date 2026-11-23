@@ -54,6 +54,12 @@ class LoggingService : Service() {
     private val bmsLabScope = CoroutineScope(Dispatchers.IO + Job())
     private var wakeLock: PowerManager.WakeLock? = null
 
+    // True when this recording created its own log file (as opposed to appending to a
+    // "continue this day" log): only such files are eligible for the short-distance
+    // discard. A dedicated scope lets the deletion survive the dying service's scopes.
+    private var createdNewLogFile = false
+    private val shortLogDeletionScope = CoroutineScope(Dispatchers.IO + Job())
+
     fun updateConnectionState(connectionState: BLEConstants.ConnectionState) {
         if (connectionState != BLEConstants.ConnectionState.CONNECTED) {
             // Park logging: nothing is appended until fresh telemetry arrives again.
@@ -178,6 +184,7 @@ class LoggingService : Service() {
             if (!file.prepareFile(filename, mac)) {
                 return false
             }
+            createdNewLogFile = true
             appConfig.continueThisDayLogMacException = ""
             file.writeLine("date,time,speed,voltage,phase_current,current,power,torque,pwm,battery_level,distance,totaldistance,system_temp,temp2,tilt,roll,mode,alert")
         }
@@ -398,7 +405,35 @@ class LoggingService : Service() {
         return s == null || s.trim { it <= ' ' }.isEmpty()
     }
 
+    /**
+     * Discards the freshly written log when the ride stayed under the configured minimum
+     * distance (0 keeps everything). Continued "append to an existing log" sessions are
+     * never deleted: the file may contain earlier, valid rides. The file is removed first;
+     * the trip row follows asynchronously, outliving the dying service scopes.
+     */
+    private fun maybeDeleteShortLog() {
+        val threshold = appConfig.minLoggedDistanceMeters
+        if (threshold <= 0 || !createdNewLogFile) return
+        val file = fileUtil ?: return
+        val distanceMeters = viewModel.distanceDouble * 1_000.0
+        if (distanceMeters >= threshold) return
+        val fileName = file.fileName
+        Timber.i(
+            "Discarding short ride log (%.0f m < %d m): %s",
+            distanceMeters,
+            threshold,
+            file.absolutePath,
+        )
+        if (file.delete()) {
+            fileUtil = null
+            shortLogDeletionScope.launch {
+                dao.getTripByFileName(fileName)?.let { trip -> dao.delete(trip) }
+            }
+        }
+    }
+
     override fun onDestroy() {
+        maybeDeleteShortLog()
         viewModel.rawTraffic.stop()
         viewModel.bmsLabCapture.stop()
         ioState.cancel()

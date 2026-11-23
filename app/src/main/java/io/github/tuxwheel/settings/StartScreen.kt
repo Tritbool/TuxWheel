@@ -79,6 +79,14 @@ fun startScreen(
         ) {
             context.startActivity(Intent(context, BackgroundSessionSettingsActivity::class.java))
         }
+        switchPref(
+            name = stringResource(R.string.auto_switch_wheels_title),
+            desc = stringResource(R.string.auto_switch_wheels_description),
+            default = config.autoSwitchToPriorityWheel,
+            showDiv = false,
+        ) {
+            config.autoSwitchToPriorityWheel = it
+        }
         if (isSpecificVisible) {
             clickablePref(
                 name = stringResource(R.string.alarm_settings_title),

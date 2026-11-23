@@ -11,6 +11,11 @@ Grant notification permission on Android versions that request it.
 
 New files are saved under **Downloads/TuxWheel**. Existing CSV logs remain
 available to the trips page.
+**Minimum logged distance** (Log settings, default 10 m) discards a freshly
+written log when the session stayed under that distance: the CSV file and its
+trip entry are deleted when logging stops. This only applies to logs created
+by their own recording; sessions appended to an existing "continue this day"
+log are never deleted. Set it to 0 to keep every log, however short.
 Storage access follows the Android version's permission and storage rules.
 
 Enable the trips page to inspect recorded ride statistics, share a CSV through
