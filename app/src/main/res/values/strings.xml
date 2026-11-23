@@ -327,13 +327,14 @@
     <string name="about_app_title">About TuxWheel</string>
     <string name="settings_title">Settings</string>
     <string name="remote_buttons_title">Bluetooth Buttons</string>
-    <string name="remote_buttons_description">Trigger app actions with a Bluetooth remote (e.g. AB Shutter 3). By default nothing is caught.</string>
+    <string name="remote_buttons_description">Trigger app actions with a Bluetooth remote (e.g. AB Shutter 3). By default nothing is caught, and only the captured remote can trigger them — the phone's own volume keys stay normal.</string>
     <string name="remote_buttons_connected_hint">Buttons keep working with the screen off while the wheel is connected.</string>
     <string name="remote_buttons_offline">Connect a wheel to test captured buttons.</string>
     <string name="remote_buttons_add">Capture a new button</string>
-    <string name="remote_buttons_add_hint">Press the remote button to capture. It lands here; then pick its action.</string>
+    <string name="remote_buttons_add_hint">Press the remote button to capture it with its Bluetooth device, then pick its action. Capture from a foreground screen records which remote it came from.</string>
     <string name="remote_buttons_listening">Waiting for a button press…</string>
     <string name="remote_buttons_listening_hint">Press a button on the remote now. The BACK and HOME keys are never captured.</string>
+    <string name="remote_button_unknown_device">unknown device</string>
     <string name="remote_button_action_title">Action for “%1$s”</string>
     <string name="remote_button_forget">Forget this button</string>
     <string name="remote_action_speed_limiter">Toggle speed limiter</string>

@@ -7,5 +7,5 @@ import org.koin.dsl.module
 
 val volumeKeyModule = module {
     single { RemoteButtonDispatcher(androidApplication(), get(), get()) }
-    single { VolumeKeyController(androidApplication(), get()) }
+    single { VolumeKeyController(androidApplication(), get(), get()) }
 }

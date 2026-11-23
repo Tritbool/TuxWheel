@@ -131,6 +131,10 @@ Pair a Bluetooth HID remote (e.g. AB Shutter 3; its Android button sends
 tap **Capture a new button**, press the remote button, then pick its action.
 
 - Up to five buttons can be configured; different remotes and keys work, the same key is kept once.
+- Capture from a foreground screen records the remote's Bluetooth device. Captured
+  buttons only fire for that device: the phone's own volume keys and on-screen taps
+  never trigger wheel actions, and with the captured remote disconnected the media
+  volume keys behave normally again.
 - Actions: toggle the speed limiter, toggle the wheel headlight, toggle the
   wheel lock (only when stationary), or beep.
 - Nothing is caught by default. While mappings are active the system media
@@ -140,6 +144,8 @@ tap **Capture a new button**, press the remote button, then pick its action.
   is connected, through an app-held media session. The `Beep on Volume Up` option
   historically built on the same session keeps working.
 - The BACK and HOME keys are never captured. Repeated or held presses are throttled.
+- Each button press cycles the wheel headlight through the light commands the wheel
+  supports instead of guessing its current state from telemetry.
 
 ## Dashboard and pages
 

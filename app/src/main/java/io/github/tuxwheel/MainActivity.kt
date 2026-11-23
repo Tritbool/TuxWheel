@@ -889,7 +889,7 @@ class MainActivity : AppCompatActivity() {
         if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
             if (event.keyCode != KeyEvent.KEYCODE_BACK &&
                 event.keyCode != KeyEvent.KEYCODE_HOME &&
-                remoteButtonDispatcher.handleKey(event.keyCode)
+                remoteButtonDispatcher.handleKey(event.keyCode, event.device?.descriptor)
             ) return true
         }
         return super.dispatchKeyEvent(event)

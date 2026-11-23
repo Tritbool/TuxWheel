@@ -11,36 +11,56 @@ class RemoteButtonBindingsTest {
     }
 
     @Test
-    fun roundTripsKeyCodeAndAction() {
+    fun roundTripsKeyCodeActionAndDevice() {
         val bindings = listOf(
-            24 to RemoteButtonAction.ToggleSpeedLimiter,
-            25 to RemoteButtonAction.ToggleLight,
-            126 to RemoteButtonAction.Beep,
+            RemoteButtonBinding(24, RemoteButtonAction.ToggleSpeedLimiter, "abcd:1234", "AB Shutter 3"),
+            RemoteButtonBinding(25, RemoteButtonAction.ToggleLight),
         )
         val parsed = RemoteButtonBindings.parse(RemoteButtonBindings.serialize(bindings))
         assertThat(parsed).containsExactlyElementsIn(bindings).inOrder()
-        assertThat(RemoteButtonBindings.actionFor(parsed, 24))
-            .isEqualTo(RemoteButtonAction.ToggleSpeedLimiter)
-        assertThat(RemoteButtonBindings.actionFor(parsed, 87)).isNull()
+    }
+
+    @Test
+    fun roundTripsDeviceNamesWithSeparators() {
+        val bindings = listOf(
+            RemoteButtonBinding(24, RemoteButtonAction.Beep, "dc:ba", "AB; Shutter: 3"),
+        )
+        assertThat(RemoteButtonBindings.parse(RemoteButtonBindings.serialize(bindings)))
+            .isEqualTo(bindings)
+    }
+
+    @Test
+    fun parsesLegacyEntriesWithoutDevice() {
+        val parsed = RemoteButtonBindings.parse("24:ToggleSpeedLimiter")
+        assertThat(parsed).containsExactly(
+            RemoteButtonBinding(24, RemoteButtonAction.ToggleSpeedLimiter, null, null)
+        )
     }
 
     @Test
     fun ignoresUnknownActionsAndKeyCodes() {
         val parsed = RemoteButtonBindings.parse("24:NotAnAction;abc:Beep;25:Beep")
-        assertThat(parsed).containsExactly(25 to RemoteButtonAction.Beep)
+        assertThat(parsed).containsExactly(RemoteButtonBinding(25, RemoteButtonAction.Beep))
     }
 
     @Test
     fun capsAtFiveSlots() {
-        val many = (1..8).map { it to RemoteButtonAction.Beep }
+        val many = (1..8).map { RemoteButtonBinding(it, RemoteButtonAction.Beep) }
         assertThat(RemoteButtonBindings.parse(RemoteButtonBindings.serialize(many)))
             .hasSize(RemoteButtonBindings.MAX_SLOTS)
     }
 
     @Test
     fun firstMappingWinsForDuplicateKeys() {
-        val parsed = RemoteButtonBindings.parse("24:ToggleSpeedLimiter;24:Beep")
-        assertThat(RemoteButtonBindings.actionFor(parsed, 24))
+        val parsed = RemoteButtonBindings.parse(
+            RemoteButtonBindings.serialize(
+                listOf(
+                    RemoteButtonBinding(24, RemoteButtonAction.ToggleSpeedLimiter),
+                    RemoteButtonBinding(24, RemoteButtonAction.Beep),
+                )
+            )
+        )
+        assertThat(RemoteButtonBindings.forKey(parsed, 24)?.action)
             .isEqualTo(RemoteButtonAction.ToggleSpeedLimiter)
     }
 }

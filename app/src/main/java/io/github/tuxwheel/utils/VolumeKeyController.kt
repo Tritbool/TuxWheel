@@ -6,18 +6,23 @@ import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.view.KeyEvent
 import androidx.media.VolumeProviderCompat
+import io.github.tuxwheel.AppConfig
 import io.github.tuxwheel.feature.remotebutton.RemoteButtonDispatcher
 
 /**
  * Holder of the media session that keeps Bluetooth HID buttons (volume keys, media keys)
  * flowing to [RemoteButtonDispatcher] while TuxWheel is not the foreground app or the screen
- * is off. The volume provider consumes the volume so the system stream never changes.
+ * is off. The volume provider consumes the volume so the system stream never changes while a
+ * remote button is serviced; when no captured remote is connected and the legacy
+ * beep-on-volume-up option is off, the press falls through to a normal system volume change.
  */
 class VolumeKeyController(
     private val mContext: Context,
     private val remoteButtonDispatcher: RemoteButtonDispatcher,
+    private val config: AppConfig,
 ) {
     private var mMediaSession: MediaSessionCompat? = null
+    private var lastKeyConsumed = false
 
     private fun createMediaSession(): MediaSessionCompat? {
         mMediaSession = MediaSessionCompat(mContext, "log").apply {
@@ -33,9 +38,12 @@ class VolumeKeyController(
                     val keyEvent = mediaButtonIntent.getParcelableExtra<KeyEvent>(
                         android.content.Intent.EXTRA_KEY_EVENT
                     ) ?: return super.onMediaButtonEvent(mediaButtonIntent)
-                    if (keyEvent.action == KeyEvent.ACTION_DOWN &&
-                        remoteButtonDispatcher.handleKey(keyEvent.keyCode)
-                    ) return true
+                    if (keyEvent.action == KeyEvent.ACTION_DOWN) {
+                        if (remoteButtonDispatcher.handleKey(keyEvent.keyCode, keyEvent.device?.descriptor)) {
+                            lastKeyConsumed = true
+                            return true
+                        }
+                    }
                     return super.onMediaButtonEvent(mediaButtonIntent)
                 }
             })
@@ -54,15 +62,31 @@ class VolumeKeyController(
                 override fun onAdjustVolume(direction: Int) {
                     when (direction) {
                         AudioManager.ADJUST_RAISE -> {
-                            if (remoteButtonDispatcher.handleKey(KeyEvent.KEYCODE_VOLUME_UP)) return
+                            lastKeyConsumed =
+                                remoteButtonDispatcher.handleKey(KeyEvent.KEYCODE_VOLUME_UP)
+                            if (lastKeyConsumed) return
                         }
                         AudioManager.ADJUST_LOWER -> {
-                            if (remoteButtonDispatcher.handleKey(KeyEvent.KEYCODE_VOLUME_DOWN)) return
+                            lastKeyConsumed =
+                                remoteButtonDispatcher.handleKey(KeyEvent.KEYCODE_VOLUME_DOWN)
+                            if (lastKeyConsumed) return
                         }
-                        else -> {}
+                        else -> {
+                            if (!lastKeyConsumed && config.useBeepOnVolumeUp) {
+                                SomeUtil.playBeep()
+                            }
+                            lastKeyConsumed = false
+                            return
+                        }
                     }
-                    if (direction == 0) {
-                        SomeUtil.playBeep()
+                    lastKeyConsumed = false
+                    if (!config.useBeepOnVolumeUp &&
+                        !remoteButtonDispatcher.hasConnectedCaptureDevice()
+                    ) {
+                        audio.adjustStreamVolume(
+                            streamType, direction, AudioManager.FLAG_SHOW_UI
+                        )
+                        setCurrentVolume(audio.getStreamVolume(streamType))
                     }
                 }
             }
