@@ -35,6 +35,29 @@ class FileUtil(val context: Context, private val buffered: Boolean = false) {
     }
 
     var fileName = ""
+
+    /**
+     * Deletes the log backing this util (file or MediaStore entry). Returns true when the
+     * log is gone after the call. No-op when the session was never written.
+     */
+    fun delete(): Boolean {
+        if (isNull) return false
+        close()
+        val target = file
+        val targetUri = uri
+        uri = null
+        file = null
+        return if (targetUri != null) {
+            try {
+                context.contentResolver.delete(targetUri, null, null)
+                true
+            } catch (e: Exception) {
+                Timber.w(e, "Unable to delete log via MediaStore")
+                false
+            }
+        } else target?.delete() ?: false
+    }
+
     fun setIgnoreTimber(value: Boolean) {
         ignoreTimber = value
     }

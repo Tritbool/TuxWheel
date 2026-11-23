@@ -97,6 +97,18 @@ fun logScreen(appConfig: AppConfig = koinInject()) {
             appConfig.enableRawData = it
         }
 
+        sliderPref(
+            name = stringResource(R.string.min_log_distance_title),
+            desc = stringResource(R.string.min_log_distance_description),
+            position = appConfig.minLoggedDistanceMeters.toFloat(),
+            min = 0f,
+            max = 100f,
+            unit = R.string.meter,
+            format = "%.0f",
+        ) {
+            appConfig.minLoggedDistanceMeters = it.roundToInt()
+        }
+
         var bmsLogEnabled by remember { mutableStateOf(appConfig.enableBmsData) }
         switchPref(
             name = stringResource(R.string.use_bms_data_title),

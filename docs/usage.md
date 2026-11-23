@@ -15,6 +15,18 @@ without opening the scan screen. A BLE interruption during use triggers the
 library's automatic retries for the same wheel. Open **My wheels** to stop
 an attempt or disconnect intentionally without reconnecting.
 
+### Optional priority following (experimental)
+
+**Follow saved wheel priority** keeps a filtered, low-power scan running while
+you are connected and hands the session over, without any action, to a
+higher-priority saved wheel as soon as it advertises — no need to turn the
+current wheel off first. Switches only move up in priority: riding the
+top-priority wheel never gets overridden. The trade-off is deliberate and is
+stated in the setting: any higher-priority wheel coming into range interrupts
+the current connection and takes over, even mid-ride. Connection losses are
+expected in this mode, not bugs; leave it off when you need maximum connection
+stability.
+
 ## Connect to a wheel
 
 ### Optional black box

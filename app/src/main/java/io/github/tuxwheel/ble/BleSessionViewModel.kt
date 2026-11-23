@@ -92,6 +92,10 @@ class BleSessionViewModel internal constructor(
 
     private val appConfig: AppConfig by inject()
 
+    private val priorityWatcher: WheelPriorityWatcher by lazy {
+        WheelPriorityWatcher(getApplication(), appConfig, this@BleSessionViewModel)
+    }
+
     private val _sessionState = MutableStateFlow(BleSessionState.EMPTY)
     val sessionState: StateFlow<BleSessionState> = _sessionState.asStateFlow()
 
@@ -125,6 +129,14 @@ class BleSessionViewModel internal constructor(
         viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
             appConfig.rawLoggingPreferences().collect { enabled ->
                 if (!enabled) rawTraffic.discardPending()
+            }
+        }
+
+        // Opt-in "follow wheel priority": the preference flow arms/disarms the watcher, so
+        // no scanning (or preference access beyond this flow) happens while disabled.
+        viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
+            appConfig.autoSwitchWheelPreferences().collect { enabled ->
+                priorityWatcher.setEnabled(enabled)
             }
         }
 

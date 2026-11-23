@@ -120,6 +120,7 @@
     <string name="trip_import_failed">Could not import %1$d selected file(s).</string>
     <string name="trip_import_success">Imported %1$d log file(s).</string>
     <string name="kmh">km/h</string>
+    <string name="meter">m</string>
     <string name="mph">mph</string>
     <string name="km">km</string>
     <string name="whkm">Wh/km</string>
@@ -404,6 +405,11 @@
     <string name="no_chart_data">No data available</string>
     <string name="auto_log_title">Auto Log</string>
     <string name="auto_log_description">Start logging automatically when a wheel is connected</string>
+
+    <string name="min_log_distance_title">Minimum logged distance</string>
+    <string name="min_log_distance_description">Discard ride logs shorter than this distance when logging stops. Set to 0 to keep every log, however short.</string>
+    <string name="auto_switch_wheels_title">Follow saved wheel priority</string>
+    <string name="auto_switch_wheels_description">Keep scanning while connected and switch, without any action, to a higher-priority saved wheel that comes in range — no need to turn the current wheel off first. Warning: this can interrupt the current connection and reconnect to the top-priority wheel at any moment, even mid-ride. Connection losses are expected in this mode.</string>
     <string name="use_raw_title">RAW Bluetooth Data Logging</string>
 
     <string name="use_bms_data_title">BMS data logging</string>

@@ -56,6 +56,7 @@ class WheelAutoConnectTest {
         Dispatchers.setMain(dispatcher)
         config = mockk<AppConfig>()
         every { config.rawLoggingPreferences() } returns flowOf(false)
+        every { config.autoSwitchWheelPreferences() } returns flowOf(false)
         every { config.wheelPriorityWaitSeconds } returns 1
         every { config.rememberWheel(any(), any(), any()) } returns Unit
         every { config.rememberedWheels } returns emptyList()
