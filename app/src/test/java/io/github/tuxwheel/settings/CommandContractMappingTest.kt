@@ -62,6 +62,20 @@ class CommandContractMappingTest {
     }
 
     @Test
+    fun `KingSong pedal codes are labeled hard to soft`() {
+        // WheelLog and DarknessBot both label KingSong 0x87 pedal mode 0 as hard, not soft.
+        assertThat(
+            commandOptionLabelResource("mode_0", manufacturer = "kingsong", commandId = "SET_PEDALS_MODE")
+        ).isEqualTo(R.string.hard)
+        assertThat(
+            commandOptionLabelResource("mode_1", manufacturer = "KingSong", commandId = "set_pedals_mode")
+        ).isEqualTo(R.string.medium)
+        assertThat(
+            commandOptionLabelResource("mode_2", manufacturer = "kingsong", commandId = "SET_PEDALS_MODE")
+        ).isEqualTo(R.string.soft)
+    }
+
+    @Test
     fun `alarm command value follows the descriptor input rather than another decoded setting`() {
         val choice = CommandInput.Choice(listOf(CommandInput.Option("sport", 1)))
         val range = CommandInput.Range(5, 65, 5, "km/h")
