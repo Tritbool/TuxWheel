@@ -51,6 +51,33 @@ class RemoteButtonBindingsTest {
     }
 
     @Test
+    fun upsertAppendsANewButtonAtTheRequestedSlot() {
+        val first = RemoteButtonBinding(24, RemoteButtonAction.ToggleSpeedLimiter)
+        val learned = RemoteButtonBinding(25, RemoteButtonAction.ToggleSpeedLimiter)
+        val (next, slot) = RemoteButtonBindings.upsert(listOf(first), 1, learned)
+        assertThat(next).containsExactly(first, learned).inOrder()
+        assertThat(slot).isEqualTo(1)
+    }
+
+    @Test
+    fun upsertNeverWritesPastTheEndOfTheList() {
+        val first = RemoteButtonBinding(24, RemoteButtonAction.ToggleSpeedLimiter)
+        val learned = RemoteButtonBinding(24, RemoteButtonAction.Beep)
+        val (next, slot) = RemoteButtonBindings.upsert(listOf(first), 5, learned)
+        assertThat(next).containsExactly(learned)
+        assertThat(slot).isEqualTo(0)
+    }
+
+    @Test
+    fun upsertReplacesAnEntryWhoseKeyCollides() {
+        val first = RemoteButtonBinding(24, RemoteButtonAction.Beep, "device:1", "Remote A")
+        val learned = RemoteButtonBinding(24, RemoteButtonAction.ToggleLight, "device:1", "Remote A")
+        val (next, slot) = RemoteButtonBindings.upsert(listOf(first), 1, learned)
+        assertThat(next).containsExactly(learned)
+        assertThat(slot).isEqualTo(0)
+    }
+
+    @Test
     fun firstMappingWinsForDuplicateKeys() {
         val parsed = RemoteButtonBindings.parse(
             RemoteButtonBindings.serialize(

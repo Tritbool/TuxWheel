@@ -57,6 +57,28 @@ object RemoteButtonBindings {
     fun forKey(bindings: List<RemoteButtonBinding>, keyCode: Int): RemoteButtonBinding? =
         bindings.firstOrNull { it.keyCode == keyCode }
 
+    /**
+     * Result of capturing a new [learned] button at [slot]: the updated list and the index of
+     * the entry to configure next. A remote whose keys collide (an AB Shutter 3 sends the same
+     * Android key from both buttons) replaces the already captured entry instead of growing a
+     * list that would never be able to tell the two presses apart.
+     */
+    fun upsert(
+        bindings: List<RemoteButtonBinding>,
+        slot: Int,
+        learned: RemoteButtonBinding,
+    ): Pair<List<RemoteButtonBinding>, Int> {
+        val existing = bindings.indexOfFirst { it.keyCode == learned.keyCode }
+        if (existing >= 0) {
+            return bindings.mapIndexed { index, binding ->
+                if (index == existing) learned else binding
+            } to existing
+        }
+        val next = bindings.toMutableList()
+        next.add(slot.coerceIn(0, next.size), learned)
+        return next to (slot.coerceIn(0, next.size - 1))
+    }
+
     private fun decode(value: String): String? = try {
         URLDecoder.decode(value, CHARSET)
     } catch (e: Exception) {

@@ -46,6 +46,7 @@ fun remoteButtonsScreen(
     var actionSlot by remember { mutableStateOf<Int?>(null) }
     var listening by remember { mutableStateOf(false) }
     var listeningSlot by remember { mutableStateOf(0) }
+    var lastLearnedWasDuplicate by remember { mutableStateOf(false) }
 
     fun persist(next: List<RemoteButtonBinding>) {
         bindings = next.take(RemoteButtonBindings.MAX_SLOTS)
@@ -71,12 +72,11 @@ fun remoteButtonsScreen(
             if (listening && slot == listeningSlot) {
                 listening = false
                 remoteButtonDispatcher.learningSlot = null
-                val next = bindings
-                    .filter { it.keyCode != learned.keyCode }
-                    .toMutableList()
-                    .apply { add(slot, learned) }
+                val existingSlot = bindings.indexOfFirst { it.keyCode == learned.keyCode }
+                lastLearnedWasDuplicate = existingSlot >= 0
+                val (next, finalSlot) = RemoteButtonBindings.upsert(bindings, slot, learned)
                 persist(next)
-                actionSlot = bindings.indexOfFirst { it.keyCode == learned.keyCode }.takeIf { it >= 0 }
+                actionSlot = finalSlot
             } else if (slot >= RemoteButtonBindings.MAX_SLOTS) {
                 stopListening()
             }
@@ -99,6 +99,13 @@ fun remoteButtonsScreen(
             baseSettings(
                 name = stringResource(R.string.remote_buttons_listening),
                 desc = stringResource(R.string.remote_buttons_listening_hint),
+                showDiv = false,
+            )
+        }
+        if (lastLearnedWasDuplicate) {
+            baseSettings(
+                name = stringResource(R.string.remote_button_duplicate_note),
+                desc = "",
                 showDiv = false,
             )
         }

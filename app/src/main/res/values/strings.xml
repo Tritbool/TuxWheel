@@ -335,6 +335,7 @@
     <string name="remote_buttons_listening">Waiting for a button press…</string>
     <string name="remote_buttons_listening_hint">Press a button on the remote now. The BACK and HOME keys are never captured.</string>
     <string name="remote_button_unknown_device">unknown device</string>
+    <string name="remote_button_duplicate_note">Last capture updated an existing entry: this remote sends the same Android key from several buttons (e.g. AB Shutter 3 sends Volume Up twice), so they cannot be mapped to different actions.</string>
     <string name="remote_button_action_title">Action for “%1$s”</string>
     <string name="remote_button_forget">Forget this button</string>
     <string name="remote_action_speed_limiter">Toggle speed limiter</string>
