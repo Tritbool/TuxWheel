@@ -11,6 +11,18 @@ Grant notification permission on Android versions that request it.
 
 New files are saved under **Downloads/TuxWheel**. Existing CSV logs remain
 available to the trips page.
+### Log format
+
+By default, ride logs use the legacy WheelLog-compatible CSV schema so
+existing third-party tools keep working. Log settings offers the
+**enriched TuxWheel v2 schema**, which exports every decoded telemetry field
+per row (temperatures per sensor, limits, alarms, ride times, serial and
+firmware identity, cell voltages…). Both schemas are specified, with units
+and nullability, in [docs/log_format.md](log_format.md) so third parties can
+consume the files; v2 files self-identify through the `schema` column value
+`tuxwheel-2`. The format applies when a log file is created; appended
+"continue this day" logs keep the file's original schema.
+
 **Minimum logged distance** (Log settings, default 10 m) discards a freshly
 written log when the session stayed under that distance: the CSV file and its
 trip entry are deleted when logging stops. This only applies to logs created
