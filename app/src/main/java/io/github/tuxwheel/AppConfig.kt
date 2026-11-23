@@ -184,7 +184,7 @@ class AppConfig(var context: Context) : KoinComponent {
         set(value) = setValue(R.string.show_page_trips, value)
 
     var noConnectionSound: Int
-        get() = getValue(R.string.no_connection_sound, 5)
+        get() = getValue(R.string.no_connection_sound, 0)
         set(value) = setValue(R.string.no_connection_sound, value)
 
     var useStopMusic: Boolean
@@ -225,6 +225,41 @@ class AppConfig(var context: Context) : KoinComponent {
     //endregion
 
     //region logs
+    var backgroundSessionEnabled: Boolean
+        get() = getValue("background_session_enabled", false)
+        set(value) {
+            if (value) {
+                backgroundSessionPaused = false
+                backgroundBlockedWheels = emptySet()
+            }
+            setValue("background_session_enabled", value)
+        }
+
+    var backgroundSessionTimeoutMinutes: Int
+        get() = getValue("background_session_timeout_minutes", 15).coerceIn(1, 120)
+        set(value) = setValue("background_session_timeout_minutes", value.coerceIn(1, 120))
+
+    /** 0: wait for absence, 1: reconnect immediately, 2: wait for manual reactivation. */
+    var backgroundManualDisconnectPolicy: Int
+        get() = getValue("background_manual_disconnect_policy", 0).coerceIn(0, 2)
+        set(value) = setValue("background_manual_disconnect_policy", value.coerceIn(0, 2))
+
+    var backgroundSessionPaused: Boolean
+        get() = getValue("background_session_paused", false)
+        set(value) = setValue("background_session_paused", value)
+
+    var backgroundBlockedWheels: Set<String>
+        get() = getValue("background_blocked_wheels", "").split(';').filter { it.isNotEmpty() }.toSet()
+        set(value) = setValue("background_blocked_wheels", value.sorted().joinToString(";"))
+
+    internal var backgroundActiveWheel: String
+        get() = getValue("background_active_wheel", "")
+        set(value) = setValue("background_active_wheel", value)
+
+    internal var backgroundInterruptedAt: Long
+        get() = getValue("background_interrupted_at", 0L)
+        set(value) = setValue("background_interrupted_at", value)
+
     var autoLog: Boolean
         get() = getValue(R.string.auto_log, false)
         set(value) {
@@ -412,7 +447,7 @@ class AppConfig(var context: Context) : KoinComponent {
                     val wheel = wheels.optJSONObject(index) ?: return@mapNotNull null
                     val address = RememberedWheel.normalizeAddress(wheel.optString("address"))
                         ?: return@mapNotNull null
-                    RememberedWheel(address, wheel.optString("name"), wheel.optString("alias"))
+                    RememberedWheel(address, wheel.optString("name"), wheel.optString("alias"), wheel.optString("protocol"))
                 }.distinctBy { it.address }
             } catch (e: JSONException) {
                 Timber.e(e, "Failed to read remembered wheels")
@@ -430,10 +465,19 @@ class AppConfig(var context: Context) : KoinComponent {
                             .put("address", wheel.address)
                             .put("name", wheel.name)
                             .put("alias", wheel.alias)
+                            .put("protocol", wheel.protocolId)
                     )
                 }
             setValue("remembered_wheels", wheels.toString())
         }
+
+    fun setRememberedWheelProtocol(address: String, protocolId: String) {
+        val wheels = rememberedWheels.toMutableList()
+        val index = wheels.indexOfFirst { it.address.equals(address, ignoreCase = true) }
+        if (index < 0 || wheels[index].protocolId == protocolId) return
+        wheels[index] = wheels[index].copy(protocolId = protocolId)
+        rememberedWheels = wheels
+    }
 
     fun rememberWheel(address: String, name: String, addIfMissing: Boolean = true) {
         val key = RememberedWheel.normalizeAddress(address) ?: return

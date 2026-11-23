@@ -3,7 +3,7 @@ name: App checks
 on:
   pull_request:
   push:
-    branches: [master]
+    branches: [master, background-session]
 
 permissions:
   contents: read
@@ -22,12 +22,12 @@ jobs:
         with:
           persist-credentials: false
 
-      # Validate against current library source, not a released artifact.
+      # The background API is not published yet; keep this revision reproducible.
       - name: Checkout BLE library
         uses: actions/checkout@v4
         with:
           repository: Tritbool/euc_ble_library
-          ref: main
+          ref: 70d72541bcf44879d1ab0e50ad1f64c86cf61195
           path: .ci/euc-ble-library
           persist-credentials: false
 
@@ -43,12 +43,14 @@ jobs:
       - name: Run unit tests, lint, and release assembly
         run: >-
           ./gradlew -PeucBleLibraryDir=.ci/euc-ble-library
-          -Peuc.androidGradlePluginVersion=9.2.1
           :app:testDebugUnitTest
           --tests io.github.tuxwheel.GithubUpdatesTest
           --tests io.github.tuxwheel.GithubUpdatePromptTest
           --tests io.github.tuxwheel.ble.BleCommandDiscoveryTest
           --tests io.github.tuxwheel.ble.WheelAutoConnectTest
+          --tests io.github.tuxwheel.background.BackgroundSessionPolicyTest
+          --tests io.github.tuxwheel.background.BackgroundSessionStatusTest
+          --tests io.github.tuxwheel.background.BackgroundWheelManagerTest
           --tests io.github.tuxwheel.RememberedWheelsTest
           --tests io.github.tuxwheel.settings.CommandContractMappingTest
           --tests io.github.tuxwheel.ble.BmsLabCaptureTest

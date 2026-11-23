@@ -1,6 +1,7 @@
 package io.github.tuxwheel.di
 
 import io.github.tuxwheel.ble.BleSessionViewModel
+import io.github.tuxwheel.background.BackgroundWheelManager
 import org.koin.android.ext.koin.androidApplication
 import org.koin.dsl.module
 
@@ -22,6 +23,7 @@ import org.koin.dsl.module
  * receives BLE telemetry, which breaks UI updates after connecting.
  */
 val bleModule = module {
+    single { BackgroundWheelManager(androidApplication(), get(), get()) }
 
     // Shared BLE session singleton for the app.
     single<BleSessionViewModel> {

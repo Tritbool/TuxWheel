@@ -33,7 +33,7 @@
 	<string name="current">Corriente</string>
 	<string name="power">Potencia</string>
 	<string name="temperature">Temperatura del sistema.</string>
-	<string name="temperature2">Temperatura 2</string>
+	<string name="motor_temperature">Temperatura del motor</string>
 	<string name="angle">Angulo</string>
 	<string name="roll">Rodar</string>
 	<string name="fan_status">Estado de ventilacion.</string>

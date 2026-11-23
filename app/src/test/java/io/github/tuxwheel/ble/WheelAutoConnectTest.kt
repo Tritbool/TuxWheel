@@ -1,6 +1,7 @@
 package io.github.tuxwheel.ble
 
 import android.app.Application
+import android.bluetooth.BluetoothDevice
 import androidx.lifecycle.viewModelScope
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
@@ -57,6 +58,7 @@ class WheelAutoConnectTest {
         every { config.rawLoggingPreferences() } returns flowOf(false)
         every { config.wheelPriorityWaitSeconds } returns 1
         every { config.rememberWheel(any(), any(), any()) } returns Unit
+        every { config.rememberedWheels } returns emptyList()
         startKoin { modules(module { single { config } }) }
         every { client.setConnectionCallback(capture(callback)) } answers { }
         every { client.setErrorCallback(capture(errors)) } answers { }
@@ -71,6 +73,21 @@ class WheelAutoConnectTest {
         model.viewModelScope.cancel()
         stopKoin()
         Dispatchers.resetMain()
+    }
+
+    @Test fun `external discovery connects without starting a library scan`() = runTest(dispatcher) {
+        val device = mockk<BluetoothDevice> {
+            every { address } returns wheel.address
+        }
+        model.connectExternalDevice(device, "ExtremeBull", -42)
+        model.connectExternalDevice(device, "ExtremeBull", -42)
+        runCurrent()
+
+        verify(exactly = 1) { client.connectExternalDevice(device, "ExtremeBull", -42) }
+        verify(exactly = 0) { client.startScan() }
+        verify(exactly = 0) { client.connect(any()) }
+        verify(exactly = 1) { client.clearForcedProtocol() }
+        assertThat(model.sessionState.value.connectionState).isEqualTo(ConnectionState.CONNECTING)
     }
 
     @Test fun `cold start stops scanning and connects once to the exact saved MAC`() = runTest(dispatcher) {

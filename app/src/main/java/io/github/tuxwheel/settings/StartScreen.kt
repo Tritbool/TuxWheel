@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -28,6 +29,7 @@ import io.github.tuxwheel.BuildConfig
 import io.github.tuxwheel.R
 import io.github.tuxwheel.ble.BleSessionViewModel
 import io.github.tuxwheel.ble.getWheelType
+import io.github.tuxwheel.background.BackgroundSessionSettingsActivity
 import io.github.tuxwheel.utils.Constants
 import io.github.tuxwheel.utils.ThemeIconEnum
 import org.koin.compose.koinInject
@@ -40,6 +42,13 @@ fun startScreen(
     val viewModel: BleSessionViewModel = koinInject()
     val sessionState by viewModel.sessionState.collectAsStateWithLifecycle()
     val isSpecificVisible = sessionState.getWheelType() != Constants.WHEEL_TYPE.Unknown
+    val config: AppConfig = koinInject()
+    val blackBoxStatus by produceState(
+        initialValue = blackBoxSettingStatus(config),
+        config,
+    ) {
+        config.dashboardPreferences().collect { value = blackBoxSettingStatus(config) }
+    }
     Column(
         modifier = modifier.verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.SpaceBetween,
@@ -63,6 +72,12 @@ fun startScreen(
             themeIcon = ThemeIconEnum.SettingsLog,
         ) {
             onSelect(SettingsScreenEnum.Log.name)
+        }
+        clickablePref(
+            name = stringResource(R.string.background_session_title),
+            desc = stringResource(blackBoxStatus),
+        ) {
+            context.startActivity(Intent(context, BackgroundSessionSettingsActivity::class.java))
         }
         if (isSpecificVisible) {
             clickablePref(
@@ -166,6 +181,12 @@ fun startScreen(
             showAboutDialog = true
         }
     }
+}
+
+private fun blackBoxSettingStatus(config: AppConfig): Int = when {
+    !config.backgroundSessionEnabled -> R.string.background_session_disabled
+    config.backgroundSessionPaused -> R.string.background_session_paused
+    else -> R.string.background_session_enabled
 }
 
 @Preview

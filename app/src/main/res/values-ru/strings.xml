@@ -27,7 +27,7 @@
     <string name="average_riding_speed">Сред. движения</string>
     <string name="angle">Наклон вперед</string>
     <string name="roll">Наклон в бок</string>
-    <string name="temperature2">Темп. мотора</string>
+    <string name="motor_temperature">Температура мотора</string>
     <string name="total_distance">Пробег</string>
     <string name="name">Название</string>
     <string name="model">Модель</string>

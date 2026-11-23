@@ -74,7 +74,7 @@ class DashboardViewModel(
             R.string.power to number(bleViewModel.powerDouble, 0, R.string.watt),
             R.string.maxpower to number(bleViewModel.maxPowerDouble, 0, R.string.watt),
             R.string.temperature to base.temperatureDisplay,
-            R.string.temperature2 to DashboardFormatting.temperature(
+            R.string.motor_temperature to DashboardFormatting.temperature(
                 bleViewModel.motorTemperatureDouble.toInt(), appConfig.useFahrenheit),
             R.string.maxtemperature to base.maxTemperatureDisplay,
             R.string.average_speed to speed(bleViewModel.averageSpeedDouble),

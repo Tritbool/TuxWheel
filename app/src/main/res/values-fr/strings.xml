@@ -1,5 +1,61 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string name="background_session_title">Boîte noire</string>
+    <string name="background_session_description">Connexion et enregistrement automatiques avec les roues enregistr\u00e9es, sans ouvrir l\'application. L\'enregistrement d\u00e9marre d\u00e8s la connexion d\'une roue.</string>
+    <string name="background_session_companion_help">Sous Android 12+, associez chaque roue enregistr\u00e9e une fois : TuxWheel s\'en d\u00e9connecte pendant l\'association (une roue connect\u00e9e est introuvable), puis Android la surveille, m\u00eame apr\u00e8s un red\u00e9marrage du t\u00e9l\u00e9phone. Un arr\u00eat forc\u00e9, des permissions retir\u00e9es ou les restrictions de batterie du fabricant peuvent emp\u00eacher le fonctionnement.</string>
+    <string name="background_session_legacy_help">Sous Android 6 \u00e0 11, la veille n\u00e9cessite une notification permanente et la localisation ; Android 10 et 11 exigent aussi la localisation en arri\u00e8re-plan.</string>
+    <string name="background_session_enable">Activer ou reprendre la boîte noire</string>
+    <string name="background_session_disabled">Désactivée</string>
+    <string name="background_session_paused">En pause — reprenez la boîte noire pour reconnecter</string>
+    <string name="background_session_enabled">Activée — ouvrir pour voir l\'état</string>
+    <string name="background_session_status">État : %1$s</string>
+    <string name="background_session_bluetooth_off">Le Bluetooth est désactivé</string>
+    <string name="background_session_no_wheels">Mémorisez une roue avant de lancer la surveillance</string>
+    <string name="background_session_associations_missing">Associez au moins une roue mémorisée à Android ci-dessous</string>
+    <string name="background_session_association_disconnect">Roue déconnectée pour qu\'Android puisse la trouver. Gardez-la allumée et à proximité.</string>
+    <string name="background_session_associations_partial">Certaines roues mémorisées ne sont pas associées à Android et sont ignorées</string>
+    <string name="background_session_monitoring">Surveillance demandée — en attente de détection par Android</string>
+    <string name="background_session_observation_unconfirmed">Surveillance des roues non confirmée — vérifiez la dernière erreur et réactivez la boîte noire</string>
+    <string name="background_session_not_running">La surveillance ne fonctionne pas — désactivez puis réactivez la boîte noire</string>
+    <string name="background_session_last_error">Dernière erreur : %1$s</string>
+    <string name="background_session_notifications_disabled">Les notifications sont désactivées ; activez-les dans les paramètres Android pour voir l\'état de la session.</string>
+    <string name="background_session_timeout">Terminer la session apr\u00e8s %1$d minutes sans connexion</string>
+    <string name="background_session_timeout_title">D\u00e9lai sans connexion (minutes)</string>
+    <string name="background_session_timeout_error">Saisissez une valeur entre 1 et 120</string>
+    <string name="background_session_disconnect">D\u00e9connexion manuelle : %1$s</string>
+    <string name="background_session_disconnect_title">Apr\u00e8s une d\u00e9connexion depuis l\'application</string>
+    <string-array name="background_disconnect_policies">
+        <item>Attendre que la roue disparaisse puis revienne (recommand\u00e9)</item>
+        <item>Reconnecter imm\u00e9diatement</item>
+        <item>Mettre la bo\u00eete noire en pause jusqu\'\u00e0 reprise manuelle</item>
+    </string-array>
+    <string name="background_session_associate">Associer %1$s à Android</string>
+    <string name="background_session_associated">%1$s \u2014 associ\u00e9e \u00e0 Android (appui pour dissocier)</string>
+    <string name="background_session_already_associated">Cette roue est déjà associée</string>
+    <string name="background_session_association_failed">Échec de l\'association de la roue</string>
+    <string name="background_session_companion_unavailable">Ce téléphone ne permet pas l\'association d\'appareils compagnons</string>
+    <string name="background_session_permissions">Accordez les permissions demandées pour activer la boîte noire</string>
+    <string name="background_session_location_help">Autorisez la localisation « Toujours » dans les permissions de l\'application, puis activez à nouveau la boîte noire. Android l\'exige pour les scans Bluetooth en arrière-plan sur cette version.</string>
+    <string name="background_session_error">Erreur de la boîte noire : %1$s</string>
+    <string name="background_session_waiting">Aucune roue enregistr\u00e9e \u00e0 port\u00e9e</string>
+    <string name="background_session_notif_idle_title">Bo\u00eete noire \u2014 en veille</string>
+    <string name="background_session_notif_connecting_title">Bo\u00eete noire \u2014 connexion</string>
+    <string name="background_session_notif_connecting_text">Connexion \u00e0 %1$s\u2026</string>
+    <string name="background_session_notif_recording_title">Bo\u00eete noire \u2014 enregistrement</string>
+    <string name="background_session_notif_recording_text">Roue connect\u00e9e : %1$s</string>
+    <string name="background_session_notif_failed_title">Bo\u00eete noire \u2014 \u00e9chec de l\'enregistrement</string>
+    <string name="background_session_timeout_help">Apr\u00e8s une d\u00e9connexion, TuxWheel tente de reconnecter la roue pendant ce d\u00e9lai. Au bout du d\u00e9lai, la session se termine et la roue est ignor\u00e9e jusqu\'\u00e0 ce qu\'elle disparaisse puis revienne.</string>
+    <string name="background_session_disconnect_help">S\'applique quand vous vous d\u00e9connectez depuis l\'application.</string>
+    <string name="background_session_disassociate">Dissocier</string>
+    <string name="background_session_disassociate_confirm">Ne plus laisser Android surveiller %1$s ? La bo\u00eete noire l\'ignorera tant qu\'elle n\'est pas r\u00e9associ\u00e9e.</string>
+    <string name="background_session_events">Événements boîte noire</string>
+    <string name="background_session_log_title">Enregistrement boîte noire</string>
+    <string name="background_session_connected">Connecté à %1$s</string>
+    <string name="background_session_recording">Roue connect\u00e9e \u2014 enregistrement</string>
+    <string name="background_session_starting_log">Roue connect\u00e9e \u2014 d\u00e9marrage de l\'enregistrement</string>
+    <string name="background_session_logging_failed">Enregistrement arr\u00eat\u00e9 ou impossible \u00e0 d\u00e9marrer</string>
+    <string name="background_session_reconnecting">Connexion ou reconnexion \u00e0 la roue</string>
+    <string name="background_session_done">Terminer</string>
     <string name="third_party_licenses_title">Logiciels tiers et licences</string>
     <string name="third_party_license_read_error">Impossible d’ouvrir cette licence.</string>
     <string name="trip_delete_failed">Impossible de supprimer le fichier du trajet.</string>
@@ -79,6 +135,11 @@
     <string name="wheels_empty">Aucune roue mémorisée. Ajoutez-en une en Bluetooth ou par adresse MAC.</string>
     <string name="wheels_move_up">Monter dans la liste</string>
     <string name="wheels_move_down">Descendre dans la liste</string>
+    <string name="wheels_protocol">Protocole Bluetooth</string>
+    <string name="wheels_protocol_help">Fa\u00e7on dont TuxWheel communique avec cette roue (le langage propre \u00e0 sa marque). Laissez en automatique sauf si la connexion \u00e9choue.</string>
+    <string name="wheel_options">Options de la roue</string>
+    <string name="wheels_protocol_auto">D\u00e9tection automatique</string>
+    <string name="wheels_protocol_title">Protocole Bluetooth pour %1$s</string>
     <string name="wheels_rename">Renommer</string>
     <string name="wheels_forget">Oublier la roue</string>
     <string name="wheels_forget_confirm">Retirer %1$s de vos roues mémorisées ?</string>
@@ -105,7 +166,7 @@
 	<string name="current">Courant</string>
 	<string name="power">Puissance</string>
 	<string name="temperature">Température système</string>
-	<string name="temperature2">Température 2</string>
+	<string name="motor_temperature">Température moteur</string>
 	<string name="angle">Inclinaison</string>
 	<string name="roll">Rouler</string>
 	<string name="fan_status">Etat du ventilateur</string>

@@ -61,7 +61,7 @@ class DashboardViewModelTest {
         stubString(R.string.maxphasecurrent, "Max phase current")
         stubString(R.string.power, "Power")
         stubString(R.string.maxpower, "Max power")
-        stubString(R.string.temperature2, "Motor temp")
+        stubString(R.string.motor_temperature, "Motor temp")
         stubString(R.string.maxtemperature, "Max temp")
         stubString(R.string.ride_time, "Wheel ride time")
         stubString(R.string.consumption, "Consumption")

@@ -1,4 +1,60 @@
 <resources>
+    <string name="background_session_title">Black box</string>
+    <string name="background_session_description">Connect to saved wheels and record automatically, without opening the app. Recording starts as soon as a wheel connects.</string>
+    <string name="background_session_companion_help">On Android 12+, associate each saved wheel once: TuxWheel disconnects during association because a connected wheel cannot be found, then Android watches the wheel, even after a phone restart. Force-stop, revoked permissions or vendor battery restrictions can stop the mode.</string>
+    <string name="background_session_legacy_help">On Android 6\u201311, waiting needs a permanent notification plus location permission; Android 10\u201311 also require background location.</string>
+    <string name="background_session_enable">Enable or resume black box</string>
+    <string name="background_session_disabled">Disabled</string>
+    <string name="background_session_paused">Paused — resume black box to reconnect</string>
+    <string name="background_session_enabled">Enabled — open for status</string>
+    <string name="background_session_status">Status: %1$s</string>
+    <string name="background_session_bluetooth_off">Bluetooth is off</string>
+    <string name="background_session_no_wheels">Save a wheel before monitoring</string>
+    <string name="background_session_associations_missing">Associate at least one saved wheel with Android below</string>
+    <string name="background_session_association_disconnect">Wheel disconnected so Android can find it. Keep it on and nearby.</string>
+    <string name="background_session_associations_partial">Some saved wheels are not associated with Android and are ignored</string>
+    <string name="background_session_monitoring">Monitoring requested — waiting for Android to detect a wheel</string>
+    <string name="background_session_observation_unconfirmed">Wheel monitoring could not be confirmed — check the last error and try enabling black box again</string>
+    <string name="background_session_not_running">Monitoring is not running — disable and enable black box again</string>
+    <string name="background_session_last_error">Last error: %1$s</string>
+    <string name="background_session_notifications_disabled">Notifications are disabled; enable them in Android settings to see session status.</string>
+    <string name="background_session_timeout">End the session after %1$d minutes without a connection</string>
+    <string name="background_session_timeout_title">Disconnect timeout (minutes)</string>
+    <string name="background_session_timeout_error">Enter a value from 1 to 120</string>
+    <string name="background_session_disconnect">Manual disconnect: %1$s</string>
+    <string name="background_session_disconnect_title">After disconnecting from the app</string>
+    <string-array name="background_disconnect_policies">
+        <item>Wait until the wheel disappears and returns (recommended)</item>
+        <item>Reconnect immediately</item>
+        <item>Pause the black box until manually resumed</item>
+    </string-array>
+    <string name="background_session_associate">Associate %1$s with Android</string>
+    <string name="background_session_associated">%1$s \u2014 associated with Android (tap to dissociate)</string>
+    <string name="background_session_already_associated">This wheel is already associated</string>
+    <string name="background_session_association_failed">Wheel association failed</string>
+    <string name="background_session_companion_unavailable">This phone does not support companion device setup</string>
+    <string name="background_session_permissions">Grant the requested permissions to enable black box</string>
+    <string name="background_session_location_help">Allow location access “all the time” in the app permissions, then enable black box again. Android requires this for background Bluetooth scans on this version.</string>
+    <string name="background_session_error">Black box error: %1$s</string>
+    <string name="background_session_waiting">No saved wheel in range</string>
+    <string name="background_session_notif_idle_title">Black box \u2014 idle</string>
+    <string name="background_session_notif_connecting_title">Black box \u2014 connecting</string>
+    <string name="background_session_notif_connecting_text">Connecting to %1$s\u2026</string>
+    <string name="background_session_notif_recording_title">Black box \u2014 recording</string>
+    <string name="background_session_notif_recording_text">Connected to %1$s</string>
+    <string name="background_session_notif_failed_title">Black box \u2014 recording failed</string>
+    <string name="background_session_timeout_help">After a wheel disconnects, TuxWheel keeps trying to reconnect for this long. When it elapses, the session ends and the wheel is ignored until it disappears and comes back.</string>
+    <string name="background_session_disconnect_help">Applies when you disconnect from inside the app.</string>
+    <string name="background_session_disassociate">Dissociate</string>
+    <string name="background_session_disassociate_confirm">Stop Android from watching %1$s? The black box will ignore it until it is associated again.</string>
+    <string name="background_session_events">Black box events</string>
+    <string name="background_session_log_title">Black box recording</string>
+    <string name="background_session_connected">Connected to %1$s</string>
+    <string name="background_session_recording">Wheel connected \u2014 recording</string>
+    <string name="background_session_starting_log">Wheel connected \u2014 starting recording</string>
+    <string name="background_session_logging_failed">Recording stopped or could not start</string>
+    <string name="background_session_reconnecting">Connecting or reconnecting to the wheel</string>
+    <string name="background_session_done">Done</string>
     <string name="wheel_lock_authenticating">Waiting for the wheel to confirm automatic authentication.</string>
     <string name="wheel_lock_unknown">Lock state unknown. A request is not confirmation from the wheel.</string>
     <string name="wheel_diagnostic_title">Wheel diagnostic file</string>
@@ -114,6 +170,11 @@
     <string name="wheels_empty">No saved wheels. Add one with Bluetooth or by MAC address.</string>
     <string name="wheels_move_up">Move up</string>
     <string name="wheels_move_down">Move down</string>
+    <string name="wheels_protocol">Bluetooth protocol</string>
+    <string name="wheels_protocol_help">How TuxWheel talks to this wheel (the brand-specific language). Leave on automatic unless the connection fails.</string>
+    <string name="wheel_options">Wheel options</string>
+    <string name="wheels_protocol_auto">Automatic detection</string>
+    <string name="wheels_protocol_title">Bluetooth protocol for %1$s</string>
     <string name="wheels_rename">Rename</string>
     <string name="wheels_forget">Forget wheel</string>
     <string name="wheels_forget_confirm">Remove %1$s from your saved wheels?</string>
@@ -156,7 +217,11 @@
     <string name="phase_current">Phase current</string>
     <string name="power">Power</string>
     <string name="temperature">System temp</string>
-    <string name="temperature2">Motor temp</string>
+    <string name="motor_temperature">Motor temperature</string>
+    <string name="mosfet_temperature">MOSFET temperature</string>
+    <string name="board_temperature">Board temperature</string>
+    <string name="tire_pressure">Tire pressure</string>
+    <string name="kpa">kPa</string>
     <string name="maxtemperature">Max temp</string>
     <string name="pwm">PWM</string>
     <string name="max_pwm">Max PWM</string>

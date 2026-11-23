@@ -17,6 +17,57 @@ an attempt or disconnect intentionally without reconnecting.
 
 ## Connect to a wheel
 
+### Optional black box
+
+In the main settings menu, open **Black box** and enable it after saving your wheels.
+The mode is off by default. It connects and records immediately, independently
+of the normal auto-log speed threshold, without opening the dashboard.
+Saved-wheel order and its existing priority wait are retained.
+
+A foreground service performs filtered, low-power BLE scans for saved wheels
+and has a permanent notification even while waiting, on every Android version.
+On Android 12+, approving Android's companion-device association for saved
+wheels additionally lets Android itself wake TuxWheel when the app process is
+gone; it is recommended but the in-app scan no longer depends on it. TuxWheel
+disconnects from the wheel during association, because a connected wheel stops
+advertising and Android cannot find it. One associated wheel is enough to
+enable the mode; other wheels can be associated later from the same settings
+screen. On Android 6–11, grant location and, on Android 10–11, background
+location; older versions also need storage permission. Disabling manufacturer
+battery restrictions for TuxWheel is recommended so the OS does not kill the
+waiting service.
+
+The settings screen shows whether the mode is disabled or paused, whether
+permissions, Bluetooth or associations need attention, and the current service
+status and last error when available. A notification appears when a session
+starts and indicates connection and recording; the waiting notification shows
+the service is alive but no wheel is in range. On Android 13+, allow
+notifications to see them in the notification drawer. If recording is working,
+the trip also appears in the app's trip list.
+
+During a session, notifications remain visible. An interruption keeps the same
+log open and retries the saved wheels again in the app-defined order, giving
+another present wheel its turn ahead of a failing one. After **15 minutes**
+without a connection (configurable from 1 to 120 minutes), the session closes
+and the wheel is left alone until it is seen again after a disappearance;
+wheel surveillance continues for other wheels. A "Connected to <wheel>"
+notification is posted once per black-box connection. Opening or closing the
+dashboard does not stop black-box recording.
+
+Manual disconnection closes the log immediately. Choose whether to wait for the
+wheel to disappear and return (default), reconnect immediately, or suspend the
+mode until **Enable or resume black box** is switched on again. Absence is a
+Bluetooth proximity signal, not proof the wheel is powered off; it requires 60
+seconds without advertisements. The suspension settings survive
+process restarts.
+
+Enable Bluetooth and, on older Android versions, system location. Force-stop,
+revoked permissions and manufacturer battery restrictions can prevent operation.
+After a force-stop, reopen TuxWheel to restore monitoring. This is not a
+replacement for the wheel's own safety systems.
+
+### Manual connection
+
 1. Enable Bluetooth and open the scan dialog.
 2. Grant **Nearby devices** permissions on Android 12+.
    Older Android versions require location permission for BLE scanning;
