@@ -9,6 +9,29 @@ Start CSV logging from the app. The foreground service keeps recording while
 the interface is in the background and exposes logging controls in its notification.
 Grant notification permission on Android versions that request it.
 
+**True background black box.** When *Auto Log* is enabled, TuxWheel can log without
+being opened: after device boot (and after app updates or closing the app) the
+logging service starts a `connectedDevice` foreground service, auto-connects to the
+remembered wheels itself, and opens the log file once a wheel is connected (or once
+it moves, when the *Start logging when is moving* threshold is set). If no wheel is
+found the scan is retried periodically, so powering a wheel on later in the day is
+still captured, and logging parks between sessions like the foreground flow.
+The Log settings page lists every missing prerequisite (remembered wheel, Bluetooth
+permissions, battery-optimization exemption) with the matching fix action.
+
+Android version nuances (the feature works on all versions supported by the app,
+Android 6/API 23 and up):
+- Android 6–11 (API 23–30): the background scan relies on the location permission
+  already required for BLE scanning on these versions.
+- Android 12+ (API 31+): requires the `BLUETOOTH_SCAN`/`BLUETOOTH_CONNECT` runtime
+  permissions; the boot start is skipped while they are revoked.
+- Android 14+ (API 34+): enforces the `connectedDevice` foreground-service type;
+  the same runtime permissions gate both the boot start and the notification.
+- Android 15+ (API 35+): `connectedDevice` remains startable from `BOOT_COMPLETED`,
+  unlike `mediaPlayback`/`mediaProjection`/`mediaProcessing` types.
+- All versions: an OEM battery-optimization exemption (already surfaced by the app
+  elsewhere) keeps the session alive with the screen off.
+
 New files are saved under **Downloads/TuxWheel**. Existing CSV logs remain
 available to the trips page.
 Storage access follows the Android version's permission and storage rules.

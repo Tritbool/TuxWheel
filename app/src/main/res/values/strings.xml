@@ -681,6 +681,13 @@
     <string name="use_raw_description">When enabled, incoming (RX) Bluetooth chunks and outgoing writes accepted by Android (TX) are recorded to a separate CSV while the logging service runs. TX does not confirm delivery to the wheel. A bounded buffer keeps recent initialization traffic before the service starts; sequence gaps indicate missed events. Files continue across reconnections to the same wheel. Disable this setting to close the raw log. Files are saved to Downloads/TuxWheel/[MAC_ADDRESS]/yyyy_MM_dd_HH_mm_ss.raw.csv</string>
     <string name="replace_info_block">Replace \"%s\" to:</string>
     <string name="auto_log_when_moving_description">Start auto logging only when wheel speed more than</string>
+
+    <string name="blackbox_status_active_title">Background black box armed</string>
+    <string name="blackbox_status_active_description">Remembered wheels reconnect and get logged automatically after device boot or app exit, without opening TuxWheel.</string>
+    <string name="blackbox_missing_wheels">Remember at least one wheel to enable the background black box</string>
+    <string name="blackbox_missing_ble_permissions">Grant Bluetooth permissions to enable the background black box</string>
+    <string name="blackbox_battery_optimizations">Disable battery optimizations for reliable background logging</string>
+    <string name="blackbox_missing_storage_permissions">Allow storage access to enable the background black box</string>
     <string name="auto_log_when_moving_title">Start logging when is moving</string>
     <string name="remaining_distance">Remaining distance</string>
     <string name="battery_per_km">Battery per km</string>

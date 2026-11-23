@@ -729,7 +729,21 @@ class MainActivity : AppCompatActivity() {
         }
         Timber.wtf("-=[ finish ]=-")
         onDestroyProcess = true
-        stopLoggingService()
+        val keepBlackBox = appConfig.autoLog
+        if (keepBlackBox) {
+            // True background black box: arm the logging service so remembered wheels keep
+            // connecting and logging after the app is closed (or start it, when the ride
+            // threshold had not been reached while the activity was up).
+            try {
+                BlackBoxSupport.startBlackBox(applicationContext)
+            } catch (e: Exception) {
+                // Android 12+ forbids a foreground-service start once the app is already in
+                // the background; the boot receiver takes over after the next reboot.
+                Timber.w(e, "Black box could not be armed on app exit")
+            }
+        } else {
+            stopLoggingService()
+        }
         viewModel.fullReset()
         if (isLoggingServiceBound) {
             try {
@@ -743,6 +757,10 @@ class MainActivity : AppCompatActivity() {
             unregisterReceiver(mNotificationButtonReceiver)
         } catch (_: Exception) {
             // ignore
+        }
+        if (keepBlackBox) {
+            Timber.wtf("Black box keeps running in background")
+            return
         }
         object : CountDownTimer((2 * 60 * 1000L), 1000) {
             override fun onTick(millisUntilFinished: Long) {

@@ -9,10 +9,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -20,6 +25,7 @@ import io.github.tuxwheel.AppConfig
 import io.github.tuxwheel.BuildConfig
 import io.github.tuxwheel.MainActivity
 import io.github.tuxwheel.R
+import io.github.tuxwheel.utils.BlackBoxSupport
 import io.github.tuxwheel.utils.FileUtil
 import io.github.tuxwheel.utils.ThemeIconEnum
 import kotlinx.coroutines.CoroutineScope
@@ -62,6 +68,10 @@ fun logScreen(appConfig: AppConfig = koinInject()) {
                     autoLogDependency = false
                 }
             }
+        }
+
+        AnimatedVisibility (autoLogDependency) {
+            blackBoxStatus(appConfig)
         }
 
         AnimatedVisibility (autoLogDependency) {
@@ -171,6 +181,52 @@ fun logScreen(appConfig: AppConfig = koinInject()) {
                         activity.pagerAdapter.updatePageOfTrips()
                     }
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun blackBoxStatus(appConfig: AppConfig) {
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+    var revision by remember { mutableIntStateOf(0) }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { _ -> revision++ }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) revision++
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    val reasons = remember(revision, appConfig.autoLog) {
+        BlackBoxSupport.blockingReasons(context, appConfig)
+    }
+    if (reasons.isEmpty()) {
+        clickablePref(
+            name = stringResource(R.string.blackbox_status_active_title),
+            desc = stringResource(R.string.blackbox_status_active_description),
+            showArrowIcon = false,
+        ) { }
+        return
+    }
+    reasons.forEach { reason ->
+        clickablePref(
+            name = stringResource(reason),
+            showArrowIcon = reason != R.string.blackbox_missing_wheels,
+        ) {
+            when (reason) {
+                R.string.blackbox_missing_ble_permissions ->
+                    permissionLauncher.launch(BlackBoxSupport.requiredBlePermissions())
+                R.string.blackbox_missing_storage_permissions ->
+                    permissionLauncher.launch(arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE))
+                R.string.blackbox_battery_optimizations ->
+                    BlackBoxSupport.requestIgnoreBatteryOptimizations(context)
             }
         }
     }

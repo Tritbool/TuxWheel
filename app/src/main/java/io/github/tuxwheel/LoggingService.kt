@@ -45,6 +45,14 @@ class LoggingService : Service() {
     private var logStarted = false
     private var lastLoggedTimestamp: Long? = null
 
+    // True when the session was started outside any Activity (boot receiver, app exit).
+    // The service then drives the remembered-wheel auto-connection itself and only opens
+    // the log file once a wheel is actually connected (and moving, when a speed
+    // threshold is configured).
+    private var blackBoxMode = false
+    private var blackBoxLoop: Job? = null
+    private var blackBoxRetry: Job? = null
+
     private var rawFileUtil: FileUtil? = null
     private var rawFileAddress: String? = null
     private var rawLoggingJob: Job? = null
@@ -77,17 +85,80 @@ class LoggingService : Service() {
         // kills the service with ForegroundServiceDidNotStartInTimeException.
         startAsForeground()
         acquireWakeLock()
+        if (intent?.getBooleanExtra(EXTRA_BLACK_BOX, false) == true) {
+            blackBoxMode = true
+            blackBoxLoop?.cancel()
+            blackBoxRetry?.cancel()
+        }
         if (!logStarted) {
-            if (!startLogging()) {
+            if (blackBoxMode) {
+                startBlackBoxLoop()
+            } else if (!beginLogging()) {
                 stopSelf()
                 return START_NOT_STICKY
             }
-            logStarted = true
-            observeTelemetry()
-            observeRawTraffic()
-            observeBmsLabFrames()
+        } else if (blackBoxMode) {
+            // Already logging (the user just left the app): only keep observing to
+            // re-drive connections after a wheel power cycle.
+            startBlackBoxLoop()
         }
         return START_STICKY
+    }
+
+    /**
+     * Prepares (or reopens) the CSV file. Returns false when logging cannot be started.
+     */
+    private fun beginLogging(): Boolean {
+        if (!startLogging()) return false
+        logStarted = true
+        observeTelemetry()
+        observeRawTraffic()
+        observeBmsLabFrames()
+        return true
+    }
+
+    /**
+     * Background "black box" observer: the service is the only session owner, so it retries
+     * the remembered-wheel auto-connection while nothing else is connecting or scanning, and
+     * starts the actual logging once a wheel is connected (respecting the speed threshold).
+     */
+    private fun startBlackBoxLoop() {
+        blackBoxLoop?.cancel()
+        blackBoxLoop = ioState.launch {
+            viewModel.sessionState.collect { state ->
+                if (state.isConnected) {
+                    blackBoxRetry?.cancel()
+                    blackBoxRetry = null
+                    if (!logStarted) {
+                        val threshold = appConfig.startAutoLoggingWhenIsMovingMore
+                        if (threshold == 0f || viewModel.speedDouble > threshold) {
+                            if (!beginLogging()) {
+                                stopSelf()
+                            }
+                        }
+                    }
+                } else if (state.isReconnecting || state.isAutoConnecting || state.isScanning) {
+                    blackBoxRetry?.cancel()
+                    blackBoxRetry = null
+                } else {
+                    scheduleBlackBoxReconnect()
+                }
+            }
+        }
+    }
+
+    private fun scheduleBlackBoxReconnect() {
+        if (blackBoxRetry?.isActive == true) return
+        blackBoxRetry = ioState.launch {
+            delay(BLACK_BOX_RECONNECT_RETRY_SECONDS * 1_000L)
+            val state = viewModel.sessionState.value
+            if (state.connectionState == BLEConstants.ConnectionState.DISCONNECTED &&
+                !state.isReconnecting && !state.isAutoConnecting && !state.isScanning
+            ) {
+                Timber.i("Black box: retrying remembered wheel connection")
+                viewModel.autoConnect(appConfig.rememberedWheels)
+            }
+        }
     }
 
     /**
@@ -509,5 +580,8 @@ class LoggingService : Service() {
         }
 
         fun activeLogLocation(): String? = instance?.fileUtil?.logLocation
+
+        const val EXTRA_BLACK_BOX = "io.github.tuxwheel.extra.BLACK_BOX"
+        private const val BLACK_BOX_RECONNECT_RETRY_SECONDS = 20L
     }
 }
