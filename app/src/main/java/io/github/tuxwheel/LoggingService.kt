@@ -60,6 +60,14 @@ class LoggingService : Service() {
     private var createdNewLogFile = false
     private val shortLogDeletionScope = CoroutineScope(Dispatchers.IO + Job())
 
+    // Written format for this recording: the enriched schema applies only to files created
+    // by their own recording. Continued "append to this day's log" files keep the format they
+    // were started with, so a single file never mixes schemas.
+    private var modernLogFormat = false
+
+    private val modernDate = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+    private val modernTime = SimpleDateFormat("HH:mm:ss.SSS", Locale.US)
+
     fun updateConnectionState(connectionState: BLEConstants.ConnectionState) {
         if (connectionState != BLEConstants.ConnectionState.CONNECTED) {
             // Park logging: nothing is appended until fresh telemetry arrives again.
@@ -186,7 +194,8 @@ class LoggingService : Service() {
             }
             createdNewLogFile = true
             appConfig.continueThisDayLogMacException = ""
-            file.writeLine("date,time,speed,voltage,phase_current,current,power,torque,pwm,battery_level,distance,totaldistance,system_temp,temp2,tilt,roll,mode,alert")
+            modernLogFormat = appConfig.logFormatModern
+            file.writeLine(if (modernLogFormat) MODERN_LOG_HEADER else LEGACY_LOG_HEADER)
         }
         broadcastState(file.absolutePath, true)
         Timber.i("DataLogger Started")
@@ -506,6 +515,11 @@ class LoggingService : Service() {
         val wd = viewModel
         val file = fileUtil ?: return
         val formatter = sdf ?: return
+        if (modernLogFormat) {
+            file.writeLine(buildModernLogLine())
+            if (appConfig.enableBmsData) updateBmsFile()
+            return
+        }
         val speed = if (appConfig.stealthLogging) "" else String.format(Locale.US, "%.2f", wd.speedDouble)
         file.writeLine(
             String.format(
@@ -533,6 +547,77 @@ class LoggingService : Service() {
         if (appConfig.enableBmsData) updateBmsFile()
     }
 
+    private fun formatInt(value: Int?): String = value?.toString() ?: ""
+
+    private fun formatBool(value: Boolean?): String =
+        value?.let { if (it) "true" else "false" } ?: ""
+
+    /**
+     * One row of the enriched, documented schema (docs/log_format.md). Legacy column names
+     * keep their legacy semantics so existing consumers stay compatible; the appended
+     * typed columns expose the decoded EUCData fields, empty when the wheel did not
+     * report them.
+     */
+    private fun buildModernLogLine(): String {
+        val state = viewModel.sessionState.value
+        val data = state.lastData
+        val now = System.currentTimeMillis()
+        val stealth = appConfig.stealthLogging
+        val cells = (data?.cellVoltages ?: state.cellVoltages)
+            ?.joinToString(separator = ",") { String.format(Locale.US, "%.3f", it) }
+            .orEmpty()
+        return listOf(
+            SCHEMA_VERSION,
+            now.toString(),
+            modernDate.format(now),
+            modernTime.format(now),
+            if (stealth) "" else formatNullableDouble(data?.speed ?: state.currentSpeed, 3),
+            formatNullableDouble(data?.voltage ?: state.currentVoltage, 2),
+            formatNullableDouble(data?.phaseCurrent, 3),
+            formatNullableDouble(data?.current ?: state.currentCurrent, 3),
+            formatNullableDouble(data?.power ?: state.currentPower, 2),
+            formatNullableDouble(data?.torque, 2),
+            formatNullableDouble(data?.pwm, 2),
+            formatInt(data?.batteryLevel ?: state.batteryLevel),
+            formatNullableDouble(data?.distance, 3),
+            formatNullableDouble(data?.totalDistance ?: state.totalDistance, 3),
+            (data?.rideTime ?: state.rideTime)?.toString() ?: "",
+            data?.totalRideTimeSeconds?.toString() ?: "",
+            data?.totalPowerOnTimeSeconds?.toString() ?: "",
+            formatNullableDouble(data?.temperature ?: state.currentTemperature, 2),
+            formatNullableDouble(data?.motorTemperature, 2),
+            formatNullableDouble(data?.mosfetTemperature, 2),
+            formatNullableDouble(data?.boardTemperature, 2),
+            formatNullableDouble(data?.imuTemperature, 2),
+            formatInt(data?.cpuLoad ?: state.cpuLoad),
+            formatNullableDouble(data?.tirePressureKpa, 2),
+            formatNullableDouble(data?.angle, 3),
+            formatNullableDouble(data?.roll, 3),
+            formatNullableDouble(data?.topSpeed, 2),
+            formatNullableDouble(data?.speedLimit, 2),
+            formatNullableDouble(data?.dynamicSpeedLimit, 2),
+            formatNullableDouble(data?.wheelMaxSpeed?.toDouble(), 1),
+            formatInt(data?.alarm1Speed),
+            formatInt(data?.alarm2Speed),
+            formatInt(data?.alarm3Speed),
+            "\"" + (data?.mode.orEmpty()) + "\"",
+            formatBool(data?.isCharging ?: state.isCharging),
+            formatInt(data?.fanStatus),
+            formatInt(data?.ledMode),
+            formatInt(data?.lightMode),
+            formatInt(data?.pedalsMode ?: state.pedalsMode),
+            formatInt(data?.alertFlags),
+            formatBool(data?.wheelAlarm),
+            formatBool(data?.usesMiles),
+            "0",
+            "\"" + state.deviceManufacturer + "\"",
+            "\"" + state.deviceModel + "\"",
+            "\"" + (data?.serialNumber ?: state.serialNumber.orEmpty()) + "\"",
+            "\"" + (data?.firmwareVersion ?: state.firmwareVersion.orEmpty()) + "\"",
+            "\"[$cells]\"",
+        ).joinToString(separator = ",")
+    }
+
     private fun showToast(messageId: Int) {
         Toast.makeText(this, messageId, Toast.LENGTH_LONG).show()
     }
@@ -552,5 +637,27 @@ class LoggingService : Service() {
         }
 
         fun activeLogLocation(): String? = instance?.fileUtil?.logLocation
+
+        /** Self-describing marker of the enriched, documented schema (docs/log_format.md). */
+        const val SCHEMA_VERSION = "tuxwheel-2"
+
+        private const val LEGACY_LOG_HEADER =
+            "date,time,speed,voltage,phase_current,current,power,torque,pwm,battery_level," +
+            "distance,totaldistance,system_temp,temp2,tilt,roll,mode,alert"
+
+        // Every column is an explicit, unit-suffixed name documented in docs/log_format.md;
+        // cells are empty when the wheel does not report the field. The in-app trips parser
+        // reads these through the LogHeaderEnum aliases.
+        internal const val MODERN_LOG_HEADER =
+            "schema,timestamp_ms,date,time,speed_kmh,voltage_v,phase_current_a,current_a," +
+                "power_w,torque_nm,pwm_pct,battery_pct,distance_km,total_distance_km," +
+                "ride_time_s,total_ride_time_s,total_power_on_time_s,mainboard_temp_c," +
+                "motor_temperature_c,mosfet_temperature_c,board_temperature_c," +
+                "imu_temperature_c,cpu_load_pct,tire_pressure_kpa,pitch_deg,roll_deg," +
+                "top_speed_kmh,speed_limit_kmh,dynamic_speed_limit_kmh,wheel_max_speed_kmh," +
+                "alarm1_speed_kmh,alarm2_speed_kmh,alarm3_speed_kmh,mode,charging," +
+                "fan_status,led_mode,light_mode,pedals_mode,alert_flags,wheel_alarm," +
+                "uses_miles,alert,manufacturer,model,serial_number,firmware_version," +
+                "cell_voltages_v"
     }
 }
