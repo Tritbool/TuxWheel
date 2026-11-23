@@ -132,10 +132,12 @@ class BleSessionViewModel internal constructor(
             }
         }
 
-        // Opt-in "follow wheel priority": watches for a higher-priority remembered wheel
-        // while a session is connected, and hands the session over without user action.
+        // Opt-in "follow wheel priority": the preference flow arms/disarms the watcher, so
+        // no scanning (or preference access beyond this flow) happens while disabled.
         viewModelScope.launch(start = CoroutineStart.UNDISPATCHED) {
-            priorityWatcher.start()
+            appConfig.autoSwitchWheelPreferences().collect { enabled ->
+                priorityWatcher.setEnabled(enabled)
+            }
         }
 
         // Subscribe before the lazy client can be used to connect: trafficFlow has no replay.

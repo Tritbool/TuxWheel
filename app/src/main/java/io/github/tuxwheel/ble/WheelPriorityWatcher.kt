@@ -43,35 +43,38 @@ internal class WheelPriorityWatcher internal constructor(
     private var seen = emptySet<String>()
     private var switching = false
 
-    fun start() {
-        if (loop?.isActive == true) return
-        loop = scope.launch {
-            try {
-                while (true) {
-                    if (switching) {
+    /**
+     * Starts or stops the watch loop per the opt-in setting. No scanning or configuration
+     * access happens while disabled, so disabled sessions stay untouched.
+     */
+    fun setEnabled(enabled: Boolean) {
+        if (enabled) {
+            if (loop?.isActive == true) return
+            loop = scope.launch {
+                try {
+                    while (true) {
+                        if (switching) {
+                            delay(WORK_PERIOD_MILLIS)
+                            continue
+                        }
+                        if (!session.sessionState.value.isConnected) {
+                            stopScan()
+                            delay(WORK_PERIOD_MILLIS)
+                            continue
+                        }
+                        scanCycle()
                         delay(WORK_PERIOD_MILLIS)
-                        continue
                     }
-                    if (!appConfig.autoSwitchToPriorityWheel ||
-                        !session.sessionState.value.isConnected
-                    ) {
-                        stopScan()
-                        delay(WORK_PERIOD_MILLIS)
-                        continue
-                    }
-                    scanCycle()
-                    delay(WORK_PERIOD_MILLIS)
+                } catch (e: kotlinx.coroutines.CancellationException) {
+                    stopScan()
                 }
-            } catch (e: kotlinx.coroutines.CancellationException) {
-                stopScan()
             }
+        } else {
+            loop?.cancel()
+            loop = null
+            switching = false
+            stopScan()
         }
-    }
-
-    fun stop() {
-        scope.cancel()
-        loop = null
-        stopScan()
     }
 
     @SuppressLint("MissingPermission")

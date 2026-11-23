@@ -450,6 +450,17 @@ class AppConfig(var context: Context) : KoinComponent {
         get() = getValue(R.string.auto_switch_wheels, false)
         set(value) = setValue(R.string.auto_switch_wheels, value)
 
+    fun autoSwitchWheelPreferences(): Flow<Boolean> = callbackFlow {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+            if (key == null || getResId(key) == R.string.auto_switch_wheels) {
+                trySend(autoSwitchToPriorityWheel)
+            }
+        }
+        sharedPreferences.registerOnSharedPreferenceChangeListener(listener)
+        trySend(autoSwitchToPriorityWheel)
+        awaitClose { sharedPreferences.unregisterOnSharedPreferenceChangeListener(listener) }
+    }.distinctUntilChanged()
+
     fun migrateRememberedWheels() {
         if (getValue<String?>("remembered_wheels", null) == null) {
             rememberedWheels = RememberedWheel.normalizeAddress(lastMac)?.let {
