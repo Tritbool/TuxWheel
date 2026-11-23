@@ -8,7 +8,7 @@ import android.os.SystemClock
 import android.view.KeyEvent
 import io.github.tuxwheel.AppConfig
 import io.github.tuxwheel.ble.BleSessionViewModel
-import io.github.tritbool.euc.ble.protocols.CommandType
+import io.github.tuxwheel.feature.dashboard.DashboardActions
 import io.github.tuxwheel.feature.speedlimiter.SpeedLimiter
 import io.github.tuxwheel.utils.Alarms
 import io.github.tuxwheel.utils.SomeUtil
@@ -60,7 +60,7 @@ class RemoteButtonDispatcher(
         return when (action) {
             RemoteButtonAction.ToggleSpeedLimiter -> SpeedLimiter.toggle(session, config)
             RemoteButtonAction.ToggleLight -> {
-                toggleLight()
+                DashboardActions.toggleLight(session, config)
                 true
             }
             RemoteButtonAction.ToggleWheelLock -> toggleWheelLock(state.currentSpeed)
@@ -69,17 +69,6 @@ class RemoteButtonDispatcher(
                 true
             }
         }
-    }
-
-    private fun toggleLight() {
-        val state = session.sessionState.value
-        val on = session.isCommandSupported(CommandType.LIGHT_ON)
-        val off = session.isCommandSupported(CommandType.LIGHT_OFF)
-        if (!on && !off) return
-        val enabled = state.lightMode?.let { it != 1 } ?: config.lightEnabled
-        val command = if (enabled && off) CommandType.LIGHT_OFF else CommandType.LIGHT_ON
-        config.lightEnabled = command == CommandType.LIGHT_ON
-        session.sendCommand(command.name)
     }
 
     private fun toggleWheelLock(speedKmh: Double): Boolean {

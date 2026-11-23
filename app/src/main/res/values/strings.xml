@@ -337,7 +337,7 @@
     <string name="remote_button_action_title">Action for “%1$s”</string>
     <string name="remote_button_forget">Forget this button</string>
     <string name="remote_action_speed_limiter">Toggle speed limiter</string>
-    <string name="remote_action_light">Toggle wheel illumination</string>
+    <string name="remote_action_light">Toggle wheel headlight</string>
     <string name="remote_action_lock">Toggle wheel lock (only when stationary)</string>
     <string name="remote_action_beep">Beep</string>
     <string name="amp">A</string>

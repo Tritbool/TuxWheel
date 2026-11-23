@@ -131,7 +131,7 @@ Pair a Bluetooth HID remote (e.g. AB Shutter 3; its Android button sends
 tap **Capture a new button**, press the remote button, then pick its action.
 
 - Up to five buttons can be configured; different remotes and keys work, the same key is kept once.
-- Actions: toggle the speed limiter, toggle the wheel illumination, toggle the
+- Actions: toggle the speed limiter, toggle the wheel headlight, toggle the
   wheel lock (only when stationary), or beep.
 - Nothing is caught by default. While mappings are active the system media
   volume is not changed by the remote's volume keys; forget the buttons to
