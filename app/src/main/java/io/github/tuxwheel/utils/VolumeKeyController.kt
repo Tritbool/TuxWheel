@@ -4,19 +4,41 @@ import android.content.Context
 import android.media.AudioManager
 import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
+import android.view.KeyEvent
 import androidx.media.VolumeProviderCompat
+import io.github.tuxwheel.feature.remotebutton.RemoteButtonDispatcher
 
-class VolumeKeyController(private val mContext: Context) {
+/**
+ * Holder of the media session that keeps Bluetooth HID buttons (volume keys, media keys)
+ * flowing to [RemoteButtonDispatcher] while TuxWheel is not the foreground app or the screen
+ * is off. The volume provider consumes the volume so the system stream never changes.
+ */
+class VolumeKeyController(
+    private val mContext: Context,
+    private val remoteButtonDispatcher: RemoteButtonDispatcher,
+) {
     private var mMediaSession: MediaSessionCompat? = null
 
     private fun createMediaSession(): MediaSessionCompat? {
-        val log = "log"
-        mMediaSession = MediaSessionCompat(mContext, log).apply {
+        mMediaSession = MediaSessionCompat(mContext, "log").apply {
             setFlags(MediaSessionCompat.FLAG_HANDLES_MEDIA_BUTTONS or
                     MediaSessionCompat.FLAG_HANDLES_TRANSPORT_CONTROLS)
-            setPlaybackState(PlaybackStateCompat.Builder()
-                    .setState(PlaybackStateCompat.STATE_PLAYING, 0, 0f)
-                    .build())
+            val state = PlaybackStateCompat.Builder()
+                .setState(PlaybackStateCompat.STATE_PLAYING, 0, 1.0f)
+                .build()
+            setPlaybackState(state)
+            setCallback(object : MediaSessionCompat.Callback() {
+                @Suppress("DEPRECATION")
+                override fun onMediaButtonEvent(mediaButtonIntent: android.content.Intent): Boolean {
+                    val keyEvent = mediaButtonIntent.getParcelableExtra<KeyEvent>(
+                        android.content.Intent.EXTRA_KEY_EVENT
+                    ) ?: return super.onMediaButtonEvent(mediaButtonIntent)
+                    if (keyEvent.action == KeyEvent.ACTION_DOWN &&
+                        remoteButtonDispatcher.handleKey(keyEvent.keyCode)
+                    ) return true
+                    return super.onMediaButtonEvent(mediaButtonIntent)
+                }
+            })
             setPlaybackToRemote(volumeProvider)
         }
         return mMediaSession
@@ -30,13 +52,18 @@ class VolumeKeyController(private val mContext: Context) {
             val maxVolume = audio.getStreamMaxVolume(streamType)
             return object : VolumeProviderCompat(VOLUME_CONTROL_RELATIVE, maxVolume, currentVolume) {
                 override fun onAdjustVolume(direction: Int) {
-                    // Up = 1, Down = -1, Release = 0
-                    // Replace with your action, if you don't want to adjust system volume
+                    when (direction) {
+                        AudioManager.ADJUST_RAISE -> {
+                            if (remoteButtonDispatcher.handleKey(KeyEvent.KEYCODE_VOLUME_UP)) return
+                        }
+                        AudioManager.ADJUST_LOWER -> {
+                            if (remoteButtonDispatcher.handleKey(KeyEvent.KEYCODE_VOLUME_DOWN)) return
+                        }
+                        else -> {}
+                    }
                     if (direction == 0) {
                         SomeUtil.playBeep()
                     }
-                    //audio.adjustStreamVolume(streamType, direction, AudioManager.FLAG_REMOVE_SOUND_AND_VIBRATE)
-                    //setCurrentVolume(audio.getStreamVolume(streamType))
                 }
             }
         }

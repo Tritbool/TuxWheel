@@ -35,6 +35,10 @@ and firmware.
   drag to set their priority, and TuxWheel connects at startup to the best-ranked wheel
   it finds.
 - **Lock / unlock** when the wheel supports it (e.g. InMotion V9).
+- **Bluetooth remote buttons.** Configure up to five buttons from any Bluetooth HID
+  remote (e.g. AB Shutter 3) to toggle the **speed limiter**, the **headlight** or the
+  **wheel lock**, or to beep. Buttons keep working with the screen off while the wheel
+  is connected. Nothing is caught until a button is configured.
 - **KingSong password management** (set, change or remove the 4-digit wheel password).
 
 On top of that: customizable dashboard blocks and gauges (speed, battery, temperature,
@@ -72,11 +76,6 @@ picture-in-picture, and configurable speed/distance/temperature units.
   platform-specific glue code.
 - **iOS** — upcoming port; may not be published because of the Apple developer
   program fee.
-
-## Roadmap
-
-- Bluetooth remote buttons (single button) to toggle the **speed limiter**, or to
-  control the **headlight**, **horn**, etc.
 
 ## Usage
 

@@ -46,6 +46,7 @@ import io.github.tuxwheel.ble.BleSessionState
 import io.github.tuxwheel.ble.BleSessionViewModel
 import io.github.tuxwheel.DialogHelper.checkBatteryOptimizationsAndShowAlert
 import io.github.tuxwheel.databinding.ActivityMainBinding
+import io.github.tuxwheel.feature.remotebutton.RemoteButtonDispatcher
 import io.github.tuxwheel.settings.mainScreen
 import io.github.tuxwheel.ui.theme.AppTheme
 import io.github.tuxwheel.utils.*
@@ -76,6 +77,7 @@ class MainActivity : AppCompatActivity() {
     private val appConfig: AppConfig by inject()
     private val notifications: NotificationUtil by inject()
     private val volumeKeyController: VolumeKeyController by inject()
+    private val remoteButtonDispatcher: RemoteButtonDispatcher by inject()
     private var eventsLoggingTree: EventsLoggingTree? = null
     override fun attachBaseContext(base: Context) {
         super.attachBaseContext(LocaleManager.setLocale(base))
@@ -244,7 +246,7 @@ class MainActivity : AppCompatActivity() {
                         appConfig.lastName = name
                     }
                 }
-                if (appConfig.useBeepOnVolumeUp) {
+                if (appConfig.useBeepOnVolumeUp || remoteButtonDispatcher.hasActiveBindings()) {
                     volumeKeyController.setActive(true)
                 }
                 hideSnackBar()
@@ -256,7 +258,7 @@ class MainActivity : AppCompatActivity() {
                 if (mConnectionState == BLEConstants.ConnectionState.CONNECTED) {
                     showSnackBar(getString(R.string.connection_lost_at), Snackbar.LENGTH_INDEFINITE)
                 }
-                if (appConfig.useBeepOnVolumeUp) {
+                if (appConfig.useBeepOnVolumeUp || remoteButtonDispatcher.hasActiveBindings()) {
                     volumeKeyController.setActive(false)
                 }
             }
@@ -881,6 +883,16 @@ class MainActivity : AppCompatActivity() {
                 })
             checkClockVisible()
         }
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.action == KeyEvent.ACTION_DOWN && event.repeatCount == 0) {
+            if (event.keyCode != KeyEvent.KEYCODE_BACK &&
+                event.keyCode != KeyEvent.KEYCODE_HOME &&
+                remoteButtonDispatcher.handleKey(event.keyCode)
+            ) return true
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent): Boolean {
