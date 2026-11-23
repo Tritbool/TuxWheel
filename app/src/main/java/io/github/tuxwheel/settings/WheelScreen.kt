@@ -29,6 +29,7 @@ import androidx.compose.ui.window.DialogProperties
 import io.github.tuxwheel.AppConfig
 import io.github.tuxwheel.R
 import io.github.tuxwheel.ble.BleSessionViewModel
+import io.github.tuxwheel.ble.DiagnosticLogNaming
 import io.github.tritbool.euc.ble.protocols.CommandType
 import io.github.tritbool.euc.ble.models.PasswordOperation
 import io.github.tritbool.euc.ble.models.PasswordOperationStatus
@@ -385,7 +386,10 @@ internal fun diagnosticLogSetting(viewModel: BleSessionViewModel) {
     val supported = state.isConnected && CommandType.REQUEST_DIAGNOSTIC_LOG in state.supportedSecurityCommands
     val transfer = state.diagnosticLogTransfer
     if (!supported && transfer == null && state.diagnosticLogError == null) return
-    val save = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
+    val filePath = transfer?.filePath
+    val save = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument(DiagnosticLogNaming.mimeType(filePath))
+    ) { uri ->
         if (uri != null) viewModel.saveDiagnosticLog(uri)
     }
     val description = when {
@@ -422,7 +426,7 @@ internal fun diagnosticLogSetting(viewModel: BleSessionViewModel) {
             if (transfer?.state == DiagnosticLogState.COMPLETED) {
                 TextButton(
                     enabled = !state.diagnosticLogSaving && !state.diagnosticLogBusy,
-                    onClick = { save.launch("inmotion-diagnostic.bin") },
+                    onClick = { save.launch(DiagnosticLogNaming.suggestedFileName(filePath)) },
                 ) { Text(stringResource(R.string.wheel_diagnostic_save)) }
             }
         }
