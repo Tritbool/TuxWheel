@@ -131,6 +131,9 @@ Pair a Bluetooth HID remote (e.g. AB Shutter 3; its Android button sends
 tap **Capture a new button**, press the remote button, then pick its action.
 
 - Up to five buttons can be configured; different remotes and keys work, the same key is kept once.
+- A remote whose buttons send the same Android key (the AB Shutter 3 sends **Volume
+  Up from both buttons**, iOS and Android) cannot map them to different actions; capturing
+  the same key again updates the existing entry instead.
 - Capture from a foreground screen records the remote's Bluetooth device. Captured
   buttons only fire for that device: the phone's own volume keys and on-screen taps
   never trigger wheel actions, and with the captured remote disconnected the media
