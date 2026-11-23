@@ -88,9 +88,8 @@ object TripParser: KoinComponent {
             val headerLine = reader.readLine()?.removePrefix("\uFEFF")?.split(",")
                 ?: return Pair(emptyList(), null)
             for (i in headerLine.indices) {
-                try {
-                    header[LogHeaderEnum.valueOf(headerLine[i].trim().uppercase())] = i
-                } catch (_: IllegalArgumentException) {
+                LogHeaderEnum.fromHeaderColumn(headerLine[i])?.let { column ->
+                    if (column !in header) header[column] = i
                 }
             }
             if (LogHeaderEnum.DATE !in header || LogHeaderEnum.TIME !in header) {

@@ -586,7 +586,6 @@ class LoggingService : Service() {
             data?.totalPowerOnTimeSeconds?.toString() ?: "",
             formatNullableDouble(data?.temperature ?: state.currentTemperature, 2),
             formatNullableDouble(data?.motorTemperature, 2),
-            formatNullableDouble(data?.motorTemperature, 2),
             formatNullableDouble(data?.mosfetTemperature, 2),
             formatNullableDouble(data?.boardTemperature, 2),
             formatNullableDouble(data?.imuTemperature, 2),
@@ -647,18 +646,19 @@ class LoggingService : Service() {
             "date,time,speed,voltage,phase_current,current,power,torque,pwm,battery_level," +
             "distance,totaldistance,system_temp,temp2,tilt,roll,mode,alert"
 
-        // Legacy column names keep their legacy semantics (and are parsed by the trips
-        // page); every appended column is documented in docs/log_format.md and empty when
-        // the wheel did not report the field.
+        // Every column is an explicit, unit-suffixed name documented in docs/log_format.md;
+        // cells are empty when the wheel does not report the field. The in-app trips parser
+        // reads these through the LogHeaderEnum aliases.
         internal const val MODERN_LOG_HEADER =
-            "schema,timestamp_ms,date,time,speed,voltage,phase_current,current,power,torque," +
-                "pwm,battery_level,distance,totaldistance,ride_time_s,total_ride_time_s," +
-                "total_power_on_time_s,system_temp,temp2,motor_temperature_c," +
-                "mosfet_temperature_c,board_temperature_c,imu_temperature_c,cpu_load_pct," +
-                "tire_pressure_kpa,tilt,roll,top_speed_kmh,speed_limit_kmh," +
-                "dynamic_speed_limit_kmh,wheel_max_speed_kmh,alarm1_speed_kmh," +
-                "alarm2_speed_kmh,alarm3_speed_kmh,mode,charging,fan_status,led_mode," +
-                "light_mode,pedals_mode,alert_flags,wheel_alarm,uses_miles,alert," +
-                "manufacturer,model,serial_number,firmware_version,frame_type,cell_voltages_v"
+            "schema,timestamp_ms,date,time,speed_kmh,voltage_v,phase_current_a,current_a," +
+                "power_w,torque_nm,pwm_pct,battery_pct,distance_km,total_distance_km," +
+                "ride_time_s,total_ride_time_s,total_power_on_time_s,mainboard_temp_c," +
+                "motor_temperature_c,mosfet_temperature_c,board_temperature_c," +
+                "imu_temperature_c,cpu_load_pct,tire_pressure_kpa,pitch_deg,roll_deg," +
+                "top_speed_kmh,speed_limit_kmh,dynamic_speed_limit_kmh,wheel_max_speed_kmh," +
+                "alarm1_speed_kmh,alarm2_speed_kmh,alarm3_speed_kmh,mode,charging," +
+                "fan_status,led_mode,light_mode,pedals_mode,alert_flags,wheel_alarm," +
+                "uses_miles,alert,manufacturer,model,serial_number,firmware_version," +
+                "frame_type,cell_voltages_v"
     }
 }
