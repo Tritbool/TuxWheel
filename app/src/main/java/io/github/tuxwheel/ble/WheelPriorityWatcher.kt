@@ -3,6 +3,7 @@ package io.github.tuxwheel.ble
 import android.annotation.SuppressLint
 import android.app.Application
 import android.bluetooth.BluetoothManager
+import io.github.tritbool.euc.ble.models.AuthenticationState
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanFilter
 import android.bluetooth.le.ScanResult
@@ -86,9 +87,9 @@ internal class WheelPriorityWatcher internal constructor(
             stopScan()
             return
         }
-        val current = session.sessionState.value.selectedDevice?.address
-            ?.uppercase(Locale.ROOT)
-        if (current == null || !session.sessionState.value.isConnected) {
+        val state = session.sessionState.value
+        val current = state.selectedDevice?.address?.uppercase(Locale.ROOT)
+        if (current == null || !state.isConnected || isAuthenticationPending(state)) {
             stopScan()
             return
         }
@@ -192,5 +193,15 @@ internal class WheelPriorityWatcher internal constructor(
         private const val WORK_PERIOD_MILLIS = 2_000L
         private const val SWITCH_TIMEOUT_MILLIS = 15_000L
         private const val SWITCH_SETTLE_MILLIS = 15_000L
+
+        /**
+         * KingSong wheels in the password-required handshake drop the PIN exchange while a
+         * scan keeps hitting their radio, which makes the prompt reappear in a loop. The watch
+         * therefore holds its scan (and any switch) until the ride session clears the security
+         * window; a wheel that never asks for authentication is unaffected.
+         */
+        internal fun isAuthenticationPending(state: BleSessionState): Boolean =
+            state.passwordPromptRequired || state.passwordOperationPending ||
+                state.wheelAuthentication == AuthenticationState.REQUIRED
     }
 }
