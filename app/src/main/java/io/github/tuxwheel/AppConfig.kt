@@ -391,6 +391,14 @@ class AppConfig(var context: Context) : KoinComponent {
         get() = getValue("wheel_locked", false)
         set(value) = setValue("wheel_locked", value)
 
+    /**
+     * Bluetooth remote-button mappings, at most five `keyCode:ACTION` entries separated by `;`.
+     * Empty means no button is caught. See [io.github.tuxwheel.feature.remotebutton].
+     */
+    var remoteButtonBindings: String
+        get() = getValue("remote_button_bindings", "")
+        set(value) = setValue("remote_button_bindings", value)
+
     /** Whether the app-side speed limiter currently holds the wheel at [speedLimiterSpeed]. */
     var speedLimiterEnabled: Boolean
         get() = getValue("speed_limiter_enabled", false)

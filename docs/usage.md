@@ -124,6 +124,23 @@ reported by the wheel, not saved app defaults. Controls wait for a settings
 reply before allowing changes. The telemetry speed-limit row shows the separate
 runtime ceiling (or “—” until known), which may differ from configured maximum speed.
 
+### Bluetooth remote buttons
+
+Pair a Bluetooth HID remote (e.g. AB Shutter 3; its Android button sends
+**Volume Up**) in Android Bluetooth settings. In **Settings → Bluetooth Buttons**,
+tap **Capture a new button**, press the remote button, then pick its action.
+
+- Up to five buttons can be configured; different remotes and keys work, the same key is kept once.
+- Actions: toggle the speed limiter, toggle the wheel headlight, toggle the
+  wheel lock (only when stationary), or beep.
+- Nothing is caught by default. While mappings are active the system media
+  volume is not changed by the remote's volume keys; forget the buttons to
+  give the keys back to the system. 
+- Buttons keep working with the screen off or another app in front while the wheel
+  is connected, through an app-held media session. The `Beep on Volume Up` option
+  historically built on the same session keeps working.
+- The BACK and HOME keys are never captured. Repeated or held presses are throttled.
+
 ## Dashboard and pages
 
 Swipe between the dashboard, wheel settings, and enabled optional pages.

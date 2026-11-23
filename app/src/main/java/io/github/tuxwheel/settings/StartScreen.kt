@@ -79,6 +79,12 @@ fun startScreen(
         ) {
             context.startActivity(Intent(context, BackgroundSessionSettingsActivity::class.java))
         }
+        clickablePref(
+            name = stringResource(R.string.remote_buttons_title),
+            themeIcon = ThemeIconEnum.MenuBluetooth,
+        ) {
+            onSelect(SettingsScreenEnum.RemoteButtons.name)
+        }
         switchPref(
             name = stringResource(R.string.auto_switch_wheels_title),
             desc = stringResource(R.string.auto_switch_wheels_description),

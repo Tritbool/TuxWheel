@@ -27,6 +27,7 @@ enum class SettingsScreenEnum(@StringRes val title: Int) {
     Alarm(title = R.string.alarm_settings_title),
     Wheel(title = R.string.wheel_settings_title),
     Trip(title = R.string.trip_settings_title),
+    RemoteButtons(title = R.string.remote_buttons_title),
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -108,6 +109,9 @@ fun mainScreen(
             }
             composable(route = SettingsScreenEnum.Trip.name) {
                 tripScreen()
+            }
+            composable(route = SettingsScreenEnum.RemoteButtons.name) {
+                remoteButtonsScreen()
             }
         }
     }
