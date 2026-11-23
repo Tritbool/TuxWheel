@@ -97,6 +97,14 @@ fun logScreen(appConfig: AppConfig = koinInject()) {
             appConfig.enableRawData = it
         }
 
+        switchPref(
+            name = stringResource(R.string.log_format_title),
+            desc = stringResource(R.string.log_format_description),
+            default = appConfig.logFormatModern,
+        ) {
+            appConfig.logFormatModern = it
+        }
+
         sliderPref(
             name = stringResource(R.string.min_log_distance_title),
             desc = stringResource(R.string.min_log_distance_description),

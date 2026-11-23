@@ -273,6 +273,8 @@
 	<string name="no_chart_data">Pas de données disponibles</string>
 	<string name="auto_log_title">Journalisation automatique</string>
 	<string name="auto_log_description">Démarrer la journalisation dès qu\'une roue est connectée</string>
+	<string name="log_format_title">Format de log enrichi (schéma v2)</string>
+	<string name="log_format_description">Les nouveaux logs utilisent le schéma CSV TuxWheel v2 documenté (champs décodés supplémentaires par ligne, voir docs/log_format.md) au lieu du schéma WheelLog historique. Les logs rattachés à un log du jour existant gardent leur schéma d'origine.</string>
 	<string name="min_log_distance_title">Distance minimale enregistrée</string>
 	<string name="min_log_distance_description">Supprime les logs de sortie plus courts que cette distance à l\'arrêt de la journalisation. Mettre 0 pour conserver tous les logs, même très courts.</string>
 	<string name="auto_switch_wheels_title">Suivre la priorité des roues mémorisées</string>
