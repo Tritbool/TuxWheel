@@ -89,7 +89,9 @@ picture-in-picture, and configurable speed/distance/temperature units.
 - Ride CSV logs and optional raw BLE diagnostics are saved under `Downloads/TuxWheel`.
 
 Details: [docs/usage.md](docs/usage.md) (connecting, dashboard) and
-[docs/logging.md](docs/logging.md) (logging formats).
+[docs/logging.md](docs/logging.md) (logging formats). The ride CSV schemas
+(legacy WheelLog-compatible and the enriched TuxWheel v2) are documented for
+third-party consumers in [docs/log_format.md](docs/log_format.md).
 
 ## Development
 

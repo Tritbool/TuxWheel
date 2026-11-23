@@ -406,6 +406,8 @@
     <string name="auto_log_title">Auto Log</string>
     <string name="auto_log_description">Start logging automatically when a wheel is connected</string>
 
+    <string name="log_format_title">Enriched log format (schema v2)</string>
+    <string name="log_format_description">Newly created ride logs use the documented TuxWheel v2 CSV schema (extra decoded fields per row, see docs/log_format.md) instead of the legacy WheelLog schema. Logs appended to an existing day keep their original schema.</string>
     <string name="min_log_distance_title">Minimum logged distance</string>
     <string name="min_log_distance_description">Discard ride logs shorter than this distance when logging stops. Set to 0 to keep every log, however short.</string>
     <string name="auto_switch_wheels_title">Follow saved wheel priority</string>

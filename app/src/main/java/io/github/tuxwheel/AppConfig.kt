@@ -276,6 +276,15 @@ class AppConfig(var context: Context) : KoinComponent {
             .coerceAtLeast(0)
         set(value) = setValue(R.string.min_logged_distance_meters, value.coerceAtLeast(0))
 
+    /**
+     * Write newly created logs with the enriched, documented CSV schema
+     * (docs/log_format.md) instead of the legacy WheelLog-compatible one. Applies only to
+     * files created by their own recording; continued "this day" logs keep their schema.
+     */
+    var logFormatModern: Boolean
+        get() = getValue(R.string.log_format_modern, false)
+        set(value) = setValue(R.string.log_format_modern, value)
+
     var autoUploadEc: Boolean
         get() = getValue(R.string.auto_upload_ec, false)
         set(value) = setValue(R.string.auto_upload_ec, value)

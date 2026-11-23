@@ -119,6 +119,7 @@
     // LOG PREFERENCES
     <string name="auto_log" translatable="false">auto_log</string>
     <string name="min_logged_distance_meters" translatable="false">min_logged_distance_meters</string>
+    <string name="log_format_modern" translatable="false">log_format_modern</string>
     <string name="auto_switch_wheels" translatable="false">auto_switch_wheels</string>
     <string name="auto_log_when_moving_more" translatable="false">auto_log_when_moving_more</string>
     <string name="continue_this_day_log" translatable="false">continue_this_day_log</string>
