@@ -46,7 +46,7 @@ Header: `date,time,speed,voltage,phase_current,current,power,torque,pwm,battery_
 
 ## TuxWheel v2 schema
 
-Header: `schema,timestamp_ms,date,time,speed_kmh,voltage_v,phase_current_a,current_a,power_w,torque_nm,pwm_pct,battery_pct,distance_km,total_distance_km,ride_time_s,total_ride_time_s,total_power_on_time_s,mainboard_temp_c,motor_temperature_c,mosfet_temperature_c,board_temperature_c,imu_temperature_c,cpu_load_pct,tire_pressure_kpa,pitch_deg,roll_deg,top_speed_kmh,speed_limit_kmh,dynamic_speed_limit_kmh,wheel_max_speed_kmh,alarm1_speed_kmh,alarm2_speed_kmh,alarm3_speed_kmh,mode,charging,fan_status,led_mode,light_mode,pedals_mode,alert_flags,wheel_alarm,uses_miles,alert,manufacturer,model,serial_number,firmware_version,frame_type,cell_voltages_v`
+Header: `schema,timestamp_ms,date,time,speed_kmh,voltage_v,phase_current_a,current_a,power_w,torque_nm,pwm_pct,battery_pct,distance_km,total_distance_km,ride_time_s,total_ride_time_s,total_power_on_time_s,mainboard_temp_c,motor_temperature_c,mosfet_temperature_c,board_temperature_c,imu_temperature_c,cpu_load_pct,tire_pressure_kpa,pitch_deg,roll_deg,top_speed_kmh,speed_limit_kmh,dynamic_speed_limit_kmh,wheel_max_speed_kmh,alarm1_speed_kmh,alarm2_speed_kmh,alarm3_speed_kmh,mode,charging,fan_status,led_mode,light_mode,pedals_mode,alert_flags,wheel_alarm,uses_miles,alert,manufacturer,model,serial_number,firmware_version,cell_voltages_v`
 
 Notes for third parties:
 
@@ -82,8 +82,8 @@ Notes for third parties:
 ### Minimal example (v2, one row)
 
 ```csv
-schema,timestamp_ms,date,time,speed_kmh,voltage_v,phase_current_a,current_a,power_w,torque_nm,pwm_pct,battery_pct,distance_km,total_distance_km,ride_time_s,total_ride_time_s,total_power_on_time_s,mainboard_temp_c,motor_temperature_c,mosfet_temperature_c,board_temperature_c,imu_temperature_c,cpu_load_pct,tire_pressure_kpa,pitch_deg,roll_deg,top_speed_kmh,speed_limit_kmh,dynamic_speed_limit_kmh,wheel_max_speed_kmh,alarm1_speed_kmh,alarm2_speed_kmh,alarm3_speed_kmh,mode,charging,fan_status,led_mode,light_mode,pedals_mode,alert_flags,wheel_alarm,uses_miles,alert,manufacturer,model,serial_number,firmware_version,frame_type,cell_voltages_v
-tuxwheel-2,1732350000000,2024-11-23,10:20:00.000,12.340,67.150,3.290,1.210,81.25,10.44,33.20,88,1.234,1234.567,308,,,24.60,31.80,,,37,,,,0.51,13.20,30.00,,50.0,55,60,"Drive",false,,,2,,,,false,true,0,"Gotway","Begode T4","ABC123","2.42","BASE","[4.072,4.073,4.075]"
+schema,timestamp_ms,date,time,speed_kmh,voltage_v,phase_current_a,current_a,power_w,torque_nm,pwm_pct,battery_pct,distance_km,total_distance_km,ride_time_s,total_ride_time_s,total_power_on_time_s,mainboard_temp_c,motor_temperature_c,mosfet_temperature_c,board_temperature_c,imu_temperature_c,cpu_load_pct,tire_pressure_kpa,pitch_deg,roll_deg,top_speed_kmh,speed_limit_kmh,dynamic_speed_limit_kmh,wheel_max_speed_kmh,alarm1_speed_kmh,alarm2_speed_kmh,alarm3_speed_kmh,mode,charging,fan_status,led_mode,light_mode,pedals_mode,alert_flags,wheel_alarm,uses_miles,alert,manufacturer,model,serial_number,firmware_version,cell_voltages_v
+tuxwheel-2,1732350000000,2024-11-23,10:20:00.000,12.340,67.150,3.290,1.210,81.25,10.44,33.20,88,1.234,1234.567,308,,,24.60,31.80,,,37,,,,0.51,13.20,30.00,,50.0,55,60,"Drive",false,,,2,,,,false,true,0,"Gotway","Begode T4","ABC123","2.42","[4.072,4.073,4.075]"
 ```
 
 ## Reading v2 logs with legacy-minded tools

@@ -614,7 +614,6 @@ class LoggingService : Service() {
             "\"" + state.deviceModel + "\"",
             "\"" + (data?.serialNumber ?: state.serialNumber.orEmpty()) + "\"",
             "\"" + (data?.firmwareVersion ?: state.firmwareVersion.orEmpty()) + "\"",
-            data?.frameType ?: "BASE",
             "\"[$cells]\"",
         ).joinToString(separator = ",")
     }
@@ -659,6 +658,6 @@ class LoggingService : Service() {
                 "alarm1_speed_kmh,alarm2_speed_kmh,alarm3_speed_kmh,mode,charging," +
                 "fan_status,led_mode,light_mode,pedals_mode,alert_flags,wheel_alarm," +
                 "uses_miles,alert,manufacturer,model,serial_number,firmware_version," +
-                "frame_type,cell_voltages_v"
+                "cell_voltages_v"
     }
 }
