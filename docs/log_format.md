@@ -11,7 +11,9 @@ TuxWheel ride logs are CSV files written under **Downloads/TuxWheel/<wheel>**
 
 A file's schema is decided when the file is created and never changes
 mid-file: sessions appended to an existing "continue this day" log always
-match that file's original schema.
+match that file's original schema. This page also documents the diagnostics artifacts produced alongside the
+ride CSV: the per-wheel **BMS CSV**, the high-frequency **BMS lab JSONL.gz**
+capture, and the **raw BLE traffic CSV**.
 
 ## Detecting the schema
 
@@ -93,9 +95,112 @@ The in-app trip parser maps the v2 names onto its legacy concepts internally
 the app. External consumers should parse v2 by the documented column names
 above rather than expecting legacy names.
 
+## BMS CSV (per-wheel battery log)
+
+Written **while ride logging is running** when *BMS data logging* is enabled
+(Log settings). One file per recording session, stored next to the ride log
+in the wheel's folder and named `yyyy_MM_dd_HH_mm_ss.bms.csv`. A row is
+written at most once per *BMS recording interval* (separate Log setting),
+using the latest decoded BMS snapshot; interval throttling only affects the
+CSV, not the ride log.
+
+The separator is a **semicolon** (`;`), not a comma.
+
+Header: `timestamp_ms;bms_index;voltage_v;current_a;remaining_capacity_mah;factory_capacity_mah;cycles;is_charging;temperatures_c;cell_voltages_v`
+
+| Column | Unit | Notes |
+|---|---|---|
+| timestamp_ms | epoch ms | host write time, not wheel-reported |
+| bms_index | | raw library BMS index; multi-pack wheels report one row per pack |
+| voltage_v | V | 3 decimals |
+| current_a | A | 3 decimals; sign convention depends on protocol |
+| remaining_capacity_mah | mAh | empty when unreported |
+| factory_capacity_mah | mAh | empty when unreported |
+| cycles | count | empty when unreported |
+| is_charging | `true`/`false` | empty when unreported |
+| temperatures_c | °C list | quoted bracket list, e.g. `"[22.00,23.50]"`; empty when unreported |
+| cell_voltages_v | V list | quoted bracket list, 4 decimals; empty when unreported |
+
+### Example
+
+```csv
+timestamp_ms;bms_index;voltage_v;current_a;remaining_capacity_mah;factory_capacity_mah;cycles;is_charging;temperatures_c;cell_voltages_v
+1732350000123;0;67.152;1.210;157800;201600;42;false;"[24.00]";"[4.0721,4.0725,4.0718]"
+```
+
+## High-frequency BMS lab capture (JSONL.gz)
+
+Independent, opt-in setting. While ride logging is running, one UTF-8 JSON
+line per received telemetry callback carrying a BMS snapshot, written to a
+gzip stream flushed at least once per second. File names are
+`yyyy_MM_dd_HH_mm_ss_SSS.bms.jsonl.gz` in the wheel's folder.
+
+Each line is a JSON object:
+
+```json
+{
+  "sequence": 123,
+  "timestamp_ms": 1732350000456,
+  "packs": [
+    {
+      "bms_index": 0,
+      "voltage_v": 67.152,
+      "current_a": 1.21,
+      "remaining_capacity_mah": 157800,
+      "factory_capacity_mah": 201600,
+      "cycles": 42,
+      "is_charging": false,
+      "temperatures_c": [24.0],
+      "cell_voltages_v": [4.0721, 4.0725, 4.0718],
+      "serial_number": "ABC123",
+      "firmware_version": "1.2",
+      "charge_current_a": null,
+      "discharge_current_a": null
+    }
+  ]
+}
+```
+
+- `sequence` is capture order; gaps mean dropped records (bounded queue). It
+  is **not** the ride log's row order.
+- `timestamp_ms` is the app callback time. Values may predate the telemetry
+  callback: the library exposes its latest BMS state, snapshot freshness
+  depends on the wheel.
+- `bms_index` is the raw library index; one entry per pack, unchanged
+  snapshots included — this mode is designed for battery analysis, not rides.
+- Unreported fields are JSON `null`.
+- Readable with `pandas.read_json(path, lines=True, compression="gzip")`.
+- Files are finalized when logging stops; an abrupt process kill can leave a
+  truncated gzip.
+
+## Raw BLE traffic log
+
+Opt-in setting, produced **while ride logging is running**: every received
+BLE chunk (RX) and every outgoing write accepted by Android (TX) is appended
+to `yyyy_MM_dd_HH_mm_ss.raw.csv` in the wheel's folder. Capture subscribes
+before connecting; consumed events are not replayed when logging restarts.
+
+Header: `timestamp_ms,hex,type,sequence,characteristic_uuid`
+
+| Column | Notes |
+|---|---|
+| timestamp_ms | epoch ms, assigned by the library; sequence order is authoritative, wall clock can move backwards |
+| hex | the chunk's bytes as continuous uppercase hex, no separator; chunk boundaries preserved and chunks need not be complete frames |
+| type | `RX` (wheel/stack to app) or `TX` (accepted by Android's BLE stack — this does NOT confirm wheel reception or execution) |
+| sequence | library-wide event sequence; gaps mean dropped events (or redaction, below) |
+| characteristic_uuid | BLE characteristic the chunk traveled on |
+
+Notes:
+- Outgoing KingSong authentication frames are deliberately omitted, so those
+  plaintext passwords never reach the file; this creates RX/TX sequence gaps.
+- The file is buffered; entries appear in sequence order.
+- Raw logs are a decoder/replay aid, not a telemetry record: only RX records
+  should feed a protocol decoder. Ride and BMS CSVs are separate artifacts
+  unaffected by this mode.
+
 ## Related files
 
-The ride CSV described here is the primary artifact. Separate, unchanged
-outputs exist for diagnostics: per-wheel BMS CSV and high-frequency BMS lab
-JSONL.gz (see docs/logging.md), and raw BLE `*.raw.csv`. Those formats are
-stable and independent of the schema selected here.
+The ride CSV described above is the primary artifact; the formats in this
+section are the diagnostics companions. All of them live in the same
+per-wheel folder and their content does not depend on the selected ride-log
+schema.
