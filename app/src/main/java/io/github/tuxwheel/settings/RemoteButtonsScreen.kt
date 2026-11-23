@@ -25,6 +25,7 @@ import io.github.tuxwheel.AppConfig
 import io.github.tuxwheel.R
 import io.github.tuxwheel.ble.BleSessionViewModel
 import io.github.tuxwheel.feature.remotebutton.RemoteButtonAction
+import io.github.tuxwheel.feature.remotebutton.RemoteButtonBinding
 import io.github.tuxwheel.feature.remotebutton.RemoteButtonBindings
 import io.github.tuxwheel.feature.remotebutton.RemoteButtonDispatcher
 import io.github.tuxwheel.utils.ThemeIconEnum
@@ -46,7 +47,7 @@ fun remoteButtonsScreen(
     var listening by remember { mutableStateOf(false) }
     var listeningSlot by remember { mutableStateOf(0) }
 
-    fun persist(next: List<Pair<Int, RemoteButtonAction>>) {
+    fun persist(next: List<RemoteButtonBinding>) {
         bindings = next.take(RemoteButtonBindings.MAX_SLOTS)
         appConfig.remoteButtonBindings = RemoteButtonBindings.serialize(bindings)
         volumeKeyController.setActive(
@@ -66,16 +67,16 @@ fun remoteButtonsScreen(
     }
 
     DisposableEffect(Unit) {
-        remoteButtonDispatcher.onKeyLearned = { slot, keyCode ->
+        remoteButtonDispatcher.onKeyLearned = { slot, learned ->
             if (listening && slot == listeningSlot) {
                 listening = false
                 remoteButtonDispatcher.learningSlot = null
                 val next = bindings
-                    .filter { it.first != keyCode }
+                    .filter { it.keyCode != learned.keyCode }
                     .toMutableList()
-                    .apply { add(slot, keyCode to RemoteButtonAction.ToggleSpeedLimiter) }
+                    .apply { add(slot, learned) }
                 persist(next)
-                actionSlot = bindings.indexOfFirst { it.first == keyCode }.takeIf { it >= 0 }
+                actionSlot = bindings.indexOfFirst { it.keyCode == learned.keyCode }.takeIf { it >= 0 }
             } else if (slot >= RemoteButtonBindings.MAX_SLOTS) {
                 stopListening()
             }
@@ -101,9 +102,9 @@ fun remoteButtonsScreen(
                 showDiv = false,
             )
         }
-        bindings.forEachIndexed { index, (keyCode, action) ->
+        bindings.forEachIndexed { index, binding ->
             clickablePref(
-                name = keyLabel(keyCode) + " → " + stringResource(actionLabel(action)),
+                name = bindingLabel(binding),
                 themeIcon = ThemeIconEnum.MenuBluetooth,
                 showArrowIcon = false,
             ) {
@@ -129,7 +130,7 @@ fun remoteButtonsScreen(
                 Text(
                     stringResource(
                         R.string.remote_button_action_title,
-                        bindings.getOrNull(slot)?.let { keyLabel(it.first) } ?: "",
+                        bindings.getOrNull(slot)?.let { keyLabel(it.keyCode) } ?: "",
                     )
                 )
             },
@@ -143,14 +144,14 @@ fun remoteButtonsScreen(
                                 .clickable {
                                     persist(
                                         bindings.mapIndexed { index, pair ->
-                                            if (index == slot) pair.first to candidate else pair
+                                            if (index == slot) pair.copy(action = candidate) else pair
                                         }
                                     )
                                     actionSlot = null
                                 }
                         ) {
                             RadioButton(
-                                selected = bindings.getOrNull(slot)?.second == candidate,
+                                selected = bindings.getOrNull(slot)?.action == candidate,
                                 onClick = null,
                             )
                             Text(stringResource(actionLabel(candidate)))
@@ -174,6 +175,15 @@ fun remoteButtonsScreen(
             },
         )
     }
+}
+
+@Composable
+private fun bindingLabel(binding: RemoteButtonBinding): String {
+    val device = binding.deviceName?.takeIf { it.isNotBlank() }
+        ?: binding.deviceId?.let { stringResource(R.string.remote_button_unknown_device) }
+    val base = keyLabel(binding.keyCode) + " → " + stringResource(actionLabel(binding.action))
+    return if (device == null) base
+    else base + " (" + device + ")"
 }
 
 private fun keyLabel(keyCode: Int): String =

@@ -399,6 +399,14 @@ class AppConfig(var context: Context) : KoinComponent {
         get() = getValue("remote_button_bindings", "")
         set(value) = setValue("remote_button_bindings", value)
 
+    /**
+     * Position in the headlight command cycle of the last entry the app sent
+     * ([io.github.tuxwheel.feature.light.WheelLightCycle]); -1 when nothing was sent yet.
+     */
+    var lightCycleIndex: Int
+        get() = getValue("light_cycle_index", -1)
+        set(value) = setValue("light_cycle_index", value)
+
     /** Whether the app-side speed limiter currently holds the wheel at [speedLimiterSpeed]. */
     var speedLimiterEnabled: Boolean
         get() = getValue("speed_limiter_enabled", false)
