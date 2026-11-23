@@ -63,7 +63,7 @@ class RemoteButtonDispatcher(
                 toggleLight()
                 true
             }
-            RemoteButtonAction.ToggleWheelLock -> toggleWheelLock(state.speed)
+            RemoteButtonAction.ToggleWheelLock -> toggleWheelLock(state.currentSpeed)
             RemoteButtonAction.Beep -> {
                 SomeUtil.playBeep()
                 true
