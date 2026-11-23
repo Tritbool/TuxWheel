@@ -85,16 +85,22 @@ class RemoteButtonDispatcher(
         return deviceId in connectedInputDevices()
     }
 
-    private fun connectedInputDevices(): Set<String> =
-        InputDevice.getDeviceIds().mapNotNull { id ->
-            InputDevice.getDevice(id)?.takeIf { it.isExternal }?.descriptor
-        }.toSet()
+    private fun connectedInputDevices(): Set<String> {
+        val descriptors = mutableSetOf<String>()
+        for (id in InputDevice.getDeviceIds()) {
+            val device = InputDevice.getDevice(id) ?: continue
+            if (device.isExternal) descriptors.add(device.descriptor)
+        }
+        return descriptors
+    }
 
-    private fun nameFor(descriptor: String): String? =
-        InputDevice.getDeviceIds()
-            .asSequence()
-            .mapNotNull { InputDevice.getDevice(it) }
-            .firstOrNull { it.descriptor == descriptor }?.name
+    private fun nameFor(descriptor: String): String? {
+        for (id in InputDevice.getDeviceIds()) {
+            val device = InputDevice.getDevice(id) ?: continue
+            if (device.descriptor == descriptor) return device.name
+        }
+        return null
+    }
 
     private fun runAction(action: RemoteButtonAction): Boolean {
         val state = session.sessionState.value
