@@ -59,6 +59,15 @@ class BackgroundSessionService : Service() {
 
     override fun onBind(intent: Intent): IBinder? = null
 
+    /**
+     * Swiping the app away must not end the session: the foreground service keeps the
+     * process alive; the heartbeat alarm re-arms it if an OEM still kills the process.
+     */
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        Timber.i("Task removed; black box session keeps running")
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (stopping) {
             // A pending start can arrive before stopSelf() is applied; the same instance must resume.

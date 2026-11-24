@@ -1,7 +1,9 @@
 package io.github.tuxwheel.background
 
 import android.Manifest
+import android.app.AlarmManager
 import android.annotation.SuppressLint
+import android.app.PendingIntent
 import android.companion.CompanionDeviceManager
 import android.content.Context
 import android.content.Intent
@@ -161,8 +163,41 @@ internal class BackgroundWheelManager(
 
     fun restore() {
         refresh()
-        if (config.backgroundSessionEnabled && !config.backgroundSessionPaused) startService()
+        if (config.backgroundSessionEnabled && !config.backgroundSessionPaused) {
+            scheduleHeartbeat()
+            startService()
+        } else {
+            cancelHeartbeat()
+        }
     }
+
+    /**
+     * Keep-alive while the black box is enabled: a repeating inexact alarm re-runs
+     * [restore], which re-requests companion presence observing — the wake path the
+     * system may have dropped after a reboot or an OEM cleanup — and restarts the
+     * session service when the platform allows a background start.
+     */
+    fun scheduleHeartbeat() {
+        val alarmManager = context.getSystemService(AlarmManager::class.java) ?: return
+        alarmManager.setInexactRepeating(
+            AlarmManager.RTC,
+            System.currentTimeMillis() + HEARTBEAT_INTERVAL_MILLIS,
+            HEARTBEAT_INTERVAL_MILLIS,
+            heartbeatIntent(),
+        )
+    }
+
+    fun cancelHeartbeat() {
+        context.getSystemService(AlarmManager::class.java)?.cancel(heartbeatIntent())
+    }
+
+    private fun heartbeatIntent(): PendingIntent = PendingIntent.getBroadcast(
+        context,
+        HEARTBEAT_REQUEST_CODE,
+        Intent(context, BackgroundSessionReceiver::class.java)
+            .setAction(ACTION_SESSION_HEARTBEAT),
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+    )
 
     fun startService() {
         if (!hasPermissions()) {
@@ -194,4 +229,10 @@ internal class BackgroundWheelManager(
     }
 
     private fun normalize(address: String) = address.uppercase(Locale.ROOT)
+
+    companion object {
+        const val ACTION_SESSION_HEARTBEAT = "io.github.tuxwheel.action.SESSION_HEARTBEAT"
+        private const val HEARTBEAT_REQUEST_CODE = 8_066
+        const val HEARTBEAT_INTERVAL_MILLIS = 15 * 60_000L
+    }
 }
