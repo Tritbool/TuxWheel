@@ -186,6 +186,23 @@ class BackgroundSessionService : Service() {
         if (config.backgroundActiveWheel != policy.address) {
             config.backgroundActiveWheel = requireNotNull(policy.address)
         }
+        val currentAddress = requireNotNull(policy.address)
+        if (!state.isConnected &&
+            currentAddress !in manager.present.value &&
+            (manager.present.value - config.backgroundBlockedWheels).isNotEmpty()
+        ) {
+            // The wheel went away (powered off or out of range) while another saved wheel is
+            // already advertising: waiting the full disconnection grace only stalls the session
+            // and leaves the log service running against a wheel that will not come back. Give
+            // the vanished wheel a standby slot and hand control back to the chooser now.
+            Timber.i("Black box handover: current wheel absent, another wheel is present")
+            sessionSleepUntil[currentAddress] = now + IGNORED_WHEEL_STANDBY_MILLIS
+            session.disconnect(userInitiated = false)
+            finishSession()
+            showNotification(R.string.background_session_waiting)
+            return
+        }
+
         if (state.isConnected && config.backgroundInterruptedAt != 0L) {
             config.backgroundInterruptedAt = 0L
         } else if (!state.isConnected && config.backgroundInterruptedAt == 0L) {
