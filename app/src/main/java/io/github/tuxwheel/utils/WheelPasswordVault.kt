@@ -5,7 +5,6 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
 import java.security.KeyStore
-import java.security.SecureRandom
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.spec.GCMParameterSpec
@@ -23,7 +22,6 @@ import javax.crypto.spec.GCMParameterSpec
 class WheelPasswordVault(context: Context) {
     private val prefs =
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-    private val random = SecureRandom()
 
     fun save(address: String, password: String): Boolean {
         if (address.isBlank() || password.length != PIN_LENGTH) return false
@@ -67,7 +65,6 @@ class WheelPasswordVault(context: Context) {
         val keyStore = KeyStore.getInstance(PROVIDER).apply { load(null) }
         (keyStore.getKey(ALIAS, null) as? javax.crypto.SecretKey)?.let { return it }
         val generator = KeyGenerator.getInstance(KEY_ALGORITHM, PROVIDER)
-        generator.random = random
         generator.init(
             KeyGenParameterSpec.Builder(
                 ALIAS,
