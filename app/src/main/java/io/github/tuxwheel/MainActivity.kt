@@ -405,10 +405,22 @@ class MainActivity : AppCompatActivity() {
             }
             hint = getString(R.string.password)
         }
+        val savePinBox = android.widget.CheckBox(builder.context).apply {
+            text = getString(R.string.wheel_password_save)
+        }
+        val container = android.widget.LinearLayout(builder.context).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            addView(input)
+            addView(savePinBox)
+        }
+        val hasSavedPin = viewModel.hasSavedWheelPassword()
         val dialog = builder.setTitle(R.string.wheel_password_title)
             .setMessage(if (retry) R.string.wheel_password_retry else R.string.wheel_password_message)
-            .setView(input).setPositiveButton(android.R.string.ok, null)
+            .setView(container).setPositiveButton(android.R.string.ok, null)
             .setNegativeButton(android.R.string.cancel) { _, _ -> viewModel.submitWheelPassword("") }
+            .apply {
+                if (hasSavedPin) setNeutralButton(R.string.wheel_password_forget) { _, _ -> }
+            }
             .setCancelable(false).create()
         dialog.setOnDismissListener {
             input.text.clear()
@@ -417,11 +429,18 @@ class MainActivity : AppCompatActivity() {
         wheelPasswordDialog = dialog
         dialog.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE)
         dialog.show()
+        dialog.getButton(AlertDialog.BUTTON_NEUTRAL)?.setOnClickListener {
+            viewModel.forgetWheelPassword()
+            dialog.dismiss()
+        }
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
             val password = input.text.toString()
             if (password.isNotEmpty() && (password.length != 4 || password.any { it !in '0'..'9' })) {
                 input.error = getString(R.string.wheel_password_invalid)
             } else {
+                if (savePinBox.isChecked && password.length == 4) {
+                    viewModel.saveWheelPasswordForCurrentWheel(password)
+                }
                 input.text.clear()
                 viewModel.submitWheelPassword(password)
                 dialog.dismiss()

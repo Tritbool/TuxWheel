@@ -634,6 +634,8 @@
     <string name="wheel_password_title">KingSong wheel password</string>
     <string name="wheel_password_message">Enter your four-digit wheel password. Leave empty if no password is set.</string>
     <string name="wheel_password_invalid">Enter exactly four digits (0–9), or leave empty.</string>
+    <string name="wheel_password_save">Save this password in the encrypted vault — needed for the black box and the saved-wheel auto-connect to authenticate on their own</string>
+    <string name="wheel_password_forget">Forget the saved password</string>
     <string name="wheel_password_retry">Authentication has not been confirmed. You can retry your four-digit password, or leave empty to continue without sending a password.</string>
     <string name="wheel_password_management_title">Manage wheel password</string>
     <string name="wheel_password_management_description">Set, change, or remove the KingSong password</string>
