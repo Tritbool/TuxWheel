@@ -99,8 +99,17 @@ Java/Kotlin compilation targets **JDK 17** (the Gradle daemon runs on **JDK 25**
 (`io.github.tuxwheel.debug` for debug builds).
 
 ```sh
+git clone --recurse-submodules https://github.com/Tritbool/TuxWheel.git
+cd TuxWheel
 ./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug
 ```
+
+A plain `git clone` leaves the `ble-library` submodule empty; run
+`git submodule update --init` inside the checkout before building, otherwise
+the build cannot resolve the BLE protocol APIs. The submodule pins the
+`euc_ble_library` commit the app is built against; `master` of the library is
+used for CI, and docs/development.md explains building against your own
+checkout.
 
 To build against a local `euc_ble_library` checkout, add
 `-PeucBleLibraryDir=/absolute/path/to/euc_ble_library -Peuc.androidGradlePluginVersion=9.2.1`.

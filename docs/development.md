@@ -108,8 +108,9 @@ and may download it if it is not installed.
 The app currently uses **compileSdk 37** and **targetSdk 36**.
 
 ```sh
-git clone https://github.com/Tritbool/TuxWheel.git
+git clone --recurse-submodules https://github.com/Tritbool/TuxWheel.git
 cd TuxWheel
+git submodule update --init
 ./gradlew -PeucBleLibraryDir=../euc_ble_library \
   -Peuc.androidGradlePluginVersion=9.2.1 \
   :app:assembleDebug :app:assembleRelease :app:testDebugUnitTest :app:lintDebug
