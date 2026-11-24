@@ -13,9 +13,11 @@ import io.github.tritbool.euc.ble.protocols.CommandValue
 /**
  * App-side speed limiter built on [CommandType.SET_SPEED_LIMIT].
  *
- * Activating it stores the user's own wheel max speed in [AppConfig.speedLimiterSavedMaxSpeed]
- * and pushes [AppConfig.speedLimiterSpeed] to the wheel; deactivating it pushes the saved
- * value back to the wheel and restores [AppConfig.wheelMaxSpeed].
+ * Activating it stores the user's own wheel max speed and pushes the limiter speed to the
+ * wheel; deactivating it pushes the saved value back to the wheel. All state — whether the
+ * limiter is on, its speed and the parked maximum — is keyed by wheel address: switching from
+ * the S18 limited at 40 km/h to the Rocket must never announce the S18's saved maximum as the
+ * Rocket's own.
  */
 object SpeedLimiter {
     const val MIN_SPEED = 1
@@ -41,50 +43,63 @@ object SpeedLimiter {
             state.alarm2Speed != null && state.alarm3Speed != null
     }
 
+    private fun addressOf(state: BleSessionState): String = state.deviceAddress.uppercase()
+
     /** The wheel max speed currently configured by the user (before any limiter is applied). */
     fun currentWheelMaxSpeed(state: BleSessionState, config: AppConfig): Int =
-        reportedMaxSpeed(state) ?: config.wheelMaxSpeed
+        reportedMaxSpeed(state)
+            ?: config.speedLimiterSavedMaxSpeedFor(addressOf(state)).takeIf { it > 0 }
+            ?: config.wheelMaxSpeed
 
     @SuppressLint("MissingPermission")
     fun enable(session: BleSessionViewModel, config: AppConfig): Boolean {
-        if (config.speedLimiterEnabled) return true
-        if (!isAvailable(session)) return false
-        val limit = config.speedLimiterSpeed
+        val state = session.sessionState.value
+        val address = addressOf(state)
+        if (config.speedLimiterEnabledFor(address)) return true
+        if (!isAvailable(session, state)) return false
+        val limit = config.speedLimiterSpeedFor(address)
         if (!session.isCommandValueSupported(CommandType.SET_SPEED_LIMIT.name, CommandValue.Integer(limit))) {
             return false
         }
-        config.speedLimiterSavedMaxSpeed = currentWheelMaxSpeed(session.sessionState.value, config)
-        config.speedLimiterEnabled = true
+        config.setSpeedLimiterSavedMaxSpeedFor(address, currentWheelMaxSpeed(state, config))
+        config.setSpeedLimiterEnabledFor(address, true)
         session.sendCommand(CommandType.SET_SPEED_LIMIT.name, CommandValue.Integer(limit))
         return true
     }
 
     @SuppressLint("MissingPermission")
     fun disable(session: BleSessionViewModel, config: AppConfig): Boolean {
-        if (!config.speedLimiterEnabled) return true
-        if (!isAvailable(session)) return false
-        val saved = config.speedLimiterSavedMaxSpeed
+        val state = session.sessionState.value
+        val address = addressOf(state)
+        if (!config.speedLimiterEnabledFor(address)) return true
+        if (!isAvailable(session, state)) return false
+        val saved = config.speedLimiterSavedMaxSpeedFor(address)
         if (!session.isCommandValueSupported(CommandType.SET_SPEED_LIMIT.name, CommandValue.Integer(saved))) {
             return false
         }
         config.wheelMaxSpeed = saved
-        config.speedLimiterEnabled = false
+        config.setSpeedLimiterEnabledFor(address, false)
         session.sendCommand(CommandType.SET_SPEED_LIMIT.name, CommandValue.Integer(saved))
         return true
     }
 
     fun toggle(session: BleSessionViewModel, config: AppConfig): Boolean =
-        if (config.speedLimiterEnabled) disable(session, config) else enable(session, config)
+        if (config.speedLimiterEnabledFor(addressOf(session.sessionState.value)))
+            disable(session, config) else enable(session, config)
 
     /** Updates the limiter speed and re-applies it to the wheel when the limiter is active. */
     @SuppressLint("MissingPermission")
     fun setLimit(session: BleSessionViewModel, config: AppConfig, speed: Int): Boolean {
+        val state = session.sessionState.value
+        val address = addressOf(state)
         val limit = speed
         if (!session.isCommandValueSupported(CommandType.SET_SPEED_LIMIT.name, CommandValue.Integer(limit))) {
             return false
         }
-        config.speedLimiterSpeed = limit
-        if (config.speedLimiterEnabled && isAvailable(session)) {
+        config.setSpeedLimiterSpeedFor(address, limit)
+        if (config.speedLimiterEnabledFor(address) &&
+            isAvailable(session, state)
+        ) {
             session.sendCommand(CommandType.SET_SPEED_LIMIT.name, CommandValue.Integer(limit))
         }
         return true

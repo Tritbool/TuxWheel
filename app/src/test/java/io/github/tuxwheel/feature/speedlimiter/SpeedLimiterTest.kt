@@ -37,6 +37,12 @@ class SpeedLimiterTest {
         every { config.speedLimiterSpeed = any() } answers { limit = firstArg() }
         every { config.speedLimiterSavedMaxSpeed } answers { saved }
         every { config.speedLimiterSavedMaxSpeed = any() } answers { saved = firstArg() }
+        every { config.speedLimiterEnabledFor(any()) } answers { enabled }
+        every { config.setSpeedLimiterEnabledFor(any(), any()) } answers { enabled = secondArg() }
+        every { config.speedLimiterSpeedFor(any()) } answers { limit }
+        every { config.setSpeedLimiterSpeedFor(any(), any()) } answers { limit = secondArg() }
+        every { config.speedLimiterSavedMaxSpeedFor(any()) } answers { saved }
+        every { config.setSpeedLimiterSavedMaxSpeedFor(any(), any()) } answers { saved = secondArg() }
         every { config.wheelMaxSpeed } answers { wheelMax }
         every { config.wheelMaxSpeed = any() } answers { wheelMax = firstArg() }
     }

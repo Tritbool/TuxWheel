@@ -38,10 +38,14 @@ fun speedLimiterScreen(
         ?.input as? CommandInput.Range
     val storedLimitAllowed = viewModel.isCommandValueSupported(
         CommandType.SET_SPEED_LIMIT.name,
-        CommandValue.Integer(appConfig.speedLimiterSpeed),
+        CommandValue.Integer(appConfig.speedLimiterSpeedFor(state.deviceAddress)),
     )
-    val enabled = remember { mutableStateOf(appConfig.speedLimiterEnabled) }
-    var savedMaxSpeed by remember { mutableIntStateOf(appConfig.speedLimiterSavedMaxSpeed) }
+    val enabled = remember(state.deviceAddress) {
+        mutableStateOf(appConfig.speedLimiterEnabledFor(state.deviceAddress))
+    }
+    var savedMaxSpeed by remember(state.deviceAddress) {
+        mutableIntStateOf(appConfig.speedLimiterSavedMaxSpeedFor(state.deviceAddress))
+    }
 
     Column(
         modifier = Modifier.verticalScroll(rememberScrollState())
@@ -58,8 +62,8 @@ fun speedLimiterScreen(
             if (!applied) {
                 Toast.makeText(context, R.string.speed_limiter_unavailable, Toast.LENGTH_SHORT).show()
             }
-            enabled.value = appConfig.speedLimiterEnabled
-            savedMaxSpeed = appConfig.speedLimiterSavedMaxSpeed
+            enabled.value = appConfig.speedLimiterEnabledFor(state.deviceAddress)
+            savedMaxSpeed = appConfig.speedLimiterSavedMaxSpeedFor(state.deviceAddress)
         }
         if (available && range != null) {
             if (!storedLimitAllowed) {
@@ -69,7 +73,8 @@ fun speedLimiterScreen(
                 name = stringResource(R.string.speed_limiter_speed_title),
                 desc = stringResource(R.string.speed_limiter_speed_description) + " " +
                     stringResource(R.string.command_bounds_warning),
-                position = if (storedLimitAllowed) appConfig.speedLimiterSpeed.toFloat()
+                position = if (storedLimitAllowed)
+                    appConfig.speedLimiterSpeedFor(state.deviceAddress).toFloat()
                     else range.min.toFloat(),
                 min = range.min.toFloat(),
                 max = range.max.toFloat(),

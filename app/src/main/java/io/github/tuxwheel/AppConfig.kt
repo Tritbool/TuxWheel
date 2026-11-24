@@ -422,6 +422,41 @@ class AppConfig(var context: Context) : KoinComponent {
         get() = getValue("speed_limiter_saved_max_speed", 25)
         set(value) = setValue("speed_limiter_saved_max_speed", value)
 
+    /**
+     * Limiter state is per wheel: one wheel's saved maximum speed must never bleed into
+     * the next connected wheel. Address-specific entries default to the global values, so a
+     * wheel configured before this split keeps its last used limiter speed.
+     */
+    fun speedLimiterEnabledFor(address: String): Boolean =
+        if (address.isBlank()) speedLimiterEnabled
+        else getValue(speedLimiterPrefKey(address, "enabled"), false)
+
+    fun setSpeedLimiterEnabledFor(address: String, value: Boolean) {
+        if (address.isBlank()) speedLimiterEnabled = value
+        else setValue(speedLimiterPrefKey(address, "enabled"), value)
+    }
+
+    fun speedLimiterSpeedFor(address: String): Int =
+        if (address.isBlank()) speedLimiterSpeed
+        else getValue(speedLimiterPrefKey(address, "speed"), speedLimiterSpeed)
+
+    fun setSpeedLimiterSpeedFor(address: String, value: Int) {
+        speedLimiterSpeed = value
+        if (address.isNotBlank()) setValue(speedLimiterPrefKey(address, "speed"), value)
+    }
+
+    fun speedLimiterSavedMaxSpeedFor(address: String): Int =
+        if (address.isBlank()) speedLimiterSavedMaxSpeed
+        else getValue(speedLimiterPrefKey(address, "saved_max"), speedLimiterSavedMaxSpeed)
+
+    fun setSpeedLimiterSavedMaxSpeedFor(address: String, value: Int) {
+        if (address.isBlank()) speedLimiterSavedMaxSpeed = value
+        else setValue(speedLimiterPrefKey(address, "saved_max"), value)
+    }
+
+    private fun speedLimiterPrefKey(address: String, field: String) =
+        "speed_limiter_value$separator$address$separator$field"
+
     var connectBeep: Boolean
         get() = getValue("connect_beep", true)
         set(value) = setValue("connect_beep", value)

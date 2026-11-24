@@ -103,8 +103,8 @@ class DashboardViewModel(
                 WheelLockState.UNKNOWN -> appConfig.wheelLocked
             },
             speedLimiterAvailable = SpeedLimiter.isAvailable(bleViewModel, session),
-            speedLimiterEnabled = appConfig.speedLimiterEnabled,
-            speedLimiterSpeed = appConfig.speedLimiterSpeed
+            speedLimiterEnabled = appConfig.speedLimiterEnabledFor(session.deviceAddress),
+            speedLimiterSpeed = appConfig.speedLimiterSpeedFor(session.deviceAddress)
         )
     }
 }

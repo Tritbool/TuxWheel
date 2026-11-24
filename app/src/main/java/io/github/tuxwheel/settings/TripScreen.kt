@@ -23,13 +23,6 @@ fun tripScreen(
         modifier = Modifier
             .verticalScroll(rememberScrollState())
     ) {
-        switchPref(
-            name = stringResource(R.string.trip_stealth_mode_title),
-            desc = stringResource(R.string.stealth_trip_description),
-            default = appConfig.hideTripSpeeds,
-        ) {
-            appConfig.hideTripSpeeds = it
-        }
         clickablePref(
             name = stringResource(R.string.reset_max_values_title),
             desc = stringResource(R.string.reset_max_values_description),
