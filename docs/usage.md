@@ -42,6 +42,9 @@ Saved-wheel order and its existing priority wait are retained.
 
 A foreground service performs filtered, low-power BLE scans for saved wheels
 and has a permanent notification even while waiting, on every Android version.
+While the mode is enabled, a 15-minute keep-alive alarm re-requests the
+companion presence observing and restarts the service, so a reboot, an OEM
+cleanup or a dropped Android wake registration cannot silently kill the mode.
 On Android 12+, approving Android's companion-device association for saved
 wheels additionally lets Android itself wake TuxWheel when the app process is
 gone; it is recommended but the in-app scan no longer depends on it. TuxWheel

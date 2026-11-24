@@ -12,7 +12,8 @@ class BackgroundSessionReceiver : BroadcastReceiver(), KoinComponent {
 
     override fun onReceive(context: Context, intent: Intent) {
         when (intent.action) {
-            Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_MY_PACKAGE_REPLACED -> manager.restore()
+            Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_MY_PACKAGE_REPLACED,
+            BackgroundWheelManager.ACTION_SESSION_HEARTBEAT -> manager.restore()
             BluetoothAdapter.ACTION_STATE_CHANGED -> {
                 if (intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR) ==
                     BluetoothAdapter.STATE_ON
