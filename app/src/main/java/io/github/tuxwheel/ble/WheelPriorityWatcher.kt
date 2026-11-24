@@ -3,6 +3,7 @@ package io.github.tuxwheel.ble
 import android.annotation.SuppressLint
 import android.app.Application
 import android.bluetooth.BluetoothManager
+import android.os.SystemClock
 import io.github.tritbool.euc.ble.models.AuthenticationState
 import android.bluetooth.le.ScanCallback
 import android.bluetooth.le.ScanFilter
@@ -43,6 +44,10 @@ internal class WheelPriorityWatcher internal constructor(
     /** Latest addresses advertised since the current wheel connected. */
     private var seen = emptySet<String>()
     private var switching = false
+    private var manualJob: Job? = null
+    private var manualDisconnectAt = 0L
+    private var fallbackAttempts = 0
+    private var lastFallbackAt = 0L
 
     /**
      * Starts or stops the watch loop per the opt-in setting. No scanning or configuration
@@ -51,6 +56,16 @@ internal class WheelPriorityWatcher internal constructor(
     fun setEnabled(enabled: Boolean) {
         if (enabled) {
             if (loop?.isActive == true) return
+            if (manualJob?.isActive != true) {
+                manualJob = scope.launch {
+                    try {
+                        session.manualDisconnects.collect { _ ->
+                            manualDisconnectAt = SystemClock.uptimeMillis()
+                        }
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                    }
+                }
+            }
             loop = scope.launch {
                 try {
                     while (true) {
@@ -60,9 +75,11 @@ internal class WheelPriorityWatcher internal constructor(
                         }
                         if (!session.sessionState.value.isConnected) {
                             stopScan()
+                            fallbackCycle()
                             delay(WORK_PERIOD_MILLIS)
                             continue
                         }
+                        fallbackAttempts = 0
                         scanCycle()
                         delay(WORK_PERIOD_MILLIS)
                     }
@@ -73,8 +90,42 @@ internal class WheelPriorityWatcher internal constructor(
         } else {
             loop?.cancel()
             loop = null
+            manualJob?.cancel()
+            manualJob = null
             switching = false
             stopScan()
+        }
+    }
+
+    /**
+     * Downward half of the mode: when the current wheel vanishes, hand the session back to the
+     * best remembered wheel still in range instead of staying disconnected. A user-initiated
+     * disconnect is respected (one hold minute), the library's own reconnection never fights the
+     * fallback, and attempts stop after a bounded window so an empty garage does not scan
+     * forever.
+     */
+    private fun fallbackCycle() {
+        val state = session.sessionState.value
+        if (state.connectionState != io.github.tritbool.euc.ble.core.BLEConstants.ConnectionState.DISCONNECTED ||
+            state.isReconnecting || state.isScanning || state.isAutoConnecting || switching
+        ) return
+        val now = SystemClock.uptimeMillis()
+        if (now - manualDisconnectAt < MANUAL_DISCONNECT_HOLD_MILLIS) {
+            fallbackAttempts = 0
+            return
+        }
+        if (fallbackAttempts >= MAX_FALLBACK_ATTEMPTS ||
+            now - lastFallbackAt < FALLBACK_RETRY_MILLIS
+        ) return
+        val remembered = appConfig.rememberedWheels
+        if (remembered.isEmpty()) return
+        fallbackAttempts++
+        lastFallbackAt = now
+        Timber.i("Priority wheel fallback: reconnecting to the best saved wheel in range")
+        try {
+            session.autoConnect(remembered)
+        } catch (e: Exception) {
+            Timber.w(e, "Priority wheel fallback could not start auto-connect")
         }
     }
 
@@ -193,6 +244,9 @@ internal class WheelPriorityWatcher internal constructor(
         private const val WORK_PERIOD_MILLIS = 2_000L
         private const val SWITCH_TIMEOUT_MILLIS = 15_000L
         private const val SWITCH_SETTLE_MILLIS = 15_000L
+        private const val FALLBACK_RETRY_MILLIS = 15_000L
+        private const val MAX_FALLBACK_ATTEMPTS = 20
+        private const val MANUAL_DISCONNECT_HOLD_MILLIS = 60_000L
 
         /**
          * KingSong wheels in the password-required handshake drop the PIN exchange while a

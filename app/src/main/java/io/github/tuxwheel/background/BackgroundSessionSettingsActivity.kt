@@ -130,7 +130,7 @@ class BackgroundSessionSettingsActivity : ComponentActivity() {
             dialog.setOnShowListener {
                 dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
                     val minutes = input.text.toString().toIntOrNull()
-                    if (minutes == null || minutes !in 1..120) {
+                    if (minutes == null || minutes !in 0..120) {
                         input.error = getString(R.string.background_session_timeout_error)
                     } else {
                         config.backgroundSessionTimeoutMinutes = minutes

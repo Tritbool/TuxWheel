@@ -33,6 +33,15 @@ class BackgroundSessionPolicyTest {
         assertEquals(other, policy.choose(wheels, setOf(other), emptySet(), 2_100, 1_000))
     }
 
+    @Test fun `a zero-minute timeout gives the wheel up as soon as it disconnects`() {
+        val policy = BackgroundSessionPolicy()
+        policy.begin(favorite, 1_000)
+        policy.updateConnection(true, 2_000)
+        policy.updateConnection(false, 3_000)
+        assertFalse(policy.expired(1_000, 0))
+        assertTrue(policy.expired(3_000, 0))
+    }
+
     @Test fun `fifteen minute grace starts on link loss and resets after reconnection`() {
         val policy = BackgroundSessionPolicy()
         policy.begin(favorite, 0)

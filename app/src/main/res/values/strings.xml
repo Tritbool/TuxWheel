@@ -20,7 +20,7 @@
     <string name="background_session_notifications_disabled">Notifications are disabled; enable them in Android settings to see session status.</string>
     <string name="background_session_timeout">End the session after %1$d minutes without a connection</string>
     <string name="background_session_timeout_title">Disconnect timeout (minutes)</string>
-    <string name="background_session_timeout_error">Enter a value from 1 to 120</string>
+    <string name="background_session_timeout_error">Enter a value from 0 to 120</string>
     <string name="background_session_disconnect">Manual disconnect: %1$s</string>
     <string name="background_session_disconnect_title">After disconnecting from the app</string>
     <string-array name="background_disconnect_policies">
@@ -43,7 +43,7 @@
     <string name="background_session_notif_recording_title">Black box \u2014 recording</string>
     <string name="background_session_notif_recording_text">Connected to %1$s</string>
     <string name="background_session_notif_failed_title">Black box \u2014 recording failed</string>
-    <string name="background_session_timeout_help">After a wheel disconnects, TuxWheel keeps trying to reconnect for this long. When it elapses, the session ends and the wheel is ignored until it disappears and comes back.</string>
+    <string name="background_session_timeout_help">After a wheel disconnects, TuxWheel keeps trying to reconnect for this long. When it elapses, the session ends and the session falls back to another saved wheel in range. 0 gives the current wheel up immediately. The wheel itself is then ignored for a minute before being considered again.</string>
     <string name="background_session_disconnect_help">Applies when you disconnect from inside the app.</string>
     <string name="background_session_disassociate">Dissociate</string>
     <string name="background_session_disassociate_confirm">Stop Android from watching %1$s? The black box will ignore it until it is associated again.</string>
@@ -427,7 +427,7 @@
     <string name="min_log_distance_title">Minimum logged distance</string>
     <string name="min_log_distance_description">Discard ride logs shorter than this distance when logging stops. Set to 0 to keep every log, however short.</string>
     <string name="auto_switch_wheels_title">Follow saved wheel priority</string>
-    <string name="auto_switch_wheels_description">Keep scanning while connected and switch, without any action, to a higher-priority saved wheel that comes in range — no need to turn the current wheel off first. Warning: this can interrupt the current connection and reconnect to the top-priority wheel at any moment, even mid-ride. Connection losses are expected in this mode.</string>
+    <string name="auto_switch_wheels_description">Keep scanning while connected and switch, without any action, to a higher-priority saved wheel that comes in range — no need to turn the current wheel off first. When the current wheel goes away, the session falls back to the best saved wheel in range. Warning: this can interrupt the current connection and reconnect to the top-priority wheel at any moment, even mid-ride. Connection losses are expected in this mode.</string>
     <string name="use_raw_title">RAW Bluetooth Data Logging</string>
 
     <string name="use_bms_data_title">BMS data logging</string>
