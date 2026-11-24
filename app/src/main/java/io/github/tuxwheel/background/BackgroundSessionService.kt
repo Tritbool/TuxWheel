@@ -69,6 +69,7 @@ class BackgroundSessionService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        Timber.i("Black box session start command (stopping=%b)", stopping)
         if (stopping) {
             // A pending start can arrive before stopSelf() is applied; the same instance must resume.
             stopping = false
@@ -82,6 +83,8 @@ class BackgroundSessionService : Service() {
             return START_NOT_STICKY
         }
         if (!config.backgroundSessionEnabled || config.backgroundSessionPaused || !manager.hasPermissions()) {
+            Timber.i("Black box session refuses to run: enabled=%b paused=%b permissions=%b",
+                config.backgroundSessionEnabled, config.backgroundSessionPaused, manager.hasPermissions())
             finishSession()
             stopSelf()
             return START_NOT_STICKY
@@ -125,8 +128,13 @@ class BackgroundSessionService : Service() {
 
     @SuppressLint("MissingPermission")
     private fun evaluate() {
-        if (stopping) return
+        if (stopping) {
+            Timber.i("Black box session stopping")
+            return
+        }
         if (!config.backgroundSessionEnabled || config.backgroundSessionPaused || !manager.hasPermissions()) {
+            Timber.i("Black box session ends itself: enabled=%b paused=%b permissions=%b",
+                config.backgroundSessionEnabled, config.backgroundSessionPaused, manager.hasPermissions())
             stopping = true
             if (policy.address != null) session.disconnect(userInitiated = false)
             finishSession()

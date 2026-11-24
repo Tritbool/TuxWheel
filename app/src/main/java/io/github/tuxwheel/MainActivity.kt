@@ -529,10 +529,7 @@ class MainActivity : AppCompatActivity() {
             pages.add(R.layout.main_view_events)
         }
         pagerAdapter = MainPageAdapter(pages, this)
-        if (eventsLoggingTree == null) {
-            eventsLoggingTree = EventsLoggingTree(applicationContext)
-            Timber.plant(eventsLoggingTree!!)
-        }
+        eventsLoggingTree = (application as? TuxWheel)?.eventsLoggingTree
         containerRenderer = MainContainerRenderer(
             binding,
             pagerAdapter,
@@ -722,10 +719,6 @@ class MainActivity : AppCompatActivity() {
         containerRenderer?.dispose()
         containerRenderer = null
         super.onDestroy()
-        eventsLoggingTree?.let {
-            Timber.uproot(it)
-            it.close()
-        }
         eventsLoggingTree = null
         if (!this.isFinishing) {
             Timber.wtf("Recreate main activity")

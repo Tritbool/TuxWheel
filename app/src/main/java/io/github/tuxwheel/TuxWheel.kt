@@ -10,6 +10,9 @@ import io.github.tuxwheel.background.BackgroundWheelManager
 import org.koin.core.context.GlobalContext
 
 class TuxWheel : Application() {
+    lateinit var eventsLoggingTree: EventsLoggingTree
+        private set
+
     override fun onCreate() {
         super.onCreate()
         startKoin {
@@ -19,6 +22,10 @@ class TuxWheel : Application() {
         if (BuildConfig.DEBUG) {
             Timber.plant(Timber.DebugTree())
         }
+        // Planted for the whole process: background-session events that happen after the
+        // activities are gone (reboot wake, heartbeat, service death cause) must still reach
+        // the in-app events page, which is the only diagnosis surface available without adb.
+        eventsLoggingTree = EventsLoggingTree(this).also { Timber.plant(it) }
         GlobalContext.get().get<BackgroundWheelManager>().start()
     }
 
