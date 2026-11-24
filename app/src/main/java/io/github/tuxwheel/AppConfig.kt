@@ -237,8 +237,8 @@ class AppConfig(var context: Context) : KoinComponent {
         }
 
     var backgroundSessionTimeoutMinutes: Int
-        get() = getValue("background_session_timeout_minutes", 15).coerceIn(1, 120)
-        set(value) = setValue("background_session_timeout_minutes", value.coerceIn(1, 120))
+        get() = getValue("background_session_timeout_minutes", 15).coerceIn(0, 120)
+        set(value) = setValue("background_session_timeout_minutes", value.coerceIn(0, 120))
 
     /** 0: wait for absence, 1: reconnect immediately, 2: wait for manual reactivation. */
     var backgroundManualDisconnectPolicy: Int

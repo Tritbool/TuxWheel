@@ -21,7 +21,11 @@ an attempt or disconnect intentionally without reconnecting.
 you are connected and hands the session over, without any action, to a
 higher-priority saved wheel as soon as it advertises — no need to turn the
 current wheel off first. Switches only move up in priority: riding the
-top-priority wheel never gets overridden. The trade-off is deliberate and is
+top-priority wheel never gets overridden. When the current wheel goes away
+(power off, out of range), the session falls back to the best saved wheel still
+in range instead of staying disconnected, retrying for about five minutes with
+a 15-second spacing; a manual disconnect is respected for one minute. The
+trade-off is deliberate and is
 stated in the setting: any higher-priority wheel coming into range interrupts
 the current connection and takes over, even mid-ride. Connection losses are
 expected in this mode, not bugs; leave it off when you need maximum connection

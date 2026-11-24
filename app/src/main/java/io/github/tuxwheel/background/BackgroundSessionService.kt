@@ -175,7 +175,12 @@ class BackgroundSessionService : Service() {
             config.backgroundInterruptedAt = System.currentTimeMillis()
         }
         if (policy.expired(now, config.backgroundSessionTimeoutMinutes * 60_000L)) {
-            sessionSleepUntil[requireNotNull(policy.address)] = now + config.backgroundSessionTimeoutMinutes * 60_000L
+            sessionSleepUntil[requireNotNull(policy.address)] =
+                now + if (config.backgroundSessionTimeoutMinutes > 0) {
+                    config.backgroundSessionTimeoutMinutes * 60_000L
+                } else {
+                    IGNORED_WHEEL_STANDBY_MILLIS
+                }
             session.disconnect(userInitiated = false)
             finishSession()
             showNotification(R.string.background_session_waiting)
@@ -443,5 +448,8 @@ class BackgroundSessionService : Service() {
         private const val NOTIFICATION_ID = 20
         private const val EVENT_NOTIFICATION_ID = 21
         private const val PRESENCE_ABSENCE_MILLIS = 60_000L
+
+        /** Standby before a wheel given up with a 0-minute timeout is considered again. */
+        private const val IGNORED_WHEEL_STANDBY_MILLIS = 60_000L
     }
 }
