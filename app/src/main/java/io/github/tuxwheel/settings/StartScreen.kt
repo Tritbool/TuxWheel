@@ -68,6 +68,12 @@ fun startScreen(
             onSelect(SettingsScreenEnum.Application.name)
         }
         clickablePref(
+            name = stringResource(R.string.stealth_settings_title),
+            themeIcon = ThemeIconEnum.SettingsBug,
+        ) {
+            onSelect(SettingsScreenEnum.Stealth.name)
+        }
+        clickablePref(
             name = stringResource(R.string.logs_settings_title),
             themeIcon = ThemeIconEnum.SettingsLog,
         ) {

@@ -78,9 +78,9 @@ internal fun commandContractSettings(
     // limiter speed and the user's own max speed is parked for the restore, so the max-speed row
     // edits that parked value instead of overwriting the limiter behind its back.
     var limiterSavedMaxSpeed by remember(state.deviceAddress) {
-        mutableIntStateOf(appConfig.speedLimiterSavedMaxSpeed)
+        mutableIntStateOf(appConfig.speedLimiterSavedMaxSpeedFor(state.deviceAddress))
     }
-    val speedLimiterHoldsTheWheel = appConfig.speedLimiterEnabled
+    val speedLimiterHoldsTheWheel = appConfig.speedLimiterEnabledFor(state.deviceAddress)
     val reportedValues = mapOf(
         "SET_PEDALS_MODE" to listOfNotNull(state.pedalsMode),
         "SET_ALARM_SPEED" to listOfNotNull(alarmCommandValue),
@@ -104,7 +104,7 @@ internal fun commandContractSettings(
         if (speedLimit && speedLimiterHoldsTheWheel) {
             if (written != null) {
                 limiterSavedMaxSpeed = written
-                appConfig.speedLimiterSavedMaxSpeed = written
+                appConfig.setSpeedLimiterSavedMaxSpeedFor(state.deviceAddress, written)
             }
         } else {
             commandValueToReportedInt(value)?.let {

@@ -22,6 +22,7 @@ import io.github.tuxwheel.R
 enum class SettingsScreenEnum(@StringRes val title: Int) {
     Start(title = R.string.settings_title),
     SpeedLimiter(title = R.string.speed_limiter_title),
+    Stealth(title = R.string.stealth_settings_title),
     Application(title = R.string.speed_settings_title),
     Log(title = R.string.logs_settings_title),
     Alarm(title = R.string.alarm_settings_title),
@@ -94,6 +95,9 @@ fun mainScreen(
             }
             composable(route = SettingsScreenEnum.SpeedLimiter.name) {
                 speedLimiterScreen()
+            }
+            composable(route = SettingsScreenEnum.Stealth.name) {
+                stealthScreen()
             }
             composable(route = SettingsScreenEnum.Application.name) {
                 applicationScreen()

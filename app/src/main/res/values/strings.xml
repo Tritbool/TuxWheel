@@ -308,6 +308,9 @@
     <string name="on_board_horn_ks">On-board (KingSong)</string>
     <string name="bluetooth_audio_horn">via bluetooth audio</string>
     <string name="speed_settings_title">Application Settings</string>
+    <string name="stealth_settings_title">Stealth / sheriff mode</string>
+    <string name="stealth_master_title">Enable stealth / sheriff mode</string>
+    <string name="stealth_master_description">Turn every stealth option on or off at once: hide trip maximum and average speeds, and leave the speed column out of newly recorded CSV logs. Each option can also be controlled individually below.</string>
     <string name="logs_settings_title">Log Settings</string>
     <string name="alarm_settings_title">Alarm Settings</string>
     <string name="watch_settings_title">Watch/Band Preferences</string>
