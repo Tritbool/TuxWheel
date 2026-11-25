@@ -812,4 +812,7 @@
     <string name="disable_phone_beep_description">Disable phone beep for alarms</string>
     <string name="horn_mode_description">Horn mode</string>
     <string name="logging_error_network_disabled">Network is disabled</string>
+    <string name="unit_degree">degree</string>
+    <string name="ride_mode_offroad">Off-road</string>
+    <string name="ride_mode_commuting">Commuting</string>
 </resources>

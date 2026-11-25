@@ -1055,6 +1055,15 @@ class BleSessionViewModel internal constructor(
             ledMode = data.ledMode ?: previous.ledMode,
             lightMode = data.lightMode ?: previous.lightMode,
             alertFlags = data.alertFlags ?: previous.alertFlags,
+            // The InMotion V9 settings readback rides the realtime frames; a telemetry-only frame
+            // that predates the status page must not blank rows the wheel already answered.
+            rideModeOffroad = data.rideModeOffroad ?: previous.rideModeOffroad,
+            pedalSensitivityPercent = data.pedalSensitivityPercent ?: previous.pedalSensitivityPercent,
+            pedalMountingAngleTenths = data.pedalMountingAngleTenths ?: previous.pedalMountingAngleTenths,
+            speakerVolumePercent = data.speakerVolumePercent ?: previous.speakerVolumePercent,
+            speakerMuted = data.speakerMuted ?: previous.speakerMuted,
+            avasEnabled = data.avasEnabled ?: previous.avasEnabled,
+            daytimeRunningLight = data.daytimeRunningLight ?: previous.daytimeRunningLight,
         )
     }
 

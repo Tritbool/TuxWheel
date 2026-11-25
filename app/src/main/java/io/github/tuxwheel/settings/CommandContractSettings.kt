@@ -262,7 +262,13 @@ private fun commandReportedValueLabel(
             else current.toString()
         }
         is CommandInput.Range -> (value as? CommandValue.Integer)?.let {
-            "${it.value} ${input.unit}".trim()
+            // A range expressed in tenths of a degree (the InMotion pedal angle) reads as
+            // its decimal value; "10 0.1 degree" made the user believe the angle was wrong.
+            if (input.unit == TENTHS_DEGREE_UNIT) {
+                "${"%.1f".format(it.value / 10.0)} ${stringResource(R.string.unit_degree)}"
+            } else {
+                "${it.value} ${input.unit}".trim()
+            }
         }
         is CommandInput.Tuple -> (value as? CommandValue.Integers)?.copyValues()?.joinToString()
         else -> null
@@ -343,8 +349,14 @@ private fun reportedSettingLabel(
         val optionId = input.options.firstOrNull { it.value == value }?.id
         if (optionId != null) return localizedCommandOptionLabel(optionId, manufacturer, commandId)
     }
+    if (input is CommandInput.Range && input.unit == TENTHS_DEGREE_UNIT) {
+        return "%.1f".format(value / 10.0) + " " + stringResource(R.string.unit_degree)
+    }
     return value.toString()
 }
+
+/** The library-wide unit string for ranges denominated in tenths of a degree. */
+private const val TENTHS_DEGREE_UNIT = "0.1 degree"
 
 @Composable
 private fun localizedCommandOptionLabel(
