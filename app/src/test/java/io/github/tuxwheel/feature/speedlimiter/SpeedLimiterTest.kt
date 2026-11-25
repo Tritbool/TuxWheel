@@ -190,7 +190,7 @@ class SpeedLimiterTest {
         wheelMax = 55
         writtenMax = null
         // The V9 plain realtime frame puts its dynamic limit in speedLimit: it must be ignored.
-        connect("InMotion", tiltBack = 40, speedLimit = 42.29)
+        connect("InMotion", reportedMax = 40, speedLimit = 42.29)
         assertThat(SpeedLimiter.enable(session, config)).isTrue()
         assertThat(saved).isEqualTo(40)
 
@@ -206,7 +206,7 @@ class SpeedLimiterTest {
     @Test
     fun `a stale parked maximum loses against a fresh wheel report`() {
         saved = 55 // left by the faulty version
-        connect("InMotion", tiltBack = 40)
+        connect("InMotion", reportedMax = 40)
         assertThat(SpeedLimiter.enable(session, config)).isTrue()
         assertThat(saved).isEqualTo(40)
     }
@@ -214,7 +214,7 @@ class SpeedLimiterTest {
     @Test
     fun `a wheel report equal to the limiter speed keeps the parked maximum`() {
         saved = 40
-        connect("InMotion", tiltBack = 20) // still the limiter's own ceiling
+        connect("InMotion", reportedMax = 20) // still the limiter's own ceiling
         assertThat(SpeedLimiter.enable(session, config)).isTrue()
         assertThat(saved).isEqualTo(40)
     }

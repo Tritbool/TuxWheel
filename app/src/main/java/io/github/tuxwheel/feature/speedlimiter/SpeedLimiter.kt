@@ -58,7 +58,7 @@ object SpeedLimiter {
      *  3. The last max speed the app wrote to this wheel (per wheel address).
      *
      * The app-wide [AppConfig.wheelMaxSpeed] is never used: it is shared by every wheel, so it
-     * carried the KingSong's 55 km/h into the InMotion V9 (factory ceiling below that), the V9
+     * carried another wheel's 55 km/h into the InMotion V9 (factory ceiling below that), the V9
      * refused the restore and stayed at the limiter speed.
      */
     fun currentWheelMaxSpeed(state: BleSessionState, config: AppConfig): Int? {
@@ -133,16 +133,10 @@ object SpeedLimiter {
     }
 
     /**
-     * The configured max speed as reported by the wheel itself, per brand:
-     *  - KingSong: settings frame ([BleSessionState.wheelMaxSpeed]), else its speed-limit field.
-     *  - Ninebot Z: its own speed-limit field.
-     *  - InMotion V9/P6, Gotway and the others: the tiltback field. On the V9 it comes from the
-     *    status page (body[9]); its [BleSessionState.speedLimit] is NOT usable because the plain
-     *    0x04 realtime frame fills it with the battery-dependent dynamic limit.
+     * The configured max speed as reported by the wheel itself. The library normalizes it into
+     * [BleSessionState.wheelMaxSpeed] for every brand that reports it (KingSong, Gotway,
+     * ExtremeBull, Leaperkim, Nosfet, Ninebot Z, InMotion V9/P6), so no brand is special-cased
+     * here.
      */
-    private fun reportedMaxSpeed(state: BleSessionState): Int? = when (state.getWheelType()) {
-        Constants.WHEEL_TYPE.KINGSONG -> state.wheelMaxSpeed ?: state.speedLimit?.toInt()
-        Constants.WHEEL_TYPE.NINEBOT_Z -> state.wheelMaxSpeed ?: state.speedLimit?.toInt()
-        else -> state.wheelMaxSpeed ?: state.tiltBackSpeed
-    }?.takeIf { it > 0 }
+    private fun reportedMaxSpeed(state: BleSessionState): Int? = state.wheelMaxSpeed?.takeIf { it > 0 }
 }

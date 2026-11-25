@@ -1048,7 +1048,9 @@ class BleSessionViewModel internal constructor(
             tiltBackSpeed = data.tiltBackSpeed ?: previous.tiltBackSpeed,
             speedLimit = data.speedLimit ?: previous.speedLimit.takeIf { kingsong },
             dynamicSpeedLimit = data.dynamicSpeedLimit ?: previous.dynamicSpeedLimit.takeIf { kingsong },
-            wheelMaxSpeed = data.wheelMaxSpeed ?: previous.wheelMaxSpeed.takeIf { kingsong },
+            // Configured max speed reported by the wheel, normalized by the library for every brand;
+            // Gotway/Leaperkim report it in a rarer settings frame, so it is carried for all brands.
+            wheelMaxSpeed = data.wheelMaxSpeed ?: previous.wheelMaxSpeed,
             alarm1Speed = data.alarm1Speed ?: previous.alarm1Speed.takeIf { kingsong },
             alarm2Speed = data.alarm2Speed ?: previous.alarm2Speed.takeIf { kingsong },
             alarm3Speed = data.alarm3Speed ?: previous.alarm3Speed.takeIf { kingsong },

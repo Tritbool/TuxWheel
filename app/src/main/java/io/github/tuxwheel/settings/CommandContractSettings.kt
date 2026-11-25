@@ -88,12 +88,13 @@ internal fun commandContractSettings(
         "SET_ALARM_SPEED" to alarmCommandValue.orEmpty(),
         "SET_LED_MODE" to listOfNotNull(state.ledMode),
         "SET_LIGHT_MODE" to listOfNotNull(state.lightMode),
-        // KingSong answers its configured max speed in the settings frame, Gotway in the tiltback
-        // field and the Ninebot Z in its own speed-limit field; wheels that answer nothing fall
-        // back to the last value written below.
+        // The library reports the configured max speed in wheelMaxSpeed for every brand that
+        // answers it (never the last value written, so a refused write does not show up here).
+        // speedLimit is not a fallback: on the InMotion V9 it carries the dynamic limit. Wheels
+        // that answer nothing fall back to the last value written below.
         "SET_SPEED_LIMIT" to listOfNotNull(
             if (speedLimiterHoldsTheWheel) limiterSavedMaxSpeed
-            else state.wheelMaxSpeed ?: state.tiltBackSpeed ?: state.speedLimit?.toInt()
+            else state.wheelMaxSpeed
         ),
         // Every row below is reported by the wheel itself and lands in EUCData:
         // the InMotion V9 status page (ride mode, pedal sensitivity and angle, speaker volume,
