@@ -100,7 +100,7 @@ class CommandContractMappingTest {
     }
 
     @Test
-    fun `boolean readbacks report as the 0/1 the toggle inputs take`() {
+    fun `boolean readbacks report as the 0-or-1 ints the toggle inputs take`() {
         assertThat(true.asReportedInt()).isEqualTo(1)
         assertThat(false.asReportedInt()).isEqualTo(0)
         assertThat((null as Boolean?).asReportedInt()).isNull()
