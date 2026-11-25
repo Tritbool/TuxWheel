@@ -25,6 +25,7 @@ class SpeedLimiterTest {
     private var limit = 20
     private var saved = 0
     private var wheelMax = 35
+    private var writtenMax: Int? = 35
 
     @Before
     fun setUp() {
@@ -45,9 +46,17 @@ class SpeedLimiterTest {
         every { config.setSpeedLimiterSavedMaxSpeedFor(any(), any()) } answers { saved = secondArg() }
         every { config.wheelMaxSpeed } answers { wheelMax }
         every { config.wheelMaxSpeed = any() } answers { wheelMax = firstArg() }
+        every { config.wheelCommandValues(any()) } answers {
+            writtenMax?.let { mapOf(CommandType.SET_SPEED_LIMIT.name to it) }.orEmpty()
+        }
     }
 
-    private fun connect(manufacturer: String = "Gotway", reportedMax: Int? = null) {
+    private fun connect(
+        manufacturer: String = "Gotway",
+        reportedMax: Int? = null,
+        tiltBack: Int? = null,
+        speedLimit: Double? = null,
+    ) {
         states.value = BleSessionState(
             connectionState = BLEConstants.ConnectionState.CONNECTED,
             commandDescriptors = listOf(
@@ -62,7 +71,8 @@ class SpeedLimiterTest {
             lastData = mockk(relaxed = true) {
                 every { this@mockk.manufacturer } returns manufacturer
                 every { this@mockk.wheelMaxSpeed } returns reportedMax
-                every { this@mockk.speedLimit } returns null
+                every { this@mockk.tiltBackSpeed } returns tiltBack
+                every { this@mockk.speedLimit } returns speedLimit
                 every { this@mockk.alarm1Speed } returns 20
                 every { this@mockk.alarm2Speed } returns 25
                 every { this@mockk.alarm3Speed } returns 30
@@ -169,6 +179,62 @@ class SpeedLimiterTest {
 
         assertThat(SpeedLimiter.disable(session, config)).isFalse()
         assertThat(enabled).isTrue()
+        verify(exactly = 0) { session.sendCommand(any<String>(), any<CommandValue>()) }
+    }
+
+    // --- InMotion V9 field report: the limiter parked 55 km/h (the app-wide max speed written
+    // for another wheel) instead of the 40 km/h the V9 reports, and the V9 refused the restore.
+
+    @Test
+    fun `inmotion parks the tiltback the wheel reports, never the app-wide max speed`() {
+        wheelMax = 55
+        writtenMax = null
+        // The V9 plain realtime frame puts its dynamic limit in speedLimit: it must be ignored.
+        connect("InMotion", reportedMax = 40, speedLimit = 42.29)
+        assertThat(SpeedLimiter.enable(session, config)).isTrue()
+        assertThat(saved).isEqualTo(40)
+
+        assertThat(SpeedLimiter.disable(session, config)).isTrue()
+        verify(exactly = 1) {
+            session.sendCommand(CommandType.SET_SPEED_LIMIT.name, CommandValue.Integer(40))
+        }
+        verify(exactly = 0) {
+            session.sendCommand(CommandType.SET_SPEED_LIMIT.name, CommandValue.Integer(55))
+        }
+    }
+
+    @Test
+    fun `a stale parked maximum loses against a fresh wheel report`() {
+        saved = 55 // left by the faulty version
+        connect("InMotion", reportedMax = 40)
+        assertThat(SpeedLimiter.enable(session, config)).isTrue()
+        assertThat(saved).isEqualTo(40)
+    }
+
+    @Test
+    fun `a wheel report equal to the limiter speed keeps the parked maximum`() {
+        saved = 40
+        connect("InMotion", reportedMax = 20) // still the limiter's own ceiling
+        assertThat(SpeedLimiter.enable(session, config)).isTrue()
+        assertThat(saved).isEqualTo(40)
+    }
+
+    @Test
+    fun `limiter refuses to engage when the user maximum is unknown`() {
+        wheelMax = 55
+        writtenMax = null
+        connect("InMotion")
+        assertThat(SpeedLimiter.enable(session, config)).isFalse()
+        assertThat(enabled).isFalse()
+        verify(exactly = 0) { session.sendCommand(any<String>(), any<CommandValue>()) }
+    }
+
+    @Test
+    fun `disable never writes 0 km h when nothing is parked`() {
+        connect()
+        enabled = true
+        saved = 0
+        assertThat(SpeedLimiter.disable(session, config)).isFalse()
         verify(exactly = 0) { session.sendCommand(any<String>(), any<CommandValue>()) }
     }
 }
