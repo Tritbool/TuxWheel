@@ -121,7 +121,17 @@ protocol with any issue; do not assume all devices in a scan are EUCs.
 For KingSong, a password popup appears when the security-capable protocol is
 selected. Enter the four-digit wheel password (including leading zeros), or leave
 it empty if no password is set. Empty input or Cancel sends no authentication
-command. Passwords are not saved or automatically replayed on reconnect.
+command.
+
+The password dialog offers to save the four digits in the app's encrypted
+vault (AES-256-GCM, key held by the Android Keystore; only ciphertext is
+written to storage, keyed by wheel address). A saved PIN is replayed
+automatically once per connection when the wheel asks for it — this is what
+lets the black box and the saved-wheel auto-connect authenticate on their
+own — and a wrong or stale PIN simply falls back to the manual dialog.
+The "Forget the saved password" button in the same dialog removes it.
+Nothing is saved unless you tick the checkbox; empty input or Cancel sends
+no authentication command.
 Unconfirmed authentication offers retry; it does not necessarily mean a wrong
 password. Authentication does not automatically send the experimental wheel
 lock/unlock command.

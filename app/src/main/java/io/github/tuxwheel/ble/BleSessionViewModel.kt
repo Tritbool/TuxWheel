@@ -16,6 +16,7 @@ import io.github.tuxwheel.utils.Calculator
 import io.github.tuxwheel.utils.Constants
 import io.github.tuxwheel.utils.Constants.wheel_type_from_string
 import io.github.tuxwheel.utils.SmartBms
+import io.github.tuxwheel.utils.WheelPasswordVault
 import io.github.tuxwheel.bms.BmsMapper
 import io.github.tuxwheel.bms.BmsSnapshot
 import io.github.tritbool.euc.ble.EucBleClient
@@ -87,10 +88,16 @@ import kotlin.time.Duration.Companion.milliseconds
 class BleSessionViewModel internal constructor(
     application: Application,
     clientOverride: EucBleClient?,
+    passwordVaultOverride: WheelPasswordVault? = null,
 ) : AndroidViewModel(application), KoinComponent {
     constructor(application: Application) : this(application, null)
 
     private val appConfig: AppConfig by inject()
+    private val passwordVault: WheelPasswordVault =
+        passwordVaultOverride ?: WheelPasswordVault(application)
+
+    /** Address whose saved PIN was replayed once on the current connection; reset on link loss. */
+    private var replayedPinAddress: String? = null
 
     private val priorityWatcher: WheelPriorityWatcher by lazy {
         WheelPriorityWatcher(getApplication(), appConfig, this@BleSessionViewModel)
@@ -314,7 +321,14 @@ class BleSessionViewModel internal constructor(
             resetPasswordPrompt()
         } else if (!passwordPromptOffered) {
             passwordPromptOffered = true
-            _sessionState.update { it.copy(passwordPromptRequired = true) }
+            val address = _sessionState.value.deviceAddress
+            val savedPin = if (address.isNotBlank()) passwordVault.load(address) else null
+            if (savedPin != null && address.isNotBlank() && replayedPinAddress != address) {
+                replayedPinAddress = address
+                replaySavedPassword(savedPin)
+            } else if (savedPin == null) {
+                _sessionState.update { it.copy(passwordPromptRequired = true) }
+            }
         }
         if (security?.authentication == AuthenticationState.AUTHENTICATED) {
             passwordResponseJob?.cancel()
@@ -354,6 +368,7 @@ class BleSessionViewModel internal constructor(
 
     private fun resetPasswordPrompt() {
         passwordPromptOffered = false
+        replayedPinAddress = null
         passwordResponseJob?.cancel()
         passwordResponseJob = null
         _sessionState.update {
@@ -386,6 +401,38 @@ class BleSessionViewModel internal constructor(
             retryPasswordPrompt()
         }
         sendCommand(CommandType.AUTHENTICATE.name, CommandValue.Text(password))
+    }
+
+    /**
+     * One automatic vault replay per connection: the saved PIN is submitted exactly like a
+     * user-entered one (same ten-second wait for the wheel's confirmation), so a wrong or
+     * stale PIN fails visibly: the manual prompt comes back with the retry message.
+     */
+    @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)
+    private fun replaySavedPassword(password: String) {
+        if (!isCommandSupported(CommandType.AUTHENTICATE)) {
+            _sessionState.update { it.copy(passwordPromptRequired = true) }
+            return
+        }
+        _sessionState.update { it.copy(passwordPromptRequired = false, passwordPromptError = false) }
+        passwordResponseJob = viewModelScope.launch {
+            delay(10_000.milliseconds)
+            retryPasswordPrompt()
+        }
+        sendCommand(CommandType.AUTHENTICATE.name, CommandValue.Text(password))
+    }
+
+    fun hasSavedWheelPassword(address: String = _sessionState.value.deviceAddress): Boolean =
+        address.isNotBlank() && passwordVault.has(address)
+
+    fun saveWheelPasswordForCurrentWheel(password: String): Boolean {
+        val address = _sessionState.value.deviceAddress
+        if (address.isBlank() || password.length != 4 || password.any { it !in '0'..'9' }) return false
+        return passwordVault.save(address, password)
+    }
+
+    fun forgetWheelPassword(address: String = _sessionState.value.deviceAddress) {
+        if (address.isNotBlank()) passwordVault.remove(address)
     }
 
     @RequiresPermission(Manifest.permission.BLUETOOTH_CONNECT)

@@ -24,6 +24,16 @@ files from other apps, device-owner tools, or a user's own backup software.
 Export any data you need before uninstalling: settings will not restore
 automatically.
 
+## Wheel passwords
+
+KingSong wheel PINs are only stored when you tick "Save this password" in the
+password dialog. They are sealed with an AES-256-GCM key that never leaves
+the Android Keystore; the app's own storage only ever holds the ciphertext
+and initialization vector, keyed by wheel address. PINs never leave the
+device, are covered by the same backup exclusions as the rest of the app's
+private storage, and can be removed at any time with the dialog's "Forget
+the saved password" button.
+
 ## Distribution channels and update checks
 
 Build with `-PenableGithubUpdates=false` to disable GitHub checks and remove

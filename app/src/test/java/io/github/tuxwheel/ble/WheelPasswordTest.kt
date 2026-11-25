@@ -35,13 +35,18 @@ import java.time.Duration
 @Config(application = Application::class, sdk = [28])
 class WheelPasswordTest {
     private lateinit var model: BleSessionViewModel
+    private val application = ApplicationProvider.getApplicationContext<Application>()
     private val client = mockk<EucBleClient>(relaxed = true)
     private var descriptors = listOf(
         textCommand(CommandType.AUTHENTICATE.name),
     )
 
+    companion object {
+        private const val WHEEL_ADDRESS = "AA:BB:CC:DD:EE:FF"
+    }
+
     @Before fun setup() {
-        model = BleSessionViewModel(ApplicationProvider.getApplicationContext())
+        model = BleSessionViewModel(application)
         model.javaClass.getDeclaredField("_eucBleClient\$delegate").apply { isAccessible = true }
             .set(model, lazyOf(client))
         every { client.getCommandDescriptors() } answers { descriptors }
@@ -105,6 +110,64 @@ class WheelPasswordTest {
         model.updateWheelSecurity(WheelSecurityState(AuthenticationState.AUTHENTICATED))
         assertThat(model.sessionState.value.wheelAuthentication).isEqualTo(AuthenticationState.AUTHENTICATED)
         verify(exactly = 0) { client.sendCommand(CommandType.AUTHENTICATE.name, any<CommandValue>()) }
+    }
+
+    private fun securedModelWithVault(secured: io.github.tuxwheel.utils.WheelPasswordVault): BleSessionViewModel {
+        val securedModel = BleSessionViewModel(application, null, secured)
+        securedModel.javaClass.getDeclaredField("_eucBleClient\$delegate").apply { isAccessible = true }
+            .set(securedModel, lazyOf(client))
+        val states = securedModel.javaClass.getDeclaredField("_sessionState")
+            .apply { isAccessible = true }
+            .get(securedModel) as kotlinx.coroutines.flow.MutableStateFlow<BleSessionState>
+        @Suppress("DEPRECATION")
+        states.value = states.value.copy(
+            selectedDevice = io.github.tritbool.euc.ble.models.EUCDevice(
+                "KingSong", WHEEL_ADDRESS, 0, rssi = -50)
+        )
+        return securedModel
+    }
+
+    @Test fun `a saved pin is replayed automatically instead of prompting`() {
+        val vault = mockk<io.github.tuxwheel.utils.WheelPasswordVault>(relaxed = true)
+        every { vault.load(WHEEL_ADDRESS) } returns "0012"
+        val securedModel = securedModelWithVault(vault)
+
+        securedModel.updateWheelSecurity(WheelSecurityState(AuthenticationState.REQUIRED))
+
+        verify(exactly = 1) {
+            client.sendCommand(CommandType.AUTHENTICATE.name, CommandValue.Text("0012"))
+        }
+        assertThat(securedModel.sessionState.value.passwordPromptRequired).isFalse()
+
+        securedModel.updateWheelSecurity(WheelSecurityState(AuthenticationState.AUTHENTICATED))
+        securedModel.viewModelScope.cancel()
+    }
+
+    @Test fun `a failed pin replay falls back to the manual prompt`() {
+        val vault = mockk<io.github.tuxwheel.utils.WheelPasswordVault>(relaxed = true)
+        every { vault.load(WHEEL_ADDRESS) } returns "0012"
+        val securedModel = securedModelWithVault(vault)
+
+        securedModel.updateWheelSecurity(WheelSecurityState(AuthenticationState.REQUIRED))
+        securedModel.handleWheelSecurityEvent(
+            WheelSecurityEvent.AuthenticationStatus(AuthenticationState.REQUIRED)
+        )
+
+        assertThat(securedModel.sessionState.value.passwordPromptRequired).isTrue()
+        assertThat(securedModel.sessionState.value.passwordPromptError).isTrue()
+        securedModel.viewModelScope.cancel()
+    }
+
+    @Test fun `a wheel without a saved pin still offers the manual prompt`() {
+        val vault = mockk<io.github.tuxwheel.utils.WheelPasswordVault>(relaxed = true)
+        every { vault.load(WHEEL_ADDRESS) } returns null
+        val securedModel = securedModelWithVault(vault)
+
+        securedModel.updateWheelSecurity(WheelSecurityState(AuthenticationState.REQUIRED))
+
+        verify(exactly = 0) { client.sendCommand(any<String>(), any<CommandValue>()) }
+        assertThat(securedModel.sessionState.value.passwordPromptRequired).isTrue()
+        securedModel.viewModelScope.cancel()
     }
 
     @Test fun `late V9 identification refreshes observable lock and diagnostic capabilities`() {
