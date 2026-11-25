@@ -147,4 +147,7 @@
 	<string name="pedal_horizont_description">Regulacja pochylenia pedałów</string>
     <string name="volt">V</string>
 	<string name="watt">W</string>
+    <string name="unit_degree">grau</string>
+    <string name="ride_mode_offroad">Todo-o-terreno</string>
+    <string name="ride_mode_commuting">Conforto</string>
 </resources>

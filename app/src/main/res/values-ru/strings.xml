@@ -482,4 +482,7 @@
     <string name="dashboard_pages_category_title">Страницы</string>
     <string name="audio_category_title">Звук</string>
     <string name="connection_category_title">Подключение</string>
+    <string name="unit_degree">градус</string>
+    <string name="ride_mode_offroad">Бездорожье</string>
+    <string name="ride_mode_commuting">Комфорт</string>
 </resources>

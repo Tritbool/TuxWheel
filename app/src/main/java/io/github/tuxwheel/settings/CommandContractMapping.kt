@@ -266,6 +266,8 @@ internal fun commandOptionLabelResource(
         "on" -> R.string.on
         "off" -> R.string.off
         "strobe" -> R.string.strobe
+        "offroad" -> R.string.ride_mode_offroad
+        "commuting" -> R.string.ride_mode_commuting
         "led_type1" -> R.string.led_type1
         "led_type2" -> R.string.led_type2
         "led_type3" -> R.string.led_type3

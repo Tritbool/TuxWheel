@@ -147,4 +147,7 @@
 	<string name="pedal_horizont_description">Horizontale Justierung</string>
     <string name="volt">V</string>
 	<string name="watt">W</string>
+    <string name="unit_degree">Grad</string>
+    <string name="ride_mode_offroad">Offroad</string>
+    <string name="ride_mode_commuting">Komfort</string>
 </resources>

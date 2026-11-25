@@ -302,4 +302,7 @@
     <string name="use_fahrenheit_title">Використовувати Фаренгейт</string>
     <string name="use_fahrenheit_description">Показувати температуру в Фаренгейті замість Цельсію</string>
     <string name="measurement_systems_category_title">Системи вимірювання</string>
+    <string name="unit_degree">градус</string>
+    <string name="ride_mode_offroad">Бездоріжжя</string>
+    <string name="ride_mode_commuting">Комфорт</string>
 </resources>

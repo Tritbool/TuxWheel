@@ -305,4 +305,7 @@
 	<string name="pedal_horizont_description">Réglage horizontal des pédales</string>
     <string name="volt">V</string>
 	<string name="watt">W</string>
+    <string name="unit_degree">degré</string>
+    <string name="ride_mode_offroad">Tout-terrain</string>
+    <string name="ride_mode_commuting">Confort</string>
 </resources>

@@ -317,4 +317,7 @@
     <string name="power_off">"전원 끔"</string>
     <string name="power_off_message">"휠이 꺼집니다. 확실합니까?"</string>
     <string name="current_mac">"MAC 주소"</string>
+    <string name="unit_degree">도</string>
+    <string name="ride_mode_offroad">오프로드</string>
+    <string name="ride_mode_commuting">통근</string>
 </resources>
