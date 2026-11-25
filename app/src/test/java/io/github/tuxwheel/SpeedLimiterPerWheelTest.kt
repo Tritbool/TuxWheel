@@ -34,6 +34,15 @@ class SpeedLimiterPerWheelTest {
         assertThat(config.speedLimiterSpeedFor(s18)).isEqualTo(40)
     }
 
+    @Test fun `an untouched wheel has no parked maximum, not another wheel's default`() {
+        // Regression: the per-wheel parked maximum must start at "nothing" (0). A fresh V9
+        // used to inherit the global parked default of 25 km/h, so disabling the limiter
+        // "restored" 25 and the rider stayed stuck under the limiter speed.
+        assertThat(config.speedLimiterSavedMaxSpeedFor(s18)).isEqualTo(0)
+        // The shared entry for anonymous sessions keeps its historical default.
+        assertThat(config.speedLimiterSavedMaxSpeedFor("")).isEqualTo(config.speedLimiterSavedMaxSpeed)
+    }
+
     @Test fun `one wheel's saved maximum never bleeds into another wheel`() {
         config.setSpeedLimiterEnabledFor(s18, true)
         config.setSpeedLimiterSavedMaxSpeedFor(s18, 40)
