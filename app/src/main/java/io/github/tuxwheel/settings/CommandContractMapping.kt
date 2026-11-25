@@ -19,7 +19,7 @@ import io.github.tuxwheel.ble.isSupportedCommandInput
 internal enum class WheelCommandSection(val title: Int, val commandIds: List<String>) {
     PEDALS(
         R.string.wheel_section_pedals,
-        listOf("SET_PEDALS_MODE", "SET_PEDAL_ANGLE", "SET_PEDAL_CUTOFF_ANGLE", "SET_PEDAL_PITCH_TRIM"),
+        listOf("SET_PEDALS_MODE", "SET_PEDAL_ANGLE", "SET_PEDAL_SENSITIVITY", "SET_PEDAL_CUTOFF_ANGLE", "SET_PEDAL_PITCH_TRIM"),
     ),
     RIDING(
         R.string.wheel_section_riding,
@@ -29,10 +29,14 @@ internal enum class WheelCommandSection(val title: Int, val commandIds: List<Str
         R.string.wheel_section_lighting,
         listOf(
             "SET_LIGHT_MODE", "LIGHT_BRIGHTNESS", "LIGHT_ON", "LIGHT_OFF",
+            "SET_DRL",
             "SET_LED_MODE", "SET_LED_STROBE", "SET_HIGH_BEAM",
         ),
     ),
-    ALARMS(R.string.wheel_section_alarms, listOf("SET_ALARM_SPEED", "SPEAKER_VOLUME", "BEEP")),
+    ALARMS(
+        R.string.wheel_section_alarms,
+        listOf("SET_ALARM_SPEED", "SPEAKER_VOLUME", "SET_MUTE", "SET_AVAS", "BEEP"),
+    ),
     POWER_BATTERY(
         R.string.wheel_section_power_battery,
         listOf("SET_STANDBY_DELAY", "SET_CHARGE_LIMIT"),
