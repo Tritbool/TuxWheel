@@ -1,4 +1,4 @@
 [submodule "ble-library"]
 	path = ble-library
 	url = https://github.com/Tritbool/euc_ble_library.git
-	branch = background-session
+	branch = main
