@@ -73,6 +73,8 @@ internal fun commandContractSettings(
         alarmCommandInput,
         state.alarmMode,
         state.alarm1Speed,
+        state.alarm2Speed,
+        state.alarm3Speed,
     )
     // The speed limiter writes this very same wheel register. While it is on the wheel holds the
     // limiter speed and the user's own max speed is parked for the restore, so the max-speed row
@@ -83,15 +85,27 @@ internal fun commandContractSettings(
     val speedLimiterHoldsTheWheel = appConfig.speedLimiterEnabledFor(state.deviceAddress)
     val reportedValues = mapOf(
         "SET_PEDALS_MODE" to listOfNotNull(state.pedalsMode),
-        "SET_ALARM_SPEED" to listOfNotNull(alarmCommandValue),
+        "SET_ALARM_SPEED" to alarmCommandValue.orEmpty(),
         "SET_LED_MODE" to listOfNotNull(state.ledMode),
         "SET_LIGHT_MODE" to listOfNotNull(state.lightMode),
         // KingSong answers its configured max speed in the settings frame, Gotway in the tiltback
-        // field; wheels that answer nothing fall back to the last value written below.
+        // field and the Ninebot Z in its own speed-limit field; wheels that answer nothing fall
+        // back to the last value written below.
         "SET_SPEED_LIMIT" to listOfNotNull(
             if (speedLimiterHoldsTheWheel) limiterSavedMaxSpeed
-            else state.wheelMaxSpeed ?: state.tiltBackSpeed
+            else state.wheelMaxSpeed ?: state.tiltBackSpeed ?: state.speedLimit?.toInt()
         ),
+        // Every row below is reported by the wheel itself and lands in EUCData:
+        // the InMotion V9 status page (ride mode, pedal sensitivity and angle, speaker volume,
+        // mute, AVAS, DRL, speed units) and the KingSong alarm tuple.
+        "SET_RIDE_MODE" to listOfNotNull(state.rideModeOffroad?.asReportedInt()),
+        "SET_PEDAL_SENSITIVITY" to listOfNotNull(state.pedalSensitivityPercent),
+        "SET_PEDAL_ANGLE" to listOfNotNull(state.pedalMountingAngleTenths),
+        "SPEAKER_VOLUME" to listOfNotNull(state.speakerVolumePercent),
+        "SET_MUTE" to listOfNotNull(state.speakerMuted.asReportedInt()),
+        "SET_AVAS" to listOfNotNull(state.avasEnabled.asReportedInt()),
+        "SET_DRL" to listOfNotNull(state.daytimeRunningLight.asReportedInt()),
+        "SET_IMPERIAL_UNITS" to listOfNotNull(state.usesMiles.asReportedInt()),
     )
     // Wheels that never report a setting back leave the screen with nothing to show, so the last
     // value written to this wheel is kept and stands in for the missing report.

@@ -22,12 +22,18 @@ jobs:
         with:
           persist-credentials: false
 
-      # The background API is not published yet; keep this revision reproducible.
+      # The background API is not published yet; build against the exact revision the
+      # ble-library submodule pins — the single source of truth, so the CI can never
+      # desync from what the app actually compiles against.
+      - name: Resolve BLE library revision from the submodule
+        id: blelib
+        run: echo "ref=$(git ls-tree HEAD ble-library | awk '{print $3}')" >> "$GITHUB_OUTPUT"
+
       - name: Checkout BLE library
         uses: actions/checkout@v4
         with:
           repository: Tritbool/euc_ble_library
-          ref: 70d72541bcf44879d1ab0e50ad1f64c86cf61195
+          ref: ${{ steps.blelib.outputs.ref }}
           path: .ci/euc-ble-library
           persist-credentials: false
 

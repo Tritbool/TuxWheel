@@ -67,9 +67,43 @@ class CommandContractMappingTest {
         val choice = CommandInput.Choice(listOf(CommandInput.Option("sport", 1)))
         val range = CommandInput.Range(5, 65, 5, "km/h")
 
-        assertThat(reportedAlarmCommandValue(choice, alarmMode = 1, alarmSpeed = 25)).isEqualTo(1)
-        assertThat(reportedAlarmCommandValue(range, alarmMode = 1, alarmSpeed = 25)).isEqualTo(25)
-        assertThat(reportedAlarmCommandValue(null, alarmMode = 1, alarmSpeed = 25)).isNull()
+        assertThat(
+            reportedAlarmCommandValue(choice, alarmMode = 1, alarm1Speed = 25, alarm2Speed = 45, alarm3Speed = 50)
+        ).isEqualTo(listOf(1))
+        assertThat(
+            reportedAlarmCommandValue(range, alarmMode = 1, alarm1Speed = 25, alarm2Speed = 45, alarm3Speed = 50)
+        ).isEqualTo(listOf(25))
+        assertThat(
+            reportedAlarmCommandValue(null, alarmMode = 1, alarm1Speed = 25, alarm2Speed = 45, alarm3Speed = 50)
+        ).isNull()
+    }
+
+    @Test
+    fun `the KingSong alarm tuple reports all three alarm speeds together`() {
+        val tuple = CommandInput.Tuple(
+            "kingsong_alarms",
+            listOf(
+                CommandInput.Field("alarm1", CommandInput.Range(0, 100, 1, "km/h")),
+                CommandInput.Field("alarm2", CommandInput.Range(0, 100, 1, "km/h")),
+                CommandInput.Field("alarm3", CommandInput.Range(0, 100, 1, "km/h")),
+            ),
+        )
+
+        assertThat(
+            reportedAlarmCommandValue(tuple, alarmMode = null, alarm1Speed = 25, alarm2Speed = 45, alarm3Speed = 50)
+        ).isEqualTo(listOf(25, 45, 50))
+        assertThat(
+            reportedAlarmCommandValue(tuple, alarmMode = null, alarm1Speed = 25, alarm2Speed = null, alarm3Speed = 50)
+        ).isNull()
+        assertThat(commandValueFromReportedValues(tuple, listOf(25, 45, 50)))
+            .isEqualTo(CommandValue.Integers(listOf(25, 45, 50)))
+    }
+
+    @Test
+    fun `boolean readbacks report as the 0-or-1 ints the toggle inputs take`() {
+        assertThat(true.asReportedInt()).isEqualTo(1)
+        assertThat(false.asReportedInt()).isEqualTo(0)
+        assertThat((null as Boolean?).asReportedInt()).isNull()
     }
 
     @Test
