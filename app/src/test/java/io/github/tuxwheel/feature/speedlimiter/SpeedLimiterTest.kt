@@ -98,6 +98,33 @@ class SpeedLimiterTest {
     }
 
     @Test
+    fun `previous cycle parked maximum wins over the wheel stale report`() {
+        connect()
+        SpeedLimiter.enable(session, config)
+        assertThat(saved).isEqualTo(35)
+
+        // While the limiter is engaged the wheel's ceiling report carries the limiter speed;
+        // right after a disable->re-enable that report is still the stale limit.
+        states.value = states.value.copy(
+            lastData = mockk(relaxed = true) {
+                every { this@mockk.manufacturer } returns "Gotway"
+                every { this@mockk.wheelMaxSpeed } returns 20
+            }
+        )
+        SpeedLimiter.disable(session, config)
+        SpeedLimiter.enable(session, config)
+
+        assertThat(saved).isEqualTo(35)
+    }
+
+    @Test
+    fun `a wheel reporting its ceiling parks that value when nothing is stored`() {
+        connect(reportedMax = 44)
+        assertThat(SpeedLimiter.enable(session, config)).isTrue()
+        assertThat(saved).isEqualTo(44)
+    }
+
+    @Test
     fun `kingsong saves the wheel reported max speed`() {
         connect("Kingsong", reportedMax = 42)
         assertThat(SpeedLimiter.toggle(session, config)).isTrue()

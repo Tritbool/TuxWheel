@@ -45,10 +45,17 @@ object SpeedLimiter {
 
     private fun addressOf(state: BleSessionState): String = state.deviceAddress.uppercase()
 
-    /** The wheel max speed currently configured by the user (before any limiter is applied). */
+    /**
+     * The wheel max speed currently configured by the user (before any limiter is applied).
+     * The parked value from a previous limiter cycle wins: right after a disable→re-enable the
+     * wheel still reports the limiter's own ceiling, and without the parked entry it would be
+     * treated as the user's maximum. A wheel with no parked entry uses its own report, and the
+     * only fallback left is the app-side maximum — never the parked default of another wheel.
+     */
     fun currentWheelMaxSpeed(state: BleSessionState, config: AppConfig): Int =
-        reportedMaxSpeed(state)
-            ?: config.speedLimiterSavedMaxSpeedFor(addressOf(state)).takeIf { it > 0 }
+        config.speedLimiterSavedMaxSpeedFor(addressOf(state)).takeIf { it > 0 }
+            ?: reportedMaxSpeed(state)
+            ?: state.wheelMaxSpeed?.takeIf { it > 0 }
             ?: config.wheelMaxSpeed
 
     @SuppressLint("MissingPermission")

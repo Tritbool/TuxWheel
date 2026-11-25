@@ -447,7 +447,7 @@ class AppConfig(var context: Context) : KoinComponent {
 
     fun speedLimiterSavedMaxSpeedFor(address: String): Int =
         if (address.isBlank()) speedLimiterSavedMaxSpeed
-        else getValue(speedLimiterPrefKey(address, "saved_max"), speedLimiterSavedMaxSpeed)
+        else getValue(speedLimiterPrefKey(address, "saved_max"), 0)
 
     fun setSpeedLimiterSavedMaxSpeedFor(address: String, value: Int) {
         if (address.isBlank()) speedLimiterSavedMaxSpeed = value
