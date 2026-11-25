@@ -125,7 +125,13 @@ internal fun commandContractSettings(
                 writtenValues[commandId] = it
                 appConfig.setWheelCommandValue(state.deviceAddress, commandId, it)
             }
-            if (speedLimit && written != null) appConfig.wheelMaxSpeed = written
+            if (speedLimit && written != null) {
+                appConfig.wheelMaxSpeed = written
+                // A new max speed chosen with the limiter off replaces a stale parked one, so the
+                // next limiter cycle restores what the rider set last, not an older value.
+                appConfig.setSpeedLimiterSavedMaxSpeedFor(state.deviceAddress, written)
+                limiterSavedMaxSpeed = written
+            }
             viewModel.sendCommand(commandId, value)
         }
     }

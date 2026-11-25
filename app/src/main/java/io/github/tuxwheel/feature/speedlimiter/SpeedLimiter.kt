@@ -46,17 +46,33 @@ object SpeedLimiter {
     private fun addressOf(state: BleSessionState): String = state.deviceAddress.uppercase()
 
     /**
-     * The wheel max speed currently configured by the user (before any limiter is applied).
-     * The parked value from a previous limiter cycle wins: right after a disable→re-enable the
-     * wheel still reports the limiter's own ceiling, and without the parked entry it would be
-     * treated as the user's maximum. A wheel with no parked entry uses its own report, and the
-     * only fallback left is the app-side maximum — never the parked default of another wheel.
+     * The wheel max speed currently configured by the user (before any limiter is applied), or
+     * null when it is unknown.
+     *
+     * Order of trust:
+     *  1. The value the wheel itself reports ([reportedMaxSpeed]) — the only source that is
+     *    guaranteed to be accepted back by the wheel on restore. It loses only when it equals the
+     *    limiter speed while a parked value exists: right after a disable→re-enable the wheel may
+     *    still report the limiter's own ceiling.
+     *  2. The parked value from a previous limiter cycle of this wheel.
+     *  3. The last max speed the app wrote to this wheel (per wheel address).
+     *
+     * The app-wide [AppConfig.wheelMaxSpeed] is never used: it is shared by every wheel, so it
+     * carried the KingSong's 55 km/h into the InMotion V9 (factory ceiling below that), the V9
+     * refused the restore and stayed at the limiter speed.
      */
-    fun currentWheelMaxSpeed(state: BleSessionState, config: AppConfig): Int =
-        config.speedLimiterSavedMaxSpeedFor(addressOf(state)).takeIf { it > 0 }
-            ?: reportedMaxSpeed(state)
-            ?: state.wheelMaxSpeed?.takeIf { it > 0 }
-            ?: config.wheelMaxSpeed
+    fun currentWheelMaxSpeed(state: BleSessionState, config: AppConfig): Int? {
+        val address = addressOf(state)
+        val parked = config.speedLimiterSavedMaxSpeedFor(address).takeIf { it > 0 }
+        val reported = reportedMaxSpeed(state)
+        val limit = config.speedLimiterSpeedFor(address)
+        return when {
+            reported != null && (parked == null || reported != limit) -> reported
+            parked != null -> parked
+            else -> config.wheelCommandValues(state.deviceAddress)[CommandType.SET_SPEED_LIMIT.name]
+                ?.takeIf { it > 0 }
+        }
+    }
 
     @SuppressLint("MissingPermission")
     fun enable(session: BleSessionViewModel, config: AppConfig): Boolean {
@@ -68,7 +84,9 @@ object SpeedLimiter {
         if (!session.isCommandValueSupported(CommandType.SET_SPEED_LIMIT.name, CommandValue.Integer(limit))) {
             return false
         }
-        config.setSpeedLimiterSavedMaxSpeedFor(address, currentWheelMaxSpeed(state, config))
+        // Refuse rather than invent a maximum: the restore would push it to the wheel.
+        val userMax = currentWheelMaxSpeed(state, config) ?: return false
+        config.setSpeedLimiterSavedMaxSpeedFor(address, userMax)
         config.setSpeedLimiterEnabledFor(address, true)
         session.sendCommand(CommandType.SET_SPEED_LIMIT.name, CommandValue.Integer(limit))
         return true
@@ -81,6 +99,8 @@ object SpeedLimiter {
         if (!config.speedLimiterEnabledFor(address)) return true
         if (!isAvailable(session, state)) return false
         val saved = config.speedLimiterSavedMaxSpeedFor(address)
+        // Nothing parked: sending it would write 0 km/h to the wheel.
+        if (saved <= 0) return false
         if (!session.isCommandValueSupported(CommandType.SET_SPEED_LIMIT.name, CommandValue.Integer(saved))) {
             return false
         }
@@ -112,7 +132,17 @@ object SpeedLimiter {
         return true
     }
 
-    private fun reportedMaxSpeed(state: BleSessionState): Int? =
-        if (state.getWheelType() == Constants.WHEEL_TYPE.KINGSONG)
-            state.wheelMaxSpeed ?: state.speedLimit?.toInt() else null
+    /**
+     * The configured max speed as reported by the wheel itself, per brand:
+     *  - KingSong: settings frame ([BleSessionState.wheelMaxSpeed]), else its speed-limit field.
+     *  - Ninebot Z: its own speed-limit field.
+     *  - InMotion V9/P6, Gotway and the others: the tiltback field. On the V9 it comes from the
+     *    status page (body[9]); its [BleSessionState.speedLimit] is NOT usable because the plain
+     *    0x04 realtime frame fills it with the battery-dependent dynamic limit.
+     */
+    private fun reportedMaxSpeed(state: BleSessionState): Int? = when (state.getWheelType()) {
+        Constants.WHEEL_TYPE.KINGSONG -> state.wheelMaxSpeed ?: state.speedLimit?.toInt()
+        Constants.WHEEL_TYPE.NINEBOT_Z -> state.wheelMaxSpeed ?: state.speedLimit?.toInt()
+        else -> state.wheelMaxSpeed ?: state.tiltBackSpeed
+    }?.takeIf { it > 0 }
 }
