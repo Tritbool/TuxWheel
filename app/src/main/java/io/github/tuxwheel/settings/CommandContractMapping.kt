@@ -176,13 +176,24 @@ internal fun commandValueToReportedInt(value: CommandValue): Int? = when (value)
     else -> null
 }
 
+/** A boolean readback as the 0/1 the command-input contracts report. */
+internal fun Boolean?.asReportedInt(): Int? = this?.let { if (it) 1 else 0 }
+
 internal fun reportedAlarmCommandValue(
     input: CommandInput?,
     alarmMode: Int?,
-    alarmSpeed: Int?,
-): Int? = when (input) {
-    is CommandInput.Choice -> alarmMode
-    is CommandInput.Range -> alarmSpeed
+    alarm1Speed: Int?,
+    alarm2Speed: Int?,
+    alarm3Speed: Int?,
+): List<Int>? = when (input) {
+    is CommandInput.Choice -> alarmMode?.let(::listOf)
+    is CommandInput.Range -> alarm1Speed?.let(::listOf)
+    // KingSong's alarm input is a tuple of the three alarm speeds and it reports all three.
+    is CommandInput.Tuple -> if (alarm1Speed != null && alarm2Speed != null && alarm3Speed != null) {
+        listOf(alarm1Speed, alarm2Speed, alarm3Speed)
+    } else {
+        null
+    }
     else -> null
 }
 

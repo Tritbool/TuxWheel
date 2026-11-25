@@ -210,6 +210,29 @@ data class BleSessionState(
     val alarm3Speed: Int?
         get() = lastData?.alarm3Speed
 
+    // Settings the InMotion V9 status page reports (merged into every realtime frame
+    // by euc_ble_library); null for wheels that do not report them.
+    val rideModeOffroad: Boolean?
+        get() = lastData?.rideModeOffroad
+
+    val pedalSensitivityPercent: Int?
+        get() = lastData?.pedalSensitivityPercent
+
+    val pedalMountingAngleTenths: Int?
+        get() = lastData?.pedalMountingAngleTenths
+
+    val speakerVolumePercent: Int?
+        get() = lastData?.speakerVolumePercent
+
+    val speakerMuted: Boolean?
+        get() = lastData?.speakerMuted
+
+    val avasEnabled: Boolean?
+        get() = lastData?.avasEnabled
+
+    val daytimeRunningLight: Boolean?
+        get() = lastData?.daytimeRunningLight
+
     companion object {
         // Initial empty state
         val EMPTY = BleSessionState()
